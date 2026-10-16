@@ -1092,8 +1092,9 @@ header{align-items:center}
 .ob-card p{margin:0;color:var(--muted);font-size:.9rem}
 .pick{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:var(--accent);font:400 .95rem var(--display)}
 .pick .ava{width:104px;height:104px;font-size:2.4rem;border:3px solid var(--accent)}
-.ob-card input[type=text]{width:100%;box-sizing:border-box;font:400 1.15rem var(--display);text-align:center;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:var(--tray);color:var(--ink)}
-.ob-card input[type=text]:focus{outline:3px solid var(--accent);outline-offset:1px}
+.ob-card input[type=password],.ob-card input[type=text]{width:100%;box-sizing:border-box;font:400 1.15rem var(--display);text-align:center;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:var(--tray);color:var(--ink)}
+.ob-card input:focus{outline:3px solid var(--accent);outline-offset:1px}
+.linkbtn{border:0;background:none;color:var(--accent);font:400 .95rem var(--display);padding:6px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .ob-err{color:#d0344f;font-size:.8rem;min-height:1em}
 .toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);
   font:400 1rem var(--display);padding:10px 16px;border-radius:999px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
@@ -1131,11 +1132,15 @@ header{align-items:center}
   <div class="ob-card" role="dialog" aria-labelledby="obTitle">
     <h2 id="obTitle">말랑 범준</h2>
     <p id="obMsg">랭킹에 올라갈 이름이랑 프로필 사진을 정해주세요.</p>
+    <div id="obNewBox" style="display:contents">
     <label class="pick" for="obFile"><span class="ava" id="obAva">?</span>사진 고르기</label>
     <input type="file" id="obFile" accept="image/*" hidden>
+    </div>
     <input type="text" id="obName" maxlength="12" placeholder="이름 (12자까지)" autocomplete="off">
+    <input type="password" id="obPin" inputmode="numeric" maxlength="4" placeholder="비밀번호 숫자 4자리" autocomplete="off">
     <div class="ob-err" id="obErr"></div>
     <button class="btn" id="obGo" style="width:100%">시작하기</button>
+    <button class="linkbtn" id="obSwitch">전에 하던 계정이 있어요</button>
   </div>
 </div>
 
@@ -1186,7 +1191,7 @@ window.MB=(()=>{
   function add(n){rollDay();me.count+=n;me.today+=n;show();SS('count',me.count);SS('today',me.today);dirty=true;schedule()}
   function schedule(d){if(pushT)return;pushT=setTimeout(push,d||2500)}
   async function push(){pushT=0;if(!FB_URL||!me.name||!dirty)return;dirty=false;
-    rollDay();const body={name:me.name,count:me.count,today:me.today,day:me.day,eggs:nEggs(),t:Date.now()};if(profileDirty)body.photo=me.photo;
+    rollDay();const body={name:me.name,count:me.count,today:me.today,day:me.day,eggs:nEggs(),t:Date.now()};body.el=eggKeys();if(profileDirty){body.photo=me.photo;if(me.pin)body.pin=me.pin}
     try{const r=await fetch(FB_URL+'/players/'+encodeURIComponent(me.id)+'.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(!r.ok)throw new Error(r.status);profileDirty=false}
     catch(e){dirty=true;schedule(15000)}}
@@ -1241,14 +1246,36 @@ window.MB=(()=>{
   document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>close(b.dataset.close)));
   document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o&&o.id!=='obOv')close(o.id)}));
 
-  /* ---- 프로필 (처음 시작 / 수정) ---- */
-  let draftPhoto='';
+  /* ---- 계정: 이름 + 비밀번호 4자리로 어느 폰에서든 이어하기 ---- */
+  function sha256(s){const K=[1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298];
+    const b=unescape(encodeURIComponent(s)),l=b.length,w=[];for(let i=0;i<l;i++)w[i>>2]|=b.charCodeAt(i)<<(24-(i%4)*8);
+    w[l>>2]|=0x80<<(24-(l%4)*8);w[((l+8>>6)<<4)+15]=l*8;const H=[1779033703,3144134277,1013904242,2773480762,1359893119,2600822924,528734635,1541459225];
+    const r=(x,n)=>x>>>n|x<<(32-n);
+    for(let j=0;j<w.length;j+=16){const W=[];let [a,b2,c,d,e,f,g,h]=H;
+      for(let i=0;i<64;i++){W[i]=i<16?(w[j+i]|0):(r(W[i-2],17)^r(W[i-2],19)^W[i-2]>>>10)+W[i-7]+(r(W[i-15],7)^r(W[i-15],18)^W[i-15]>>>3)+W[i-16]|0;
+        const t1=h+(r(e,6)^r(e,11)^r(e,25))+(e&f^~e&g)+K[i]+W[i]|0,t2=(r(a,2)^r(a,13)^r(a,22))+(a&b2^a&c^b2&c)|0;h=g;g=f;f=e;e=d+t1|0;d=c;c=b2;b2=a;a=t1+t2|0}
+      [a,b2,c,d,e,f,g,h].forEach((v,i)=>H[i]=H[i]+v|0)}
+    return H.map(v=>(v>>>0).toString(16).padStart(8,'0')).join('')}
+  const pinHash=(id,pin)=>sha256('malang-beomjun:'+id+':'+pin);
+  me.pin=LS('pin')||'';
+  const eggKeys=()=>EGGS.filter(e=>me.eggs[e.k]).map(e=>e.k).join(',');
+  async function allPlayers(){const r=await fetch(FB_URL+'/players.json',{cache:'no-store'});if(!r.ok)throw new Error(r.status);return (await r.json())||{}}
+
+  let draftPhoto='',obMode='new';
   function setAva(el,name,photo){el.textContent='';const p=safePhoto(photo);
     if(p){const im=document.createElement('img');im.src=p;im.alt='';el.append(im)}else el.textContent=(name||'?').trim().charAt(0)||'?'}
-  function openProfile(first){draftPhoto=me.photo;$('obName').value=me.name;$('obErr').textContent='';
-    $('obMsg').textContent=first?'랭킹에 올라갈 이름이랑 프로필 사진을 정해주세요.':'이름이나 사진을 바꿀 수 있어요.';
-    $('obGo').textContent=first?'시작하기':'저장';setAva($('obAva'),me.name,draftPhoto);$('obOv').hidden=false}
+  function setMode(m,msg){obMode=m;$('obErr').textContent='';$('obPin').value='';
+    $('obNewBox').style.display=m==='login'?'none':'contents';
+    $('obMsg').textContent=msg||({new:'랭킹에 올라갈 이름, 프로필 사진, 비밀번호 4자리를 정해주세요. 비밀번호가 있으면 앱을 지우거나 폰을 바꿔도 이어서 할 수 있어요.',
+      login:'전에 쓰던 이름이랑 비밀번호 4자리를 넣으면 기록을 그대로 불러와요.',edit:'이름이나 사진을 바꿀 수 있어요. 비밀번호는 바꿀 때만 적으면 돼요.'})[m];
+    $('obPin').placeholder=m==='edit'&&me.pin?'새 비밀번호 (바꿀 때만)':'비밀번호 숫자 4자리';
+    $('obGo').textContent=({new:'시작하기',login:'이어하기',edit:'저장'})[m];
+    $('obSwitch').hidden=m==='edit';$('obSwitch').textContent=m==='login'?'처음 하는 거예요':'전에 하던 계정이 있어요'}
+  function openProfile(first,msg){draftPhoto=me.photo;$('obName').value=me.name;setAva($('obAva'),me.name,draftPhoto);
+    setMode(first?'new':'edit',msg);$('obOv').hidden=false}
+  $('obSwitch').addEventListener('click',()=>setMode(obMode==='login'?'new':'login'));
   $('obName').addEventListener('input',()=>{if(!draftPhoto)setAva($('obAva'),$('obName').value,'')});
+  $('obPin').addEventListener('input',()=>{$('obPin').value=$('obPin').value.replace(/\D/g,'').slice(0,4)});
   $('obFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
     const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{
       const S=128,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');
@@ -1256,10 +1283,31 @@ window.MB=(()=>{
       draftPhoto=c.toDataURL('image/jpeg',.8);setAva($('obAva'),'',draftPhoto)};
       im.onerror=()=>{$('obErr').textContent='이 사진은 열 수 없어요. 다른 사진을 골라주세요.'};im.src=rd.result};
     rd.readAsDataURL(f);e.target.value=''});
-  $('obGo').addEventListener('click',()=>{const n=$('obName').value.trim();
-    if(!n){$('obErr').textContent='이름을 적어주세요.';$('obName').focus();return}
-    me.name=n.slice(0,12);me.photo=draftPhoto;SS('name',me.name);SS('photo',me.photo);profileDirty=true;dirty=true;
-    $('obOv').hidden=true;flush();if(!$('rankOv').hidden)loadRank()});
+  const err=t=>{$('obErr').textContent=t};
+  let busy=false;
+  $('obGo').addEventListener('click',async()=>{if(busy)return;
+    const n=$('obName').value.trim().slice(0,12),pin=$('obPin').value;
+    if(!n){err('이름을 적어주세요.');$('obName').focus();return}
+    const needPin=obMode!=='edit'||!me.pin;
+    if((needPin||pin)&&!/^\d{4}$/.test(pin)){err('비밀번호는 숫자 4자리로 적어주세요.');$('obPin').focus();return}
+    busy=true;$('obGo').disabled=true;
+    try{
+      if(obMode==='login'){
+        if(!FB_URL){err('랭킹 서버가 연결돼 있지 않아서 불러올 수 없어요.');return}
+        let all;try{all=await allPlayers()}catch(e){err('인터넷 연결을 확인하고 다시 눌러주세요.');return}
+        const hit=Object.entries(all).find(([id,p])=>p&&p.name===n&&p.pin&&p.pin===pinHash(id,pin));
+        if(!hit){err(Object.values(all).some(p=>p&&p.name===n)?'비밀번호가 틀렸어요.':'그 이름의 계정이 없어요.');return}
+        const [id,p]=hit;me.id=id;me.name=p.name;me.photo=safePhoto(p.photo);me.pin=p.pin;
+        me.count=Math.max(p.count||0,0);me.eggs={};String(p.el||'').split(',').forEach(k=>{if(EGGS.some(e=>e.k===k))me.eggs[k]=p.t||Date.now()});
+        me.day=kday();me.today=p.day===me.day?(p.today||0):0;
+        ['id','name','photo','pin','count','today','day'].forEach(k=>SS(k,me[k]));SS('eggs',JSON.stringify(me.eggs));
+        above=null;show();renderDex();$('obOv').hidden=true;toast('다시 왔구나! '+fmt(me.count)+'번부터 이어서 해요');return}
+      if(FB_URL){let all=null;try{all=await allPlayers()}catch(e){}
+        if(all&&Object.entries(all).some(([id,p])=>id!==me.id&&p&&p.name===n)){err('이미 있는 이름이에요. 다른 이름을 쓰거나 "전에 하던 계정이 있어요"를 눌러주세요.');return}}
+      me.name=n;me.photo=draftPhoto;if(pin){me.pin=pinHash(me.id,pin);SS('pin',me.pin)}
+      SS('name',me.name);SS('photo',me.photo);profileDirty=true;dirty=true;
+      $('obOv').hidden=true;flush();if(!$('rankOv').hidden)loadRank();if(pin&&obMode==='edit')toast('비밀번호를 저장했어요')}
+    finally{busy=false;$('obGo').disabled=false}});
   $('editMe').addEventListener('click',()=>openProfile(false));
   $('rankRefresh').addEventListener('click',loadRank);
   $('btnRank').addEventListener('click',()=>open('rankOv'));
@@ -1295,7 +1343,7 @@ window.MB=(()=>{
       p6.setAttribute('aria-pressed','false');pass=true;p6.click();toast('내 사진을 넣었어요! 마음껏 주물러요')};
       im.onerror=()=>toast('이 사진은 열 수 없어요','', 'warn');im.src=rd.result};rd.readAsDataURL(f)});
 
-  show();renderDex();if(!me.name)openProfile(true);else schedule(800);
+  show();renderDex();if(!me.name)openProfile(true);else{schedule(800);if(!me.pin)setTimeout(()=>{if($('obOv').hidden)openProfile(false,'기록이 안 날아가게 비밀번호 4자리를 정해주세요. 나중에 다른 폰이나 웹에서 이름이랑 비밀번호로 이어할 수 있어요.')},1500)}
   return{add,egg,flush}
 })();
 </script>
@@ -1316,7 +1364,12 @@ window.MB=(()=>{
   const ua=navigator.userAgent,standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
   const iOS=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),android=/Android/.test(ua);
   let seen=null;try{seen=localStorage.getItem('mb_inst')}catch(e){}
-  if(!standalone&&(iOS||android)&&!seen){
+  const inApp=/KAKAOTALK|Instagram|NAVER|FBAN|FBAV|Line\/|everytimeApp|DaumApps/i.test(ua);
+  if(inApp){const d=document.createElement('div');d.className='inst';d.style.background='#d0344f';d.style.color='#fff';
+    const t=document.createElement('div');const h=document.createElement('b');const p=document.createElement('span');t.append(h,p);
+    h.textContent='여기서 하면 기록이 날아가요!';p.textContent=(iOS?'오른쪽 아래 ⋯ 또는 공유 버튼 → "Safari로 열기"':'오른쪽 위 ⋮ → "다른 브라우저로 열기"(Chrome)')+'를 눌러서 열어주세요';
+    const x=document.createElement('button');x.textContent='✕';x.setAttribute('aria-label','닫기');x.onclick=()=>d.remove();d.append(t,x);document.body.append(d)}
+  else if(!standalone&&(iOS||android)&&!seen){
     const d=document.createElement('div');d.className='inst';
     const im=document.createElement('img');im.src='icon-192.png';im.alt='';
     const t=document.createElement('div');const h=document.createElement('b');const p=document.createElement('span');t.append(h,p);

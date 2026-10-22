@@ -227,7 +227,7 @@ function annoy(){if(curPhoto!==0||angry)return;taps++;
 const GX=44; let GY=56;
 let N,rest,pos,vel,shade,posBuf,uvBuf,shBuf,idxBuf,idxCount,imgW=1,imgH=1,ox=0,oy=0,W=1,H=1,R=60;
 let aspect=1;
-function buildMesh(){
+function buildMesh(){uploaded=false;
   GY=Math.round(GX*aspect);
   N=(GX+1)*(GY+1);
   rest=new Float32Array(N*2);pos=new Float32Array(N*2);vel=new Float32Array(N*2);shade=new Float32Array(N);
@@ -254,7 +254,7 @@ function layout(hard){
 }
 /* rest shape: flat photo, or the face wrapped onto a 3D ball (왁뿌볼) */
 let ball=false,base=null,BR=100,BX=0,BY=0;
-function computeRest(hard,keepOffset){
+function computeRest(hard,keepOffset){uploaded=false;
   if(!base)base=new Float32Array(N);
   for(let j=0;j<=GY;j++)for(let i=0;i<=GX;i++){const kk=j*(GX+1)+i,k=kk*2;
     let nx,ny,bs=0;
@@ -1007,12 +1007,12 @@ function shadeCalc(){ // squeezed = darker crease, stretched = lighter sheen
 }
 let last=performance.now(),acc=0;
 /* perf: when nothing is held and every point has settled back to rest, skip the physics for that frame */
-let uploaded=false;
+var uploaded=false;   // GPU copy of the mesh is current (cleared whenever the layout/mesh is rebuilt)
 function isStill(){for(let k=0;k<N*2;k+=3){if(Math.abs(vel[k])>.05||Math.abs(pos[k]-rest[k])>.05)return false}return true}
 function loop(now){
   acc+=Math.min(50,now-last)/1000;last=now;
   const still=!grabs.size&&isStill();
-  if(still)acc=0;else{while(acc>=DT){step();acc-=DT}shadeCalc()}
+  if(still){acc=0;if(!uploaded)shadeCalc()}else{while(acc>=DT){step();acc-=DT}shadeCalc()}
   gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
   gl.uniform2f(uRes,W,H);
   mxCur+=((altOn?1:0)-mxCur)*mxRate;Sleep.check(now);gl.uniform1f(uMx,mxCur);

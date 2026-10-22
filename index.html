@@ -740,7 +740,7 @@ const Keys=(()=>{
     for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const i=r*cols+c,o=old[i];
       keys.push({x:ox+gap+c*(cw+gap),y:oy+gap+r*(ch+gap),w:cw,h:ch,c,r,cols,rows,p:o?o.p:0,v:o?o.v:0,down:0,pitch:1-r*.012+(Math.random()-.5)*.04})}}
   function hit(x,y){layout();return keys.findIndex(k=>x>=k.x-2&&x<=k.x+k.w+2&&y>=k.y-2&&y<=k.y+k.h+2)}
-  function press(i){const k=keys[i];k.down++;k.v+=420;Sfx.keyDown(k);if(window.MBV)MBV(9,150)}
+  function press(i){const k=keys[i];k.down++;Sfx.keyDown(k);if(window.MBV)MBV(9,150)}
   function rel(i){const k=keys[i];if(!k)return;k.down=Math.max(0,k.down-1);if(!k.down){Sfx.keyUp(k);if(window.MBV)MBV(5,70)}}
   function down(e,x,y){const i=hit(x,y);if(i<0)return false;held.set(e.pointerId,i);press(i);return true}
   function move(e,x,y){if(!held.has(e.pointerId))return false;const i=hit(x,y),o=held.get(e.pointerId);
@@ -757,11 +757,14 @@ const Keys=(()=>{
     const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
     for(const k of keys){
       // springy key travel: down while held, slight overshoot on the way back up
-      const tgt=k.down?1:0;k.v+=((tgt-k.p)*1300-k.v*30)*dt;k.p=Math.max(-.2,Math.min(1.08,k.p+k.v*dt));
-      const travel=Math.min(k.h*.13,8),d=k.p*travel,wall=(travel+4)*(1-Math.max(0,k.p)*.8),rad=Math.min(k.w,k.h)*.16;
+      // straight down / straight up, no bounce
+      const tgt=k.down?1:0;k.p+=(tgt-k.p)*Math.min(1,dt*60);if(Math.abs(tgt-k.p)<.01)k.p=tgt;
+      const travel=Math.min(k.h*.2,14),d=k.p*travel,wall=(travel+5)*(1-k.p*.9),rad=Math.min(k.w,k.h)*.16;
       // shadow + side wall of the cap
-      wctx.save();wctx.shadowColor='rgba(0,0,0,.5)';wctx.shadowBlur=8*(1-Math.max(0,k.p))+2;wctx.shadowOffsetY=4*(1-Math.max(0,k.p))+1;
-      rr(k.x,k.y+d,k.w,k.h-d,rad);g=wctx.createLinearGradient(0,k.y+d,0,k.y+k.h);g.addColorStop(0,'#cdbfc6');g.addColorStop(1,'#7d6c76');wctx.fillStyle=g;wctx.fill();wctx.restore();
+      // pressed: sunk into the plate with a dark socket around it; released: tall cap casting a shadow
+      if(k.p>0){rr(k.x-1,k.y-1,k.w+2,k.h+2,rad);wctx.fillStyle='rgba(0,0,0,'+(.55*k.p)+')';wctx.fill()}
+      wctx.save();wctx.shadowColor='rgba(0,0,0,.55)';wctx.shadowBlur=10*(1-k.p);wctx.shadowOffsetY=6*(1-k.p);
+      rr(k.x,k.y+d,k.w,k.h-d,rad);g=wctx.createLinearGradient(0,k.y+d,0,k.y+k.h);g.addColorStop(0,k.p>.5?'#9d8f96':'#e4d8de');g.addColorStop(1,k.p>.5?'#5a4c54':'#806e79');wctx.fillStyle=g;wctx.fill();wctx.restore();
       // top face carries its piece of the photo
       const ins=Math.max(2,k.w*.06),tx=k.x+ins,ty=k.y+d+ins*.35,tw=k.w-ins*2,th=k.h-d-wall-ins*.35;
       wctx.save();rr(tx,ty,tw,th,rad*.8);wctx.clip();
@@ -769,7 +772,8 @@ const Keys=(()=>{
       // dished top: lighter middle, darker rim; darker while pressed
       g=wctx.createRadialGradient(tx+tw*.5,ty+th*.42,Math.min(tw,th)*.1,tx+tw*.5,ty+th*.5,Math.max(tw,th)*.72);
       g.addColorStop(0,'rgba(255,255,255,.14)');g.addColorStop(1,'rgba(40,20,30,.32)');wctx.fillStyle=g;wctx.fillRect(tx,ty,tw,th);
-      if(k.p>0){wctx.fillStyle='rgba(30,10,20,'+(.16*k.p)+')';wctx.fillRect(tx,ty,tw,th)}
+      if(k.p>0){wctx.fillStyle='rgba(20,5,15,'+(.38*k.p)+')';wctx.fillRect(tx,ty,tw,th)}
+      else{wctx.fillStyle='rgba(255,255,255,.08)';wctx.fillRect(tx,ty,tw,th*.35)}
       wctx.restore();
       rr(tx,ty,tw,th,rad*.8);wctx.strokeStyle='rgba(255,255,255,.35)';wctx.lineWidth=1.2;wctx.stroke()}}
   function reset(){held.clear();for(const k of keys){k.down=0;k.p=0;k.v=0}}
@@ -934,7 +938,8 @@ function keyUpSnd(c,out,noise,t,P,m){const f=P.f*m;
 /* shared output for key sounds: a steep high-pass so the tiny keychain has no boomy low end */
 const _keyBus=new WeakMap();
 function keyOut(c){let b=_keyBus.get(c);if(!b){const h1=c.createBiquadFilter(),h2=c.createBiquadFilter();h1.type=h2.type='highpass';h1.frequency.value=h2.frequency.value=650;h1.Q.value=h2.Q.value=.7;
-  h1.connect(h2);h2.connect(c.destination);b=h1;_keyBus.set(c,b)}return b}
+  const gn=c.createGain();gn.gain.value=3.2;const cp=c.createDynamicsCompressor();cp.threshold.value=-12;cp.knee.value=4;cp.ratio.value=6;cp.attack.value=.0005;cp.release.value=.06;
+  h1.connect(h2);h2.connect(gn);gn.connect(cp);cp.connect(c.destination);b=h1;_keyBus.set(c,b)}return b}
 
 const Sfx={on:true,style:0,ctx:null,noise:null,
   unlock(){if(!this.ctx){try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();

@@ -758,7 +758,7 @@ const Keys=(()=>{
     for(const k of keys){
       // springy key travel: down while held, slight overshoot on the way back up
       // straight down / straight up, no bounce
-      const tgt=k.down?1:0;k.p+=(tgt-k.p)*Math.min(1,dt*60);if(Math.abs(tgt-k.p)<.01)k.p=tgt;
+      const tgt=k.down?1:0;k.p+=(tgt-k.p)*Math.min(1,dt*32);if(Math.abs(tgt-k.p)<.01)k.p=tgt;
       const travel=Math.min(k.h*.2,14),d=k.p*travel,wall=(travel+5)*(1-k.p*.9),rad=Math.min(k.w,k.h)*.16;
       // shadow + side wall of the cap
       // pressed: sunk into the plate with a dark socket around it; released: tall cap casting a shadow
@@ -928,17 +928,31 @@ const KEYS_SND=[
   {sw:'blue', f:2500},              // 3 청축
   {sw:'blue', f:2950},              // 4 청축 또랑또랑
   {sw:'brown',f:2450,pop:1}];       // 5 갈축 + 뽁
-function keyDownSnd(c,out,noise,t,P,m){const f=P.f*m;
-  if(P.sw==='blue'){keyClick(c,out,noise,t,5500,.005,2.2);keyPing(c,out,noise,t,f,11,.011,.5);keyPing(c,out,noise,t,f*1.45,5,.008,.3);keyPing(c,out,noise,t+.007,f*.94,10,.013,.6);keyClick(c,out,noise,t+.007,5500,.004,1.4);}
-  else{keyClick(c,out,noise,t,7000,.003,1.5,2);keyPing(c,out,noise,t,f,10,P.dull?.012:.008,.7)}
+/* ringing tail after the hit: the cap + case keep sounding for a few tens of ms (잔음) */
+function keyRing(c,out,t,f,dur,vol){const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.99,t+dur);
+  const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.0015);g.gain.exponentialRampToValueAtTime(.0004,t+dur);o.connect(g);g.connect(out);o.start(t);o.stop(t+dur+.01)}
+function keyBody(c,out,noise,t,f,q,dur,vol){const s=c.createBufferSource();s.buffer=noise;const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=f;bp.Q.value=q;
+  const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.002);g.gain.exponentialRampToValueAtTime(.0004,t+dur);s.connect(bp);bp.connect(g);g.connect(out);s.start(t,Math.random()*.5);s.stop(t+dur+.01)}
+/* one stroke = sharp click + cap ping + a decaying ring (cap, overtone, case knock, faint spring) */
+function keyStroke(c,out,noise,t,f,a,len){
+  keyPing(c,out,noise,t,f,10,.012,.55*a);
+  keyRing(c,out,t,f,.07*len,.16*a);                 // cap ring
+  keyRing(c,out,t,f*1.62,.04*len,.07*a);            // plastic overtone
+  keyBody(c,out,noise,t,950,3,.045*len,.22*a);      // case knock
+  keyRing(c,out,t+.002,4300+Math.random()*300,.11*len,.018*a)}   // spring ping, very faint
+function keyDownSnd(c,out,noise,t,P,m){const f=P.f*m,len=P.dull?1.3:1;
+  if(P.sw==='blue'){keyClick(c,out,noise,t,5500,.005,1.6);keyStroke(c,out,noise,t,f*1.03,.6,.7);
+    keyClick(c,out,noise,t+.007,5500,.004,1.1);keyStroke(c,out,noise,t+.007,f*.95,1,len)}
+  else{keyClick(c,out,noise,t,7000,.003,1.2,2);keyStroke(c,out,noise,t,f,1,len)}
   if(P.pop)keyThud(c,out,t+.004,900,.045,.22)}
-function keyUpSnd(c,out,noise,t,P,m){const f=P.f*m;
-  if(P.sw==='blue'){keyClick(c,out,noise,t,6500,.003,.3);keyPing(c,out,noise,t,f*1.08,8,.008,.38)}
-  else keyPing(c,out,noise,t,f*1.05,7,.006,.25)}
+/* release: the cap snaps back up against the housing — a clear "딸깍" with its own shorter tail */
+function keyUpSnd(c,out,noise,t,P,m){const f=P.f*m*1.07;
+  if(P.sw==='blue'){keyClick(c,out,noise,t,6500,.004,.8);keyStroke(c,out,noise,t,f,.6,.8)}
+  else{keyClick(c,out,noise,t,7000,.003,.45,2);keyStroke(c,out,noise,t,f,.5,.75)}}
 /* shared output for key sounds: a steep high-pass so the tiny keychain has no boomy low end */
 const _keyBus=new WeakMap();
 function keyOut(c){let b=_keyBus.get(c);if(!b){const h1=c.createBiquadFilter(),h2=c.createBiquadFilter();h1.type=h2.type='highpass';h1.frequency.value=h2.frequency.value=650;h1.Q.value=h2.Q.value=.7;
-  const gn=c.createGain();gn.gain.value=3.2;const cp=c.createDynamicsCompressor();cp.threshold.value=-12;cp.knee.value=4;cp.ratio.value=6;cp.attack.value=.0005;cp.release.value=.06;
+  const gn=c.createGain();gn.gain.value=2.2;const cp=c.createDynamicsCompressor();cp.threshold.value=-12;cp.knee.value=4;cp.ratio.value=6;cp.attack.value=.0005;cp.release.value=.06;
   h1.connect(h2);h2.connect(gn);gn.connect(cp);cp.connect(c.destination);b=h1;_keyBus.set(c,b)}return b}
 
 const Sfx={on:true,style:0,ctx:null,noise:null,

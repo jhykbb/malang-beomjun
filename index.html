@@ -917,24 +917,32 @@ const Suika=(()=>{
     cur=nxt;nxt=pick();ready=now+480;if(Sfx.ok&&Sfx.ok()){const t=Sfx.ctx.currentTime;Sfx.tone(t,.07,520,300,.16,'sine')}}
   function merge(a,b,now){const l=a.l;a.dead=b.dead=true;const x=(a.x+b.x)/2,y=(a.y+b.y)/2;
     pops.push({x,y,r:RAD[l],t:now,c:RING[Math.min(10,l+1)]});
-    if(l<10){const n={l:l+1,x,y,px:x-((a.x-a.px)+(b.x-b.px))/2,py:y-((a.y-a.py)+(b.y-b.py))/2,a:(a.a+b.a)/2,born:now,g:.55};F.push(n);score+=PTS[l+1]}else score+=100;
+    if(l<10){const n={l:l+1,x,y,px:x-((a.x-a.px)+(b.x-b.px))/2,py:y-((a.y-a.py)+(b.y-b.py))/2,a:(a.a+b.a)/2,born:now,g:.55,m:true};F.push(n);score+=PTS[l+1]}else score+=100;
     if(score>best){best=score;try{localStorage.setItem('mb_wbest',best)}catch(e){}}
     show();
     if(Sfx.ok&&Sfx.ok()){const t=Sfx.ctx.currentTime;Sfx.tone(t,.16,300*Math.pow(1.12,l),520*Math.pow(1.12,l),.22,'sine',6);if(l>=3)Sfx.squish('press');
       if(l>=6)Sfx.tone(t+.06,.25,900,1500,.12,'triangle')}
     if(window.MBV)MBV(l>=6?40:16,l>=6?220:150)}
-  function step(dt,now){const G=1500*dt*dt;
-    for(const f of F){const vx=(f.x-f.px)*.996,vy=(f.y-f.py)*.996;f.px=f.x;f.py=f.y;f.x+=vx;f.y+=vy+G;f.a+=vx/RAD[f.l]}
+  const ER=f=>RAD[f.l]*f.g;                                     // a freshly merged one grows into its size
+  function step(dt,now){const G=1500*dt*dt,VMAX=7.5;
+    for(const f of F){let vx=(f.x-f.px)*.996,vy=(f.y-f.py)*.996;const v=Math.hypot(vx,vy);if(v>VMAX){vx*=VMAX/v;vy*=VMAX/v}
+      f.px=f.x;f.py=f.y;f.x+=vx;f.y+=vy+G;f.a+=vx/RAD[f.l]}
     for(let it=0;it<3;it++){
-      for(let i=0;i<F.length;i++){const a=F[i];if(a.dead)continue;const ra=RAD[a.l];
-        for(let j=i+1;j<F.length;j++){const b=F[j];if(b.dead)continue;const rb=RAD[b.l],dx=b.x-a.x,dy=b.y-a.y,d2=dx*dx+dy*dy,rr=ra+rb;
+      for(let i=0;i<F.length;i++){const a=F[i];if(a.dead)continue;const ra=ER(a);
+        for(let j=i+1;j<F.length;j++){const b=F[j];if(b.dead)continue;const rb=ER(b),dx=b.x-a.x,dy=b.y-a.y,d2=dx*dx+dy*dy,rr=ra+rb;
           if(d2>=rr*rr)continue;
-          if(a.l===b.l&&!a.dead&&!b.dead){merge(a,b,now);break}
-          const d=Math.sqrt(d2)||.01,o=(rr-d),ma=ra*ra,mb=rb*rb,s=o/(ma+mb),nx=dx/d,ny=dy/d;
-          a.x-=nx*s*mb;a.y-=ny*s*mb;b.x+=nx*s*ma;b.y+=ny*s*ma}}
-      for(const f of F){const r=RAD[f.l];
-        if(f.x<r){f.x=r;f.px=f.x+(f.x-f.px)*-.3}if(f.x>BW-r){f.x=BW-r;f.px=f.x+(f.x-f.px)*-.3}
-        if(f.y>BH-r){f.y=BH-r;const vx=f.x-f.px;f.px=f.x-vx*.92;if(f.py<f.y)f.py=f.y}}}
+          if(a.l===b.l&&a.g>.98&&b.g>.98){merge(a,b,now);break}
+          const d=Math.sqrt(d2)||.01,nx=dx/d,ny=dy/d,ma=ra*ra,mb=rb*rb,soft=(a.m&&now-a.born<500)||(b.m&&now-b.born<500);
+          // growing (just merged): push neighbours aside gently and without giving them speed
+          let o=rr-d;if(soft)o=Math.min(o,.6);const s=o/(ma+mb);
+          a.x-=nx*s*mb;a.y-=ny*s*mb;b.x+=nx*s*ma;b.y+=ny*s*ma;
+          if(soft){a.px-=nx*s*mb;a.py-=ny*s*mb;b.px+=nx*s*ma;b.py+=ny*s*ma}
+          else if(it===0){   // 살짝 통통: a little bounce on real impacts
+            const vn=((b.x-b.px)-(a.x-a.px))*nx+((b.y-b.py)-(a.y-a.py))*ny;
+            if(vn<-.5){const e=.32,jj=-(1+e)*vn/(1/ma+1/mb)*.5;a.px+=nx*jj/ma;a.py+=ny*jj/ma;b.px-=nx*jj/mb;b.py-=ny*jj/mb}}}}
+      for(const f of F){const r=ER(f);
+        if(f.x<r){const v=f.x-f.px;f.x=r;f.px=f.x+v*.35}if(f.x>BW-r){const v=f.x-f.px;f.x=BW-r;f.px=f.x+v*.35}
+        if(f.y>BH-r){const vy=f.y-f.py,vx=f.x-f.px;f.y=BH-r;f.px=f.x-vx*.92;f.py=vy>1.2?f.y+vy*.3:f.y}}}
     if(F.some(f=>f.dead))F=F.filter(f=>!f.dead)}
   function rr(x,y,w,h,r){wctx.beginPath();wctx.moveTo(x,y);wctx.lineTo(x,y+h-r);wctx.arcTo(x,y+h,x+r,y+h,r);wctx.lineTo(x+w-r,y+h);wctx.arcTo(x+w,y+h,x+w,y+h-r,r);wctx.lineTo(x+w,y)}
   function draw(now){const dt=Math.min(.033,(now-lt)/1000);lt=now;if(mode!=='suika')return;
@@ -945,7 +953,7 @@ const Suika=(()=>{
       const hi=F.some(f=>now-f.born>1200&&f.y-RAD[f.l]<0&&Math.abs(f.y-f.py)<1.5);
       dangerT=hi?dangerT+dt:Math.max(0,dangerT-dt*2);
       if(dangerT>2){over=true;overAt=now;if(window.MB&&MB.score)MB.score(score);if(window.MBV)MBV(60,200);if(Sfx.ok&&Sfx.ok()){const t=Sfx.ctx.currentTime;Sfx.tone(t,.5,420,140,.25,'triangle')}}}
-    for(const f of F)if(f.g<1)f.g=Math.min(1,f.g+dt*5);
+    for(const f of F)if(f.g<1)f.g=Math.min(1,f.g+dt*2.6);
     wctx.save();wctx.translate(bx,by);wctx.scale(u,u);
     // box
     rr(-6,-4,BW+12,BH+10,22);wctx.fillStyle='rgba(255,255,255,.42)';wctx.fill();wctx.lineWidth=5;wctx.strokeStyle='#f2a7b8';wctx.lineCap='round';wctx.stroke();

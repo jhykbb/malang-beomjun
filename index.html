@@ -38,6 +38,22 @@ body{background:radial-gradient(120% 80% at 50% 40%,var(--bg),var(--bg2));color:
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;box-sizing:border-box}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 h1{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0;letter-spacing:.01em;text-wrap:balance}
+[hidden]{display:none!important}
+.titlebtn{font:inherit;color:inherit;background:none;border:0;padding:2px 4px 2px 0;display:inline-flex;align-items:center;gap:6px;cursor:pointer;border-radius:10px}
+.titlebtn i{font-style:normal;font-size:.75em;color:var(--accent);transition:transform .2s}
+.titlebtn[aria-expanded="true"] i{transform:rotate(180deg)}
+.apick{position:fixed;inset:0;z-index:55;background:rgba(40,15,25,.25)}
+.apick-card{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:calc(58px + env(safe-area-inset-top,0px));width:min(300px,calc(100% - 24px));
+  background:var(--bg);border:1.5px solid var(--line);border-radius:20px;padding:8px;box-shadow:0 14px 40px rgba(60,20,30,.3);display:flex;flex-direction:column;gap:6px;animation:apop .18s ease-out}
+@keyframes apop{from{transform:translateY(-8px);opacity:0}}
+.apick-card button{display:flex;align-items:center;gap:12px;text-align:left;border:1.5px solid transparent;background:var(--tray);border-radius:14px;padding:10px 12px;cursor:pointer;color:var(--ink)}
+.apick-card button[aria-checked="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--tray))}
+.apick-card .ic{width:42px;height:42px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:1.4rem;background:var(--bg2)}
+.apick-card .ic.key{background:#2b2230;box-shadow:inset 0 -5px 0 #554552;border-radius:10px;color:#fff}
+.apick-card b{display:block;font:400 1.1rem var(--display)}
+.apick-card small{display:block;color:var(--muted);font-size:.78rem}
+.apick-card .chk{margin-left:auto;color:var(--accent);font-size:1.1rem;visibility:hidden}
+.apick-card button[aria-checked="true"] .chk{visibility:visible}
 .count{font-family:var(--display);color:var(--muted);font-size:1rem;font-variant-numeric:tabular-nums;white-space:nowrap}
 .count b{color:var(--accent);font-weight:400;font-size:1.25rem}
 .stage{flex:1;min-height:0;position:relative}
@@ -46,10 +62,10 @@ canvas:active{cursor:grabbing}
 .hint{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font-size:.85rem;color:var(--muted);
   background:color-mix(in srgb,var(--tray) 80%,transparent);padding:6px 12px;border-radius:999px;white-space:nowrap;pointer-events:none;transition:opacity .4s}
 .tray{display:flex;flex-direction:column;gap:8px;background:var(--tray);border:1.5px solid var(--line);border-radius:22px;padding:10px}
-.modes{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
-.mode{font-family:var(--display);font-size:.9rem;white-space:nowrap;min-width:0;border:0;border-radius:16px;padding:10px 4px 8px;background:var(--pill);color:var(--ink);
+.modes{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.mode{font-family:var(--display);font-size:.95rem;white-space:nowrap;min-width:0;border:0;border-radius:16px;padding:10px 4px 8px;background:var(--pill);color:var(--ink);
   display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:transform .12s,background .2s}
-.mode small{font-family:var(--body);font-size:.6rem;color:var(--muted)}
+.mode small{font-family:var(--body);font-size:.64rem;color:var(--muted)}
 .mode[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .mode[aria-pressed="true"] small{color:inherit;opacity:.85}
 .mode:active{transform:scale(.94)}
@@ -80,8 +96,8 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 
 <div class="app">
   <header>
-    <h1>말랑 범준</h1>
-    <div class="hdr-r"><div class="count"><small>주무른 수</small><b id="cnt">0</b></div><button class="hbtn" id="btnRank" aria-label="랭킹">🏆</button><button class="hbtn" id="btnDex" aria-label="도감">📖<span class="dot" id="dexDot">0</span></button></div>
+    <h1><button class="titlebtn" id="appBtn" aria-haspopup="dialog" aria-expanded="false"><span id="appName">말랑 범준</span><i aria-hidden="true">▾</i></button></h1>
+    <div class="hdr-r"><div class="count"><small id="cntLbl">주무른 수</small><b id="cnt">0</b></div><button class="hbtn" id="btnRank" aria-label="랭킹">🏆</button><button class="hbtn" id="btnDex" aria-label="도감">📖<span class="dot" id="dexDot">0</span></button></div>
   </header>
   <div class="stage" id="stage">
     <canvas id="cv"></canvas>
@@ -104,7 +120,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
       <button class="mode" id="m-press" data-mode="press" aria-pressed="false">꾹꾹<small>눌러 오므리기</small></button>
       <button class="mode" id="m-wax" data-mode="wax" aria-pressed="false">왁뿌볼<small>코팅 깨기</small></button>
       <button class="mode" id="m-wax2" data-mode="wax2" aria-pressed="false">왁뿌볼2<small>사진이 깨짐</small></button>
-      <button class="mode" id="m-key" data-mode="key" aria-pressed="false">키캡<small>도각도각</small></button>
+      <button class="mode" id="m-key" data-mode="key" aria-pressed="false" hidden>키캡<small>도각도각</small></button>
     </div>
     <label class="bounce ext" for="bounce"><span>반동 세기</span>
       <input type="range" id="bounce" min="0" max="100" value="60">
@@ -301,7 +317,7 @@ function local(e){const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.c
 cv.addEventListener('pointerdown',e=>{
   if(!rest)return;Sfx.unlock();if(Sleep.wake())return;
   if(mode==='key'){const [kx,ky]=local(e);cv.setPointerCapture(e.pointerId);
-    if(Keys.down(e,kx,ky)){count++;if(window.MB)MB.add(1);else cntEl.textContent=count;if(!msgT)hint.style.opacity=0}return}   // 키캡 모드: 이스터에그 없음
+    if(Keys.down(e,kx,ky)){kcount++;if(window.MB)MB.add(1,'key');else cntEl.textContent=kcount;if(!msgT)hint.style.opacity=0}return}   // 키캡 모드: 이스터에그 없음
   cv.setPointerCapture(e.pointerId);
   const [x,y]=local(e);
   const w=new Float32Array(N),start=new Float32Array(N*2);let any=false;
@@ -315,7 +331,7 @@ cv.addEventListener('pointerdown',e=>{
   if(mode==='wax'){Wax.hit(x,y,true)}else if(mode==='wax2'){Wax2.tap(x,y)}else Sfx.squish(mode);
 });
 cv.addEventListener('pointermove',e=>{
-  if(mode==='key'){const [kx,ky]=local(e);if(Keys.move(e,kx,ky)){count++;if(window.MB)MB.add(1);else cntEl.textContent=count}return}
+  if(mode==='key'){const [kx,ky]=local(e);if(Keys.move(e,kx,ky)){kcount++;if(window.MB)MB.add(1,'key');else cntEl.textContent=kcount}return}
   const g=grabs.get(e.pointerId);if(!g)return;
   const [x,y]=local(e);const sp=Math.hypot(x-g.x,y-g.y);
   if(g.mode==='twist'){ // accumulate angle around grab point, plus horizontal drag
@@ -797,6 +813,30 @@ const Keys=(()=>{
   function reset(){held.clear();for(const k of keys){k.down=0;k.p=0;k.v=0}}
   return{down,move,up,draw,reset}
 })();
+/* 앱 고르기: 제목(▾)을 누르면 말랑 ↔ 키캡. 키캡은 주무른 수와 따로 셈 */
+const APP_NAMES={malang:'말랑 범준',key:'키캡 범준'};
+let appKind='malang',prevMode='stretch',kcount=0;
+const apick=document.createElement('div');apick.className='apick';apick.id='apick';apick.hidden=true;
+apick.innerHTML='<div class="apick-card" role="dialog" aria-label="앱 바꾸기">'+
+  '<button role="menuitemradio" data-app="malang"><span class="ic">🫠</span><span><b></b><small>잡고 늘리고 말고 깨기</small></span><span class="chk">✓</span></button>'+
+  '<button role="menuitemradio" data-app="key"><span class="ic key">⌨</span><span><b></b><small>키캡 도각도각 · 랭킹 따로</small></span><span class="chk">✓</span></button></div>';
+document.body.append(apick);
+apick.querySelectorAll('[data-app] b').forEach(b=>b.textContent=APP_NAMES[b.closest('[data-app]').dataset.app]);
+apick.querySelectorAll('[data-app]').forEach(b=>b.setAttribute('aria-checked',b.dataset.app==='malang'));
+const appBtn=document.getElementById('appBtn');
+function pickOpen(o){apick.hidden=!o;appBtn.setAttribute('aria-expanded',o)}
+appBtn.addEventListener('click',()=>{Sfx.unlock();Sfx.tick();pickOpen(apick.hidden)});
+apick.addEventListener('click',e=>{const b=e.target.closest('[data-app]');if(b)setApp(b.dataset.app,true);pickOpen(false)});
+function setApp(k,user){appKind=k==='key'?'key':'malang';try{localStorage.setItem('mb_app',appKind)}catch(e){}
+  document.getElementById('appName').textContent=APP_NAMES[appKind];document.title=APP_NAMES[appKind];
+  apick.querySelectorAll('[data-app]').forEach(b=>b.setAttribute('aria-checked',b.dataset.app===appKind));
+  document.querySelector('.modes').hidden=appKind==='key';const bl=document.querySelector('.bounce');if(bl)bl.hidden=appKind==='key';
+  if(appKind==='key'){if(mode!=='key')prevMode=mode;document.getElementById('m-key').click()}
+  else if(mode==='key')document.getElementById('m-'+(prevMode&&prevMode!=='key'?prevMode:'stretch')).click();
+  const lbl=document.getElementById('cntLbl');if(lbl)lbl.textContent=appKind==='key'?'누름':'주물';
+  if(!window.MB)cntEl.textContent=appKind==='key'?kcount:count;
+  document.dispatchEvent(new CustomEvent('mb-app',{detail:appKind}));
+  if(user){hint.textContent=appKind==='key'?'키캡을 눌러보세요 · 여러 손가락으로 타닥타닥':'볼을 잡고 쭈욱 당겨보세요';hint.style.opacity=1}}
 
 /* ---------- 사진 3 이스터에그: 15초 안 건드리면 잠들고, 건드리면 깜짝 깸 ---------- */
 const Sleep=(()=>{
@@ -1174,6 +1214,7 @@ const SHAKE=[
  function(v){const t=this.ctx.currentTime;this.tone(t,.16,150,260+v*100,.3+.2*v,'sine');this.nz(t,.08,'lowpass',500,200,2,.25+.2*v)},
  function(v){const t=this.ctx.currentTime;for(let i=0;i<1+Math.round(v*2);i++){const ti=t+i*.04;this.nz(ti,.01,'highpass',3200,2200,.7,.35+.2*v);this.tone(ti,.06,1100+R_()*500,280,.22+.1*v)}}
 ];
+try{if(localStorage.getItem('mb_app')==='key')setTimeout(()=>setApp('key'),0)}catch(e){}
 })();
 </script>
 
@@ -1287,8 +1328,9 @@ window.MB=(()=>{
   try{me.eggs=JSON.parse(LS('eggs')||'{}')||{}}catch(e){}
   /* 오늘의 주무른 수: resets at 0시 (Korea time) */
   const kday=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
-  me.day=LS('day')||kday();me.today=+(LS('today')||0);
-  function rollDay(){const k=kday();if(me.day!==k){me.day=k;me.today=0;SS('day',k);SS('today',0)}}
+  me.day=LS('day')||kday();me.today=+(LS('today')||0);me.kcount=+(LS('kcount')||0);me.ktoday=+(LS('ktoday')||0);
+  let app='malang';const K=()=>app==='key';   // 키캡 범준 keeps its own count and ranking
+  function rollDay(){const k=kday();if(me.day!==k){me.day=k;me.today=0;me.ktoday=0;SS('day',k);SS('today',0);SS('ktoday',0)}}
   rollDay();
   if(!me.id){me.id=Date.now().toString(36)+Math.random().toString(36).slice(2,10);SS('id',me.id)}
   const fmt=n=>Math.floor(n).toLocaleString('ko-KR');
@@ -1319,11 +1361,12 @@ window.MB=(()=>{
 
   /* ---- 주무른 수 + 서버 동기화 ---- */
   let dirty=true,pushT=0,profileDirty=true;
-  function show(){$('cnt').textContent=fmt(me.count)}
-  function add(n){rollDay();me.count+=n;me.today+=n;show();SS('count',me.count);SS('today',me.today);dirty=true;schedule()}
+  function show(){$('cnt').textContent=fmt(K()?me.kcount:me.count);const l=$('cntLbl');if(l)l.textContent=K()?'누른 수':'주무른 수'}
+  function add(n,kind){rollDay();if(kind==='key'){me.kcount+=n;me.ktoday+=n;SS('kcount',me.kcount);SS('ktoday',me.ktoday)}
+    else{me.count+=n;me.today+=n;SS('count',me.count);SS('today',me.today)}show();dirty=true;schedule()}
   function schedule(d){if(pushT)return;pushT=setTimeout(push,d||2500)}
   async function push(){pushT=0;if(!FB_URL||!me.name||!dirty)return;dirty=false;
-    rollDay();const body={name:me.name,count:me.count,today:me.today,day:me.day,eggs:nEggs(),t:Date.now()};body.el=eggKeys();if(profileDirty){body.photo=me.photo;if(me.pin)body.pin=me.pin}
+    rollDay();const body={name:me.name,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,day:me.day,eggs:nEggs(),t:Date.now()};body.el=eggKeys();if(profileDirty){body.photo=me.photo;if(me.pin)body.pin=me.pin}
     try{const r=await fetch(FB_URL+'/players/'+encodeURIComponent(me.id)+'.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(!r.ok)throw new Error(r.status);profileDirty=false}
     catch(e){dirty=true;schedule(15000)}}
@@ -1340,13 +1383,14 @@ window.MB=(()=>{
     const c=document.createElement('b');c.className='rk-c';c.textContent=fmt(val||0);
     li.append(n,avaEl(p.name,p.photo),nm,c);return li}
   let rankT=0,tab='all',players=null;
-  const mine=()=>({name:me.name,photo:me.photo,count:me.count,today:me.today,day:me.day,eggs:nEggs()});
+  const mine=()=>({name:me.name,photo:me.photo,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,day:me.day,eggs:nEggs()});
+  const F=()=>K()?['kcount','ktoday']:['count','today'];   // which numbers the ranking uses
   async function fetchPlayers(){flush();const r=await fetch(FB_URL+'/players.json',{cache:'no-store'});if(!r.ok)throw new Error(r.status);
     const all=(await r.json())||{};all[me.id]=Object.assign({},all[me.id]||{},mine());
     players=Object.entries(all).filter(([,p])=>p&&typeof p.count==='number'&&p.name);checkOvertake();return players}
-  function ranked(){const k=kday();
-    if(tab==='today')return players.filter(([id,p])=>id===me.id||(p.day===k&&p.today>0)).map(([id,p])=>[id,p,p.day===k?(p.today||0):0]).sort((a,b)=>b[2]-a[2]).slice(0,100);
-    return players.map(([id,p])=>[id,p,p.count]).sort((a,b)=>b[2]-a[2]).slice(0,100)}
+  function ranked(){const k=kday(),[c,d]=F();
+    if(tab==='today')return players.filter(([id,p])=>id===me.id||(p.day===k&&p[d]>0)).map(([id,p])=>[id,p,p.day===k?(p[d]||0):0]).sort((a,b)=>b[2]-a[2]).slice(0,100);
+    return players.filter(([id,p])=>id===me.id||c==='count'||(p[c]||0)>0).map(([id,p])=>[id,p,p[c]||0]).sort((a,b)=>b[2]-a[2]).slice(0,100)}
   function renderRank(){const L=$('rankList'),sub=$('rankSub');L.textContent='';
     const arr=ranked();arr.forEach(([id,p,v],i)=>L.append(row(i+1,p,id===me.id,v)));
     const myRank=arr.findIndex(([id])=>id===me.id)+1;
@@ -1357,13 +1401,15 @@ window.MB=(()=>{
     if(!L.children.length)sub.textContent='불러오는 중…';
     try{await fetchPlayers();renderRank()}
     catch(e){sub.textContent='랭킹을 못 불러왔어요. 인터넷 연결을 확인해 주세요.';if(!L.children.length){players=[[me.id,mine()]];renderRank()}}}
+  document.addEventListener('mb-app',e=>{app=e.detail==='key'?'key':'malang';above=null;show();
+    $('rankTitle').textContent=K()?'⌨️ 키캡 누른 수 랭킹':'🏆 주무른 수 랭킹';if(!$('rankOv').hidden)loadRank()});
   function setTab(t){tab=t;$('tabAll').setAttribute('aria-selected',t==='all');$('tabToday').setAttribute('aria-selected',t==='today');if(players)renderRank();loadRank()}
   $('tabAll').addEventListener('click',()=>setTab('all'));$('tabToday').addEventListener('click',()=>setTab('today'));
 
   /* ---- 추월 알림: compare who is above me (전체 랭킹) between checks ---- */
   let above=null;
   function checkOvertake(){if(!players||!me.name)return;
-    const now=new Map(players.filter(([id,p])=>id!==me.id&&p.count>me.count).map(([id,p])=>[id,p]));
+    const f=F()[0],mv=me[f]||0;const now=new Map(players.filter(([id,p])=>id!==me.id&&(p[f]||0)>mv&&(f==='count'||p[f]>0)).map(([id,p])=>[id,p]));
     if(above){
       const passedMe=[...now.keys()].filter(id=>!above.has(id)&&players.some(([i])=>i===id));
       const iPassed=[...above.keys()].filter(id=>!now.has(id)&&players.some(([i])=>i===id));
@@ -1431,8 +1477,8 @@ window.MB=(()=>{
         if(!hit){err(Object.values(all).some(p=>p&&p.name===n)?'비밀번호가 틀렸어요.':'그 이름의 계정이 없어요.');return}
         const [id,p]=hit;me.id=id;me.name=p.name;me.photo=safePhoto(p.photo);me.pin=p.pin;
         me.count=Math.max(p.count||0,0);me.eggs={};String(p.el||'').split(',').forEach(k=>{if(EGGS.some(e=>e.k===k))me.eggs[k]=p.t||Date.now()});
-        me.day=kday();me.today=p.day===me.day?(p.today||0):0;
-        ['id','name','photo','pin','count','today','day'].forEach(k=>SS(k,me[k]));SS('eggs',JSON.stringify(me.eggs));
+        me.day=kday();me.today=p.day===me.day?(p.today||0):0;me.kcount=p.kcount||0;me.ktoday=p.day===me.day?(p.ktoday||0):0;
+        ['id','name','photo','pin','count','today','kcount','ktoday','day'].forEach(k=>SS(k,me[k]));SS('eggs',JSON.stringify(me.eggs));
         above=null;show();renderDex();$('obOv').hidden=true;toast('다시 왔구나! '+fmt(me.count)+'번부터 이어서 해요');return}
       if(FB_URL){let all=null;try{all=await allPlayers()}catch(e){}
         if(all&&Object.entries(all).some(([id,p])=>id!==me.id&&p&&p.name===n)){err('이미 있는 이름이에요. 다른 이름을 쓰거나 "전에 하던 계정이 있어요"를 눌러주세요.');return}}

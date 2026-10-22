@@ -883,10 +883,11 @@ const Spinner=(()=>{
 
 /* ---------- 수박 범준: drop 범준 faces, two of the same merge into a bigger one (수박게임) ---------- */
 const Suika=(()=>{
-  const BW=340,BH=440,TOP=84;                                    // world box (floor at y=BH, dead line at y=0)
-  const RAD=[13,18,24,30,38,47,57,68,80,94,110];
+  const BW=340,BH=440,TOP=96;                                    // world box (floor at y=BH, dead line at y=0)
+  const RAD=[17,23,30,37,46,56,67,79,92,106,122];
   const RING=['#ff6b8b','#ff9466','#ffc94d','#a5d65c','#4fc3a1','#4aa8e8','#7b7ff0','#b46fe0','#e86fb8','#ff4d5e','#ffbf1f'];
   const PH=[0,1,2,3,4,0,1,2,3,4,0];                               // which photo each size uses
+  const FC=[[.48,.56,1],[.5,.43,.95],[.5,.55,1],[.52,.48,.95],[.45,.47,.95]];   // per photo: face centre x,y and crop size (whole face in the circle)
   const PTS=RAD.map((_,l)=>(l+1)*(l+2)/2);
   let F=[],cur=0,nxt=0,dropX=BW/2,ready=0,score=0,best=0,over=false,overAt=0,dangerT=0,hold=null,lt=performance.now(),pops=[],started=false;
   try{best=+(localStorage.getItem('mb_wbest')||0)}catch(e){}
@@ -898,8 +899,8 @@ const Suika=(()=>{
   function sprites(){const dpr=Math.min(2,window.devicePixelRatio||1);if(sprU===u*dpr&&spr.length)return;sprU=u*dpr;
     spr=RAD.map((r,l)=>{const px=Math.ceil(r*2*u*dpr)+2,c=document.createElement('canvas');c.width=c.height=px;const x=c.getContext('2d'),R=px/2-1,im=face(PH[l]);
       x.beginPath();x.arc(px/2,px/2,R,0,6.29);x.fillStyle=RING[l];x.fill();
-      const fr=R*(l<2?.8:.86);x.save();x.beginPath();x.arc(px/2,px/2,fr,0,6.29);x.clip();x.fillStyle='#f3d9d0';x.fillRect(0,0,px,px);
-      if(im.complete&&im.naturalWidth){const iw=im.naturalWidth,ih=im.naturalHeight,s=Math.min(iw,ih)*.7,sx=(iw-s)/2,sy=Math.max(0,Math.min(ih-s,ih*.42-s/2));x.drawImage(im,sx,sy,s,s,px/2-fr,px/2-fr,fr*2,fr*2)}
+      const fr=R*(l<2?.86:.91);x.save();x.beginPath();x.arc(px/2,px/2,fr,0,6.29);x.clip();x.fillStyle='#f3d9d0';x.fillRect(0,0,px,px);
+      if(im.complete&&im.naturalWidth){const iw=im.naturalWidth,ih=im.naturalHeight,C=FC[PH[l]]||[.5,.45,.9],s=Math.min(iw,ih,iw*C[2]),sx=Math.max(0,Math.min(iw-s,iw*C[0]-s/2)),sy=Math.max(0,Math.min(ih-s,ih*C[1]-s/2));x.drawImage(im,sx,sy,s,s,px/2-fr,px/2-fr,fr*2,fr*2)}
       x.restore();
       const g=x.createRadialGradient(px*.36,px*.3,0,px*.36,px*.3,R*.9);g.addColorStop(0,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');
       x.beginPath();x.arc(px/2,px/2,R,0,6.29);x.fillStyle=g;x.fill();x.lineWidth=Math.max(1,R*.05);x.strokeStyle='rgba(74,39,48,.28)';x.stroke();
@@ -961,7 +962,7 @@ const Suika=(()=>{
     // HUD
     wctx.textAlign='left';wctx.fillStyle='#4a2730';wctx.font='400 26px "Jua",system-ui,sans-serif';wctx.fillText(score.toLocaleString('ko-KR'),2,-TOP+28);
     wctx.font='400 13px "Jua",system-ui,sans-serif';wctx.fillStyle='rgba(74,39,48,.55)';wctx.fillText('최고 '+best.toLocaleString('ko-KR'),2,-TOP+46);
-    wctx.textAlign='right';wctx.fillText('다음',BW-34,-TOP+22);put(nxt,BW-14,-TOP+18,0,Math.min(1,14/RAD[nxt]));
+    wctx.textAlign='right';wctx.fillText('다음',BW-40,-TOP+24);put(nxt,BW-18,-TOP+20,0,Math.min(1,18/RAD[nxt]));
     if(over){rr(-6,-4,BW+12,BH+10,22);wctx.fillStyle='rgba(40,15,25,.5)';wctx.fill();wctx.textAlign='center';wctx.fillStyle='#fff';
       wctx.font='400 40px "Jua",system-ui,sans-serif';wctx.fillText('게임 끝!',BW/2,BH*.4);wctx.font='400 24px "Jua",system-ui,sans-serif';wctx.fillText(score.toLocaleString('ko-KR')+'점',BW/2,BH*.4+40);
       wctx.font='400 16px "Jua",system-ui,sans-serif';wctx.fillStyle='rgba(255,255,255,.85)';wctx.fillText('탭하면 다시 시작',BW/2,BH*.4+74)}

@@ -738,7 +738,7 @@ const Keys=(()=>{
     const cols=4,rows=Math.max(3,Math.round(cols*imgH/imgW)),gap=Math.max(5,imgW*.02);
     const cw=(imgW-gap*(cols+1))/cols,ch=(imgH-gap*(rows+1))/rows,old=keys;keys=[];
     for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const i=r*cols+c,o=old[i];
-      keys.push({x:ox+gap+c*(cw+gap),y:oy+gap+r*(ch+gap),w:cw,h:ch,c,r,cols,rows,p:o?o.p:0,v:o?o.v:0,down:0,pitch:1-r*.035+(Math.random()-.5)*.06})}}
+      keys.push({x:ox+gap+c*(cw+gap),y:oy+gap+r*(ch+gap),w:cw,h:ch,c,r,cols,rows,p:o?o.p:0,v:o?o.v:0,down:0,pitch:1-r*.012+(Math.random()-.5)*.04})}}
   function hit(x,y){layout();return keys.findIndex(k=>x>=k.x-2&&x<=k.x+k.w+2&&y>=k.y-2&&y<=k.y+k.h+2)}
   function press(i){const k=keys[i];k.down++;k.v+=420;Sfx.keyDown(k);if(window.MBV)MBV(9,150)}
   function rel(i){const k=keys[i];if(!k)return;k.down=Math.max(0,k.down-1);if(!k.down){Sfx.keyUp(k);if(window.MBV)MBV(5,70)}}
@@ -905,12 +905,37 @@ const PROF=[
   {name:'삑삑 고무 · 톡톡 사탕',pull:{p:1.5,w:1.3,q:5,len:.9,tone:'triangle',wob:1.2,squeak:1,bub:0},brk:{lo:1500,hi:5000,n:.7,q:4,dur:1.3,body:1.6,tink:0}},
   {name:'촉촉 슬라임 · 바스락 얼음',pull:{p:.85,w:.8,q:10,len:1.1,tone:'sine',wob:2,squeak:0,bub:1},brk:{lo:5000,hi:11000,n:1.8,q:3,dur:.6,body:.9,tink:1}}
 ];
+/* 키캡 키링 소리 model (from analysis of a keychain clip): tiny plastic case ringing at ~2.4-2.6 kHz,
+   5-10 ms decay, almost no low end. 청축 = two impulses ~7 ms apart (click jacket + bottom-out) and a
+   clicky upstroke; 갈축 = one short sharp tick. */
+function keyPing(c,out,noise,t,f,q,dur,vol){
+  const s=c.createBufferSource();s.buffer=noise;const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=f;bp.Q.value=q;
+  const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.0004);g.gain.exponentialRampToValueAtTime(.0005,t+dur);
+  const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=900;hp.Q.value=.7;s.connect(bp);bp.connect(hp);hp.connect(g);g.connect(out);s.start(t,Math.random()*.5);s.stop(t+dur+.01);
+  const o=c.createOscillator();o.frequency.setValueAtTime(f*1.01,t);o.frequency.exponentialRampToValueAtTime(f*.985,t+dur);
+  const g2=c.createGain();g2.gain.setValueAtTime(0,t);g2.gain.linearRampToValueAtTime(vol*.5,t+.0006);g2.gain.exponentialRampToValueAtTime(.0005,t+dur*.9);o.connect(g2);g2.connect(out);o.start(t);o.stop(t+dur+.01)}
+function keyClick(c,out,noise,t,f,dur,vol,q){const s=c.createBufferSource();s.buffer=noise;const hp=c.createBiquadFilter();hp.type='bandpass';hp.frequency.value=f;hp.Q.value=q||.9;
+  const g=c.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0005,t+dur);s.connect(hp);hp.connect(g);g.connect(out);s.start(t,Math.random()*.5);s.stop(t+dur+.01)}
+function keyThud(c,out,t,f,dur,vol){const o=c.createOscillator();o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.6,t+dur);
+  const g=c.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0005,t+dur);o.connect(g);g.connect(out);o.start(t);o.stop(t+dur+.01)}
 const KEYS_SND=[
-  {f0:210,f1:120,bv:.55,lp:700, cl:3200,cv:.3, res:1100},          // 도각: 묵직하게 바닥 치는 thock
-  {f0:150,f1:85, bv:.6, lp:430, cl:2100,cv:.16,res:780},           // 크리미: 윤활된 리니어, 더 낮고 부드럽게
-  {f0:260,f1:160,bv:.38,lp:1200,cl:4300,cv:.55,res:1500,clicky:1}, // 청축: 찰칵찰칵
-  {f0:330,f1:210,bv:.34,lp:1500,cl:4800,cv:.32,res:2200},          // 마블: 높고 또랑또랑
-  {f0:240,f1:110,bv:.48,lp:900, cl:3000,cv:.28,res:1300,pop:1}];   // 뽁: 키캡 뽑히듯 뽁
+  {sw:'brown',f:2450},              // 1 갈축 (기본)
+  {sw:'brown',f:2050,dull:1},       // 2 갈축 둔하게
+  {sw:'blue', f:2500},              // 3 청축
+  {sw:'blue', f:2950},              // 4 청축 또랑또랑
+  {sw:'brown',f:2450,pop:1}];       // 5 갈축 + 뽁
+function keyDownSnd(c,out,noise,t,P,m){const f=P.f*m;
+  if(P.sw==='blue'){keyClick(c,out,noise,t,5500,.005,2.2);keyPing(c,out,noise,t,f,11,.011,.5);keyPing(c,out,noise,t,f*1.45,5,.008,.3);keyPing(c,out,noise,t+.007,f*.94,10,.013,.6);keyClick(c,out,noise,t+.007,5500,.004,1.4);}
+  else{keyClick(c,out,noise,t,7000,.003,1.5,2);keyPing(c,out,noise,t,f,10,P.dull?.012:.008,.7)}
+  if(P.pop)keyThud(c,out,t+.004,900,.045,.22)}
+function keyUpSnd(c,out,noise,t,P,m){const f=P.f*m;
+  if(P.sw==='blue'){keyClick(c,out,noise,t,6500,.003,.3);keyPing(c,out,noise,t,f*1.08,8,.008,.38)}
+  else keyPing(c,out,noise,t,f*1.05,7,.006,.25)}
+/* shared output for key sounds: a steep high-pass so the tiny keychain has no boomy low end */
+const _keyBus=new WeakMap();
+function keyOut(c){let b=_keyBus.get(c);if(!b){const h1=c.createBiquadFilter(),h2=c.createBiquadFilter();h1.type=h2.type='highpass';h1.frequency.value=h2.frequency.value=650;h1.Q.value=h2.Q.value=.7;
+  h1.connect(h2);h2.connect(c.destination);b=h1;_keyBus.set(c,b)}return b}
+
 const Sfx={on:true,style:0,ctx:null,noise:null,
   unlock(){if(!this.ctx){try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();
       const len=this.ctx.sampleRate;const b=this.ctx.createBuffer(1,len,len);const d=b.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;this.noise=b}catch(e){}}
@@ -1033,18 +1058,9 @@ const Sfx={on:true,style:0,ctx:null,noise:null,
     const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.6,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.5);
     o.connect(f);f.connect(g);g.connect(c.destination);o.start(t);l.start(t);o.stop(t+.52);l.stop(t+.52);
     this.nz(t,.25,'bandpass',1500,500,1,.4);this.tone(t,.12,90,50,.6)},
-  /* 키캡 소리 per sound set: 1 도각(thock) 2 묵직 3 청축 찰칵 4 마블 딸깍 5 뽁 */
-  keyDown(k){if(!this.ok())return;const t=this.ctx.currentTime,P=KEYS_SND[this.style||0],m=k.pitch*(.97+Math.random()*.06);
-    if(P.clicky)this.nz(t,.004,'highpass',5200,4200,.6,.55);
-    this.nz(t+.002,.006,'bandpass',P.cl*m,P.cl*m*.8,2,P.cv);
-    this.tone(t+.008,.07,P.f0*m,P.f1*m,P.bv);
-    this.nz(t+.008,.05,'lowpass',P.lp*m,P.lp*m*.5,1,P.bv*.8);
-    this.tone(t+.008,.035,P.res*m,P.res*m*.9,.06,'triangle');
-    if(P.pop)this.tone(t+.01,.05,900*m,300*m,.25)},
-  keyUp(k){if(!this.ok())return;const t=this.ctx.currentTime,P=KEYS_SND[this.style||0],m=k.pitch;
-    if(P.clicky)this.nz(t,.004,'highpass',4800,3800,.6,.35);
-    this.nz(t,.005,'bandpass',P.cl*m*.85,P.cl*m*.65,2,P.cv*.55);
-    this.tone(t,.03,P.f0*1.45*m,P.f0*m,.16)},
+  /* 키캡 소리 (키링 청축·갈축 소리를 분석해서 만든 것): 1 갈축 2 갈축 둔하게 3 청축 4 청축 또랑또랑 5 갈축+뽁 */
+  keyDown(k){if(!this.ok())return;keyDownSnd(this.ctx,keyOut(this.ctx),this.noise,this.ctx.currentTime,KEYS_SND[this.style||0],k.pitch*(.98+Math.random()*.04))},
+  keyUp(k){if(!this.ok())return;keyUpSnd(this.ctx,keyOut(this.ctx),this.noise,this.ctx.currentTime,KEYS_SND[this.style||0],k.pitch)},
   tick(){if(!this.ok())return;const t=this.ctx.currentTime;this.tone(t,.07,700,420,.18,'triangle')}
 };
 
@@ -1099,8 +1115,9 @@ const VO=[null,
 function setVoice(i){Sfx.style=i;document.querySelectorAll('.voice').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.v===i?'true':'false'))}
 document.querySelectorAll('.voice').forEach(b=>b.addEventListener('click',()=>{
   const i=+b.dataset.v;Sfx.unlock();setVoice(i);
-  hint.textContent='소리: '+VOICE_NAMES[i];hint.style.opacity=1;
-  if(mode==='wax')Sfx.crack(.6);else if(mode==='wax2')W2S.play('crack',.8,0);else Sfx.snap(.7);
+  const KEY_NAMES=['갈축','갈축 · 둔하게','청축','청축 · 또랑또랑','갈축 + 뽁'];
+  hint.textContent=mode==='key'?'키캡 소리: '+KEY_NAMES[i]:'소리: '+VOICE_NAMES[i];hint.style.opacity=1;
+  if(mode==='key'){const k={pitch:1};Sfx.keyDown(k);setTimeout(()=>Sfx.keyUp(k),110)}else if(mode==='wax')Sfx.crack(.6);else if(mode==='wax2')W2S.play('crack',.8,0);else Sfx.snap(.7);
 }));
 /* 잡고 흔들 때 (direction flips) — one per photo */
 window.MBunlock=()=>Sfx.unlock();

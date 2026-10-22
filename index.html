@@ -918,7 +918,7 @@ const Block=(()=>{
     [[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],
     [[0,0],[1,0],[1,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,1],[1,1],[2,1],[2,0]],[[0,0],[0,1],[0,2],[1,1]],[[0,1],[0,2],[1,0],[1,1]],[[0,0],[0,1],[1,1],[1,2]],
     [[0,0],[1,0],[2,0],[2,1],[2,2]]];
-  const BW8=[3,6,9,8,5, 9,3,6, 8,6,6,6,4,4, 5];                    // how often each base shape shows up
+  const BW8=[2,4,7,8,6, 8,5,7, 6,7,7,7,5,5, 7];                    // how often each base shape shows up
   const norm=s=>{const r0=Math.min(...s.map(p=>p[0])),c0=Math.min(...s.map(p=>p[1]));return s.map(([r,c])=>[r-r0,c-c0]).sort((a,b)=>a[0]-b[0]||a[1]-b[1])};
   const rot=s=>norm(s.map(([r,c])=>[c,-r]));
   const SH=[],SW=[],SMALL=[];
@@ -954,7 +954,7 @@ const Block=(()=>{
   const anyFit=s=>{for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(fits(s,r,c))return true;return false};
   function full(B){const rows=[],cols=[];for(let r=0;r<N;r++){let f=true;for(let c=0;c<N;c++)if(B[r*N+c]<0){f=false;break}if(f)rows.push(r)}
     for(let c=0;c<N;c++){let f=true;for(let r=0;r<N;r++)if(B[r*N+c]<0){f=false;break}if(f)cols.push(c)}return{rows,cols}}
-  function pickShape(fill){let tot=0;const w=SW.map((x,i)=>{const v=x*(fill>.55&&SMALL[i]?2.2:1)*(fill>.6&&SH[i].length>=6?.35:1);tot+=v;return v});let r=Math.random()*tot;
+  function pickShape(fill){let tot=0;const w=SW.map((x,i)=>{const v=x*(fill>.55&&SMALL[i]?1.5:1)*(fill>.6&&SH[i].length>=6?.6:1);tot+=v;return v});let r=Math.random()*tot;
     for(let i=0;i<w.length;i++){r-=w[i];if(r<=0)return i}return 0}
   /* ---- dealing: like the real game, look ahead and lean toward sets that can clear lines (sometimes the whole board),
      without making it a gift every time ---- */
@@ -984,21 +984,21 @@ const Block=(()=>{
     return out}
   function deal(){const B0=Array.from(board,v=>v>=0?1:0),fill=B0.reduce((a,v)=>a+v,0)/64,gaps=gapShapes(B0);
     const cands=[];for(let t=0;t<20;t++){const trip=[pickShape(fill),pickShape(fill),pickShape(fill)];
-      if(gaps.length&&Math.random()<.4)trip[(Math.random()*3)|0]=gaps[(Math.random()*gaps.length)|0];
+      if(gaps.length&&Math.random()<.22)trip[(Math.random()*3)|0]=gaps[(Math.random()*gaps.length)|0];
       cands.push({trip,r:plan(B0,trip)})}
     const ok=cands.filter(c=>c.r.ok),clears=ok.filter(c=>c.r.clear);
-    const fair=Math.max(.55,.93-(lvOf(score)-1)*.025);                                      // later in the game, unfair sets slip in more often
+    const fair=Math.max(.45,.92-(lvOf(score)-1)*.06);                                      // later in the game, unfair sets slip in more often
     let pick;
-    if(clears.length&&Math.random()<.5)pick=clears[(Math.random()*clears.length)|0];   // 올 클리어 기회
+    if(clears.length&&Math.random()<.25)pick=clears[(Math.random()*clears.length)|0];   // 올 클리어 기회
     else if(ok.length&&Math.random()<fair){ok.sort((a,b)=>b.r.v-a.r.v);
-      pick=Math.random()<.25+.45*fill?ok[(Math.random()*Math.min(3,ok.length))|0]:ok[(Math.random()*ok.length)|0]}
+      pick=Math.random()<.08+.3*fill?ok[(Math.random()*Math.min(3,ok.length))|0]:ok[(Math.random()*ok.length)|0]}
     else pick=cands.find(c=>c.trip.some(s=>anyFit(s)))||cands[0];
     const cs=[0,1,2,3,4,5,6].sort(()=>Math.random()-.5);pieces=pick.trip.map((s,i)=>({s,c:cs[i]}));dealT=now_();dealSnd()}
   /* ---- actions ---- */
   function snap(d){const s=SH[pieces[d.slot].s],[h,w]=dims(s),tlx=d.x-w*C/2,tly=d.y-h*C-LIFT;d.col=Math.round((tlx-PB)/C);d.row=Math.round((tly-BY)/C);d.ok=fits(pieces[d.slot].s,d.row,d.col);
     d.lines=null;if(d.ok){const B=board.slice();for(const [r,c] of s)B[(d.row+r)*N+d.col+c]=pieces[d.slot].c;d.lines=full(B)}}
-  /* 레벨: 블록 1개 = 100점 × 레벨. 레벨 업 점수는 1,200 → 5,200 → 13,100 → 25,600 … 갈수록 간격이 넓어짐 */
-  const LT=L=>Math.round(1000*(L*L+.15*L*L*L)/100)*100,lvOf=v=>{let L=1;while(v>=LT(L))L++;return L},lvStart=L=>L<=1?0:LT(L-1);
+  /* 레벨: 블록 1개 = 100점 × 레벨. 레벨 업: 1만 → 3만 → 6만 → 10만 → 15만 … (간격이 1만씩 늘어남) */
+  const LT=L=>10000*L*(L+1)/2,lvOf=v=>{let L=1;while(v>=LT(L))L++;return L},lvStart=L=>L<=1?0:LT(L-1);
   let lvFx=0;
   function place(d){const t=now_(),P=pieces[d.slot],s=SH[P.s],L0=lvOf(score);
     for(const [r,c] of s){const i=(d.row+r)*N+d.col+c;board[i]=P.c;popT[i]=t}
@@ -1008,7 +1008,7 @@ const Block=(()=>{
     if(n){combo++;miss=0;lines+=n;maxCombo=Math.max(maxCombo,combo);const set=new Set();L.rows.forEach(r=>{for(let c=0;c<N;c++)set.add(r*N+c)});L.cols.forEach(c=>{for(let r=0;r<N;r++)set.add(r*N+c)});
       for(const i of set){const r=(i/N)|0,c=i%N;clearing.push({r,c,ci:board[i],t:t+Math.hypot(r+.5-cy,c+.5-cx)*32});board[i]=-1}
       L.rows.forEach(r=>flashes.push({row:r,t}));L.cols.forEach(c=>flashes.push({col:c,t}));
-      let gain=Math.round(500*L0*n*(n+1)/2*(1+(combo-1)*.5)/100)*100;const empty=board.every(v=>v<0);if(empty){gain+=10000*L0;banner={t,txt:'올 클리어!'};confetti(60)}
+      let gain=Math.round(200*L0*n*(n+1)/2*Math.min(3,1+(combo-1)*.25)/100)*100;const empty=board.every(v=>v<0);if(empty){gain+=5000*L0;banner={t,txt:'올 클리어!'};confetti(60)}
       score+=gain;const X=PB+cx*C,Y=BY+cy*C;
       texts.push({x:X,y:Y,txt:'+'+(gain+pg).toLocaleString('ko-KR'),t,c:'#fff',s:24,dur:1000});
       const praise=n>=4?'미쳤다!!':n===3?'대박!':n===2?'멋져요!':combo>=3?'좋아요!':'';

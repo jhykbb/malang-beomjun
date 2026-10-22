@@ -301,7 +301,7 @@ function local(e){const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.c
 cv.addEventListener('pointerdown',e=>{
   if(!rest)return;Sfx.unlock();if(Sleep.wake())return;
   if(mode==='key'){const [kx,ky]=local(e);cv.setPointerCapture(e.pointerId);
-    if(Keys.down(e,kx,ky)){count++;if(window.MB)MB.add(1);else cntEl.textContent=count;if(!msgT)hint.style.opacity=0;annoy()}return}
+    if(Keys.down(e,kx,ky)){count++;if(window.MB)MB.add(1);else cntEl.textContent=count;if(!msgT)hint.style.opacity=0}return}   // 키캡 모드: 이스터에그 없음
   cv.setPointerCapture(e.pointerId);
   const [x,y]=local(e);
   const w=new Float32Array(N),start=new Float32Array(N*2);let any=false;
@@ -554,6 +554,11 @@ const W2S={bus:null,vol:1,
     if(Sfx.style)Sfx.crumble(Math.min(1,n/6)*.6)}
 };
 const Wax2=(()=>{
+  /* perf: the shell is redrawn into a cache only when something changed (new cracks, crack growth, or the
+     ball still moving); otherwise last frame's picture is just copied — keeps 왁뿌볼2 smooth */
+  let X=wctx,dirtyUntil=0,cacheOk=false;const cache=document.createElement('canvas'),cctx=cache.getContext('2d');
+  const dirty=ms=>{dirtyUntil=Math.max(dirtyUntil,performance.now()+(ms||90))};
+  function meshMoving(){for(let k=0;k<N;k+=6)if(Math.abs(vel[k*2])+Math.abs(vel[k*2+1])>4)return true;return false}
   let newLen=0,shards=[],cracks=[],flying=[],dents=[],clay='#ff9ec0',clayD='#c9567f';
   const oc=document.createElement('canvas');
   const CLAYS=[['#ff9ec0','#c9567f'],['#86e0c8','#3f9e86'],['#ffd56b','#c99a20'],['#a3b8ff','#5b6fcf'],['#cfa6ff','#8a5cc9'],['#ffb27a','#cc6f33']];
@@ -569,7 +574,7 @@ const Wax2=(()=>{
     return[(bk%(GX+1))/GX,((bk/(GX+1))|0)/GY,Math.sqrt(best)]}
   const dUV=(a,b,c,d)=>Math.hypot(a-c,(b-d)*aspect);
   const inBall=(u,v)=>Math.hypot((u-.5)/.5,(v-.53)*aspect/.5)*.98<.97;
-  function coat(){
+  function coat(){dirty();cacheOk=false;
     shards=[];cracks=[];flying=[];dents=[];
     const cc=CLAYS[(R_()*CLAYS.length)|0];clay=cc[0];clayD=cc[1];
     const CX=16,CY=Math.round(16*aspect);
@@ -605,16 +610,16 @@ const Wax2=(()=>{
   function dent(x,y,s){const r2=2*(R*.9)**2;
     for(let k=0;k<N;k++){const dx=x-pos[k*2],dy=y-pos[k*2+1],w=Math.exp(-(dx*dx+dy*dy)/r2);if(w<.02)continue;
       vel[k*2]+=dx*w*s*4;vel[k*2+1]+=dy*w*s*4}}
-  function tap(x,y){const[u,v,dist]=xyToUV(x,y);if(dist>R)return;newLen=0;
+  function tap(x,y){dirty();const[u,v,dist]=xyToUV(x,y);if(dist>R)return;newLen=0;
     const n=5+(R_()*4|0),a0=R_()*6.28;
     for(let i=0;i<n;i++)addCrack(u,v,a0+i*6.28/n+(R_()-.5)*.6,.05+R_()*.1);
     const[c,p]=affect(u,v,x,y,.11,.05,.7,99);
     W2S.play('crack',(newLen+c*.006)/.75,p);dent(x,y,.3)}
-  function rub(x,y){const[u,v,dist]=xyToUV(x,y);if(dist>R)return;newLen=0;
+  function rub(x,y){dirty();const[u,v,dist]=xyToUV(x,y);if(dist>R)return;newLen=0;
     const[c,p]=affect(u,v,x,y,.065,.04,.4,8);
     if(R_()<.2)addCrack(u,v,R_()*6.28,.025+R_()*.04);
     W2S.play('crunch',(newLen+c*.006)/.2,p)}
-  function hold(g,t){ // 꾸욱: the centre sinks in deeper and deeper; cracks creep out slowly around it
+  function hold(g,t){ // 꾸욱: the centre sinks in deeper and deeper; cracks creep out slowly around itdirty();
     const el=(t-g.t0)/1000;if(el<.1||t-(g.lastHold||0)<40)return;g.lastHold=t;
     const[u,v,dist]=xyToUV(g.x,g.y);if(dist>R)return;newLen=0;
     const k=Math.min(1,(el-.1)/1.4);
@@ -630,69 +635,77 @@ const Wax2=(()=>{
       o.fillStyle=lg;o.fillRect(0,0,s,s);
       o.globalCompositeOperation='destination-in';const rg=o.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
       rg.addColorStop(0,'rgba(0,0,0,1)');rg.addColorStop(.62,'rgba(0,0,0,.9)');rg.addColorStop(1,'rgba(0,0,0,0)');o.fillStyle=rg;o.fillRect(0,0,s,s);
-      wctx.drawImage(oc,x-s/2,y-s/2);
-      const cg=wctx.createRadialGradient(x+r*.12,y+r*.12,0,x,y,r*.65);cg.addColorStop(0,'rgba(20,6,10,'+(.6*d)+')');cg.addColorStop(1,'rgba(20,6,10,0)');
-      wctx.fillStyle=cg;wctx.beginPath();wctx.arc(x,y,r*.65,0,6.29);wctx.fill();
-      wctx.beginPath();wctx.arc(x,y,r*1.02,3.5,5.2);wctx.strokeStyle='rgba(255,255,255,'+(.55*d)+')';wctx.lineWidth=2;wctx.stroke()}}
+      X.drawImage(oc,x-s/2,y-s/2);
+      const cg=X.createRadialGradient(x+r*.12,y+r*.12,0,x,y,r*.65);cg.addColorStop(0,'rgba(20,6,10,'+(.6*d)+')');cg.addColorStop(1,'rgba(20,6,10,0)');
+      X.fillStyle=cg;X.beginPath();X.arc(x,y,r*.65,0,6.29);X.fill();
+      X.beginPath();X.arc(x,y,r*1.02,3.5,5.2);X.strokeStyle='rgba(255,255,255,'+(.55*d)+')';X.lineWidth=2;X.stroke()}}
   function left(){let n=0;for(const s of shards)if(s.state!==2)n++;return n}
-  function triPath(list){wctx.beginPath();
-    for(const s of list){const p=s.pts.map(q=>uvToXY(q[0],q[1]));wctx.moveTo(p[0][0],p[0][1]);wctx.lineTo(p[1][0],p[1][1]);wctx.lineTo(p[2][0],p[2][1]);wctx.closePath()}}
-  function crackPath(now,dx,dy){wctx.beginPath();
-    for(const c of cracks){const n=Math.max(2,Math.ceil(c.pts.length*Math.min(1,(now-c.born)/40)));
-      for(let i=0;i<n;i++){const p=uvToXY(c.pts[i][0],c.pts[i][1]);i?wctx.lineTo(p[0]+dx,p[1]+dy):wctx.moveTo(p[0]+dx,p[1]+dy)}}}
+  function triPath(list){X.beginPath();
+    for(const s of list){const p=s.sp||s.pts.map(q=>uvToXY(q[0],q[1]));X.moveTo(p[0][0],p[0][1]);X.lineTo(p[1][0],p[1][1]);X.lineTo(p[2][0],p[2][1]);X.closePath()}}
+  function crackPath(now,dx,dy,list){X.beginPath();
+    for(const c of (list||cracks)){const n=Math.max(2,Math.ceil(c.pts.length*Math.min(1,(now-c.born)/40)));
+      if(!c.sp||c.sp.length!==c.pts.length)c.sp=c.pts.map(q=>uvToXY(q[0],q[1]));
+      for(let i=0;i<n;i++){const p=c.sp[i];i?X.lineTo(p[0]+dx,p[1]+dy):X.moveTo(p[0]+dx,p[1]+dy)}}}
   let lastT=performance.now();
   function draw(){
     const now=performance.now(),dt=Math.min(.05,(now-lastT)/1000);lastT=now;
     if(mode!=='wax2'&&!flying.length)return;
     if(mode==='wax2'&&shards.length){
-      wctx.lineJoin='round';wctx.lineCap='round';
+      if(cache.width!==wx.width||cache.height!==wx.height){cache.width=wx.width;cache.height=wx.height;cacheOk=false}
+      if(!cacheOk||now<dirtyUntil||meshMoving()){
+        cctx.setTransform(wctx.getTransform());cctx.clearRect(0,0,W,H);X=cctx;
+        for(const s of shards)s.sp=s.state?s.pts.map(q=>uvToXY(q[0],q[1])):null;for(const c of cracks)c.sp=null;
+      X.lineJoin='round';X.lineCap='round';
       // stressed (cracked) pieces: faint milky mosaic
       const cr=shards.filter(s=>s.state===1);
-      if(cr.length){triPath(cr);wctx.fillStyle='rgba(255,250,245,.06)';wctx.fill();wctx.strokeStyle='rgba(35,12,18,.11)';wctx.lineWidth=.6;wctx.stroke()}
+      if(cr.length){triPath(cr);X.fillStyle='rgba(255,250,245,.06)';X.fill();X.strokeStyle='rgba(35,12,18,.11)';X.lineWidth=.6;X.stroke()}
       // engraved crack lines, drawn as they race outward
-      crackPath(now,.9,.9);wctx.strokeStyle='rgba(255,255,255,.45)';wctx.lineWidth=.8;wctx.stroke();
-      crackPath(now,0,0);wctx.strokeStyle='rgba(25,8,12,.78)';wctx.lineWidth=1.5;wctx.stroke();
+      crackPath(now,.9,.9);X.strokeStyle='rgba(255,255,255,.45)';X.lineWidth=.8;X.stroke();
+      crackPath(now,0,0);X.strokeStyle='rgba(25,8,12,.78)';X.lineWidth=1.5;X.stroke();
       // 오래 누른 자리: lines near the pressed centre get thicker the longer it was held
-      for(const D of dents){if(D.d<.05)continue;const[x,y]=uvToXY(D.u,D.v);const r=Math.max(8,D.r*2*BR);
+      const sh2all=shards.filter(s=>s.state===2);for(const D of dents.slice(-8)){if(D.d<.05)continue;const[x,y]=uvToXY(D.u,D.v);const r=Math.max(8,D.r*2*BR);
+        const near=cracks.filter(c=>dUV(c.pts[0][0],c.pts[0][1],D.u,D.v)<D.r*2.4),shNear=sh2all.filter(s=>dUV(s.cu,s.cv,D.u,D.v)<D.r*1.8);
         for(const [rr,w] of [[r*1.5,1.5+2.2*D.d],[r*.8,1.5+4.5*D.d]]){
-          wctx.save();wctx.beginPath();wctx.arc(x,y,rr,0,6.29);wctx.clip();
-          crackPath(now,0,0);wctx.strokeStyle='rgba(25,8,12,.85)';wctx.lineWidth=w;wctx.stroke();
-          const sh2=shards.filter(s=>s.state===2);if(sh2.length){triPath(sh2);wctx.lineWidth=w*.6;wctx.stroke()}
-          wctx.restore()}}
+          X.save();X.beginPath();X.arc(x,y,rr,0,6.29);X.clip();
+          crackPath(now,0,0,near);X.strokeStyle='rgba(25,8,12,.85)';X.lineWidth=w;X.stroke();
+          if(shNear.length){triPath(shNear);X.lineWidth=w*.6;X.stroke()}
+          X.restore()}}
       // shattered pieces stay in place: sunken mosaic, photo still visible
       const sh=shards.filter(s=>s.state===2);
-      if(sh.length){triPath(sh);wctx.fillStyle='rgba(255,248,240,.09)';wctx.fill();
-        wctx.strokeStyle='rgba(30,10,15,.42)';wctx.lineWidth=1;wctx.stroke();
-        wctx.save();wctx.translate(.8,.8);triPath(sh);wctx.strokeStyle='rgba(255,255,255,.28)';wctx.lineWidth=.6;wctx.stroke();wctx.restore()}
+      if(sh.length){triPath(sh);X.fillStyle='rgba(255,248,240,.09)';X.fill();
+        X.strokeStyle='rgba(30,10,15,.42)';X.lineWidth=1;X.stroke();
+        X.save();X.translate(.8,.8);triPath(sh);X.strokeStyle='rgba(255,255,255,.28)';X.lineWidth=.6;X.stroke();X.restore()}
       // wax gloss over the whole ball
       const hx=BX-BR*.38,hy=BY-BR*.42;
-      wctx.save();wctx.beginPath();wctx.arc(BX,BY,BR*.99,0,Math.PI*2);wctx.clip();
-      const g2=wctx.createRadialGradient(hx,hy,0,hx,hy,BR*.7);g2.addColorStop(0,'rgba(255,255,255,.3)');g2.addColorStop(1,'rgba(255,255,255,0)');
-      wctx.fillStyle=g2;wctx.fillRect(BX-BR,BY-BR,BR*2,BR*2);
-      wctx.fillStyle='rgba(255,255,255,.6)';wctx.beginPath();wctx.ellipse(hx,hy,BR*.13,BR*.065,-.6,0,Math.PI*2);wctx.fill();
-      wctx.restore()}
+      X.save();X.beginPath();X.arc(BX,BY,BR*.99,0,Math.PI*2);X.clip();
+      const g2=X.createRadialGradient(hx,hy,0,hx,hy,BR*.7);g2.addColorStop(0,'rgba(255,255,255,.3)');g2.addColorStop(1,'rgba(255,255,255,0)');
+      X.fillStyle=g2;X.fillRect(BX-BR,BY-BR,BR*2,BR*2);
+      X.fillStyle='rgba(255,255,255,.6)';X.beginPath();X.ellipse(hx,hy,BR*.13,BR*.065,-.6,0,Math.PI*2);X.fill();
+      X.restore()
+        X=wctx;cacheOk=true}
+      wctx.save();wctx.setTransform(1,0,0,1,0,0);wctx.drawImage(cache,0,0);wctx.restore()}
     for(let i=flying.length-1;i>=0;i--){const f=flying[i];
       f.vy+=1800*dt;f.x+=f.vx*dt;f.y+=f.vy*dt;f.a+=f.va*dt;f.fl+=f.vfl*dt;f.life-=dt*.7;
       if(f.y>H+80||f.life<=0){flying.splice(i,1);continue}
       const c=Math.cos(f.a),s=Math.sin(f.a),fc=Math.cos(f.fl);
       const D=f.rel.map(p=>{const X=p[0]*fc;return[f.x+X*c-p[1]*s,f.y+X*s+p[1]*c]});
-      wctx.save();wctx.globalAlpha=Math.max(0,Math.min(1,f.life*1.5));
-      if(f.crumb){wctx.beginPath();D.forEach((p,k)=>k?wctx.lineTo(p[0],p[1]):wctx.moveTo(p[0],p[1]));wctx.closePath();wctx.fillStyle='rgba(248,242,234,.95)';wctx.fill();wctx.restore();continue}
+      X.save();X.globalAlpha=Math.max(0,Math.min(1,f.life*1.5));
+      if(f.crumb){X.beginPath();D.forEach((p,k)=>k?X.lineTo(p[0],p[1]):X.moveTo(p[0],p[1]));X.closePath();X.fillStyle='rgba(248,242,234,.95)';X.fill();X.restore();continue}
       const th=2.5+3*Math.abs(Math.sin(f.fl));
-      wctx.beginPath();D.forEach((p,k)=>k?wctx.lineTo(p[0],p[1]+th):wctx.moveTo(p[0],p[1]+th));wctx.closePath();
-      wctx.fillStyle='rgba(240,232,222,.95)';wctx.fill();
-      wctx.beginPath();D.forEach((p,k)=>k?wctx.lineTo(p[0],p[1]):wctx.moveTo(p[0],p[1]));wctx.closePath();
-      if(fc<0){wctx.fillStyle=clay;wctx.fill();wctx.restore();continue}   // back side: clay stuck to the shell
-      wctx.save();wctx.clip();
+      X.beginPath();D.forEach((p,k)=>k?X.lineTo(p[0],p[1]+th):X.moveTo(p[0],p[1]+th));X.closePath();
+      X.fillStyle='rgba(240,232,222,.95)';X.fill();
+      X.beginPath();D.forEach((p,k)=>k?X.lineTo(p[0],p[1]):X.moveTo(p[0],p[1]));X.closePath();
+      if(fc<0){X.fillStyle=clay;X.fill();X.restore();continue}   // back side: clay stuck to the shell
+      X.save();X.clip();
       const S=f.uv.map(q=>[q[0]*img.width,q[1]*img.height]);
       const [x0,y0]=S[0],[x1,y1]=S[1],[x2,y2]=S[2],[u0,v0]=D[0],[u1,v1]=D[1],[u2,v2]=D[2];
       const den=(x1-x0)*(y2-y0)-(x2-x0)*(y1-y0);
       if(Math.abs(den)>1e-6){
         const a=((u1-u0)*(y2-y0)-(u2-u0)*(y1-y0))/den,b=((v1-v0)*(y2-y0)-(v2-v0)*(y1-y0))/den,
               cc=((u2-u0)*(x1-x0)-(u1-u0)*(x2-x0))/den,d=((v2-v0)*(x1-x0)-(v1-v0)*(x2-x0))/den;
-        wctx.transform(a,b,cc,d,u0-a*x0-cc*y0,v0-b*x0-d*y0);wctx.drawImage(img,0,0)}
-      wctx.restore();
-      wctx.fillStyle='rgba(255,250,245,.15)';wctx.fill();wctx.strokeStyle='rgba(255,255,255,.75)';wctx.lineWidth=1.1;wctx.stroke();wctx.restore()}
+        X.transform(a,b,cc,d,u0-a*x0-cc*y0,v0-b*x0-d*y0);X.drawImage(img,0,0)}
+      X.restore();
+      X.fillStyle='rgba(255,250,245,.15)';X.fill();X.strokeStyle='rgba(255,255,255,.75)';X.lineWidth=1.1;X.stroke();X.restore()}
   }
   return{coat,tap,rub,hold,draw,left}
 })();
@@ -790,7 +803,7 @@ const Sleep=(()=>{
   let asleep=false,lastAct=performance.now(),nextSnore=0,zs=[],nextZ=0;
   function poke(){lastAct=performance.now()}
   function check(now){
-    if(curPhoto!==2){asleep=false;return}
+    if(curPhoto!==2||mode==='key'){if(asleep&&curPhoto===2){altOn=false;zs=[]}asleep=false;lastAct=now;return}
     if(!asleep&&grabs.size===0&&now-lastAct>15000){asleep=true;altOn=true;mxRate=.025;(MB.egg('sleep'),showMsg('Zzz…'));nextSnore=now+600;nextZ=now}
     if(asleep){
       if(now>=nextSnore){Sfx.snore();nextSnore=now+2800}
@@ -888,17 +901,20 @@ function shadeCalc(){ // squeezed = darker crease, stretched = lighter sheen
     const area=ex*ey;shade[k]=Math.max(-.35,Math.min(.18,(area-1)*.22))+(base?base[k]:0)}
 }
 let last=performance.now(),acc=0;
+/* perf: when nothing is held and every point has settled back to rest, skip the physics for that frame */
+let uploaded=false;
+function isStill(){for(let k=0;k<N*2;k+=3){if(Math.abs(vel[k])>.05||Math.abs(pos[k]-rest[k])>.05)return false}return true}
 function loop(now){
   acc+=Math.min(50,now-last)/1000;last=now;
-  while(acc>=DT){step();acc-=DT}
-  shadeCalc();
+  const still=!grabs.size&&isStill();
+  if(still)acc=0;else{while(acc>=DT){step();acc-=DT}shadeCalc()}
   gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
   gl.uniform2f(uRes,W,H);
   mxCur+=((altOn?1:0)-mxCur)*mxRate;Sleep.check(now);gl.uniform1f(uMx,mxCur);
   cryCheck(now);pullCheck(now);vCheck(now);mx2Cur+=((alt2On?1:0)-mx2Cur)*.06;gl.uniform1f(uMx2,mx2Cur);
-  gl.bindBuffer(gl.ARRAY_BUFFER,posBuf);gl.bufferData(gl.ARRAY_BUFFER,pos,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aP);gl.vertexAttribPointer(aP,2,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,posBuf);if(!still||!uploaded)gl.bufferData(gl.ARRAY_BUFFER,pos,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aP);gl.vertexAttribPointer(aP,2,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,uvBuf);gl.enableVertexAttribArray(aUV);gl.vertexAttribPointer(aUV,2,gl.FLOAT,false,0,0);
-  gl.bindBuffer(gl.ARRAY_BUFFER,shBuf);gl.bufferData(gl.ARRAY_BUFFER,shade,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aS);gl.vertexAttribPointer(aS,1,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,shBuf);if(!still||!uploaded){gl.bufferData(gl.ARRAY_BUFFER,shade,gl.DYNAMIC_DRAW);uploaded=still}gl.enableVertexAttribArray(aS);gl.vertexAttribPointer(aS,1,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,idxBuf);
   if(mode!=='key')gl.drawElements(gl.TRIANGLES,idxCount,gl.UNSIGNED_SHORT,0);
   Wax.draw();Wax2.draw();Keys.draw();Tooth.draw();Sleep.draw(now);

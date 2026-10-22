@@ -956,9 +956,44 @@ const Block=(()=>{
     for(let c=0;c<N;c++){let f=true;for(let r=0;r<N;r++)if(B[r*N+c]<0){f=false;break}if(f)cols.push(c)}return{rows,cols}}
   function pickShape(fill){let tot=0;const w=SW.map((x,i)=>{const v=x*(fill>.55&&SMALL[i]?2.2:1)*(fill>.6&&SH[i].length>=6?.35:1);tot+=v;return v});let r=Math.random()*tot;
     for(let i=0;i<w.length;i++){r-=w[i];if(r<=0)return i}return 0}
-  function deal(){const fill=board.reduce((a,v)=>a+(v>=0),0)/64;let P;
-    for(let t=0;t<40;t++){const cs=[0,1,2,3,4,5,6].sort(()=>Math.random()-.5);P=[0,1,2].map(i=>({s:pickShape(fill),c:cs[i]}));if(P.some(p=>anyFit(p.s)))break}
-    pieces=P;dealT=now_();dealSnd()}
+  /* ---- dealing: like the real game, look ahead and lean toward sets that can clear lines (sometimes the whole board),
+     without making it a gift every time ---- */
+  const SKEY=new Map(SH.map((s,i)=>[JSON.stringify(s),i]));
+  function canAt(B,s,r0,c0){for(const [r,c] of SH[s]){const R=r0+r,K=c0+c;if(R>=N||K>=N||B[R*N+K])return false}return true}
+  function simPlace(B,s,r0,c0){const nb=B.slice();for(const [r,c] of SH[s])nb[(r0+r)*N+c0+c]=1;const rows=[],cols=[];
+    for(let r=0;r<N;r++){let f=1;for(let c=0;c<N;c++)if(!nb[r*N+c]){f=0;break}if(f)rows.push(r)}
+    for(let c=0;c<N;c++){let f=1;for(let r=0;r<N;r++)if(!nb[r*N+c]){f=0;break}if(f)cols.push(c)}
+    for(const r of rows)for(let c=0;c<N;c++)nb[r*N+c]=0;for(const c of cols)for(let r=0;r<N;r++)nb[r*N+c]=0;return[nb,rows.length+cols.length]}
+  function quality(B){let filled=0,iso=0,edges=0;
+    for(let i=0;i<64;i++){if(B[i]){filled++;continue}const r=(i/N)|0,c=i%N;if(!((r>0&&!B[i-N])||(r<N-1&&!B[i+N])||(c>0&&!B[i-1])||(c<N-1&&!B[i+1])))iso++}
+    for(let r=0;r<N;r++)for(let c=0;c<N-1;c++)if(B[r*N+c]!==B[r*N+c+1])edges++;
+    for(let c=0;c<N;c++)for(let r=0;r<N-1;r++)if(B[r*N+c]!==B[(r+1)*N+c])edges++;
+    return -filled*.6-iso*3-edges*.25}
+  const ORD=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+  function plan(B0,trip){let best={ok:false,lines:0,clear:false,v:-1e9};          // beam search over orders and spots
+    for(const o of ORD){let beam=[{B:B0,lines:0,v:0}];
+      for(const k of o){const s=trip[k],[h,w]=dims(SH[s]),next=[];
+        for(const st of beam)for(let r=0;r<=N-h;r++)for(let c=0;c<=N-w;c++)if(canAt(st.B,s,r,c)){const [nb,n]=simPlace(st.B,s,r,c);next.push({B:nb,lines:st.lines+n,v:(st.lines+n)*12+quality(nb)})}
+        if(!next.length){beam=null;break}next.sort((a,b)=>b.v-a.v);beam=next.slice(0,5)}
+      if(!beam)continue;const clear=beam.some(x=>!x.B.some(v=>v)),v=beam[0].v+(clear?150:0);
+      if(v>best.v)best={ok:true,lines:beam[0].lines,clear:clear||best.clear,v}}
+    return best}
+  function gapShapes(B){const out=[];                                             // pieces that would exactly finish a nearly full row/column
+    for(let r=0;r<N;r++){const e=[];for(let c=0;c<N;c++)if(!B[r*N+c])e.push(c);if(e.length&&e.length<=5&&e[e.length-1]-e[0]===e.length-1){const k=SKEY.get(JSON.stringify(e.map((_,i)=>[0,i])));if(k!=null)out.push(k)}}
+    for(let c=0;c<N;c++){const e=[];for(let r=0;r<N;r++)if(!B[r*N+c])e.push(r);if(e.length&&e.length<=5&&e[e.length-1]-e[0]===e.length-1){const k=SKEY.get(JSON.stringify(e.map((_,i)=>[i,0])));if(k!=null)out.push(k)}}
+    return out}
+  function deal(){const B0=Array.from(board,v=>v>=0?1:0),fill=B0.reduce((a,v)=>a+v,0)/64,gaps=gapShapes(B0);
+    const cands=[];for(let t=0;t<20;t++){const trip=[pickShape(fill),pickShape(fill),pickShape(fill)];
+      if(gaps.length&&Math.random()<.4)trip[(Math.random()*3)|0]=gaps[(Math.random()*gaps.length)|0];
+      cands.push({trip,r:plan(B0,trip)})}
+    const ok=cands.filter(c=>c.r.ok),clears=ok.filter(c=>c.r.clear);
+    const fair=Math.max(.55,.93-score/10000);                                      // later in the game, unfair sets slip in more often
+    let pick;
+    if(clears.length&&Math.random()<.5)pick=clears[(Math.random()*clears.length)|0];   // 올 클리어 기회
+    else if(ok.length&&Math.random()<fair){ok.sort((a,b)=>b.r.v-a.r.v);
+      pick=Math.random()<.25+.45*fill?ok[(Math.random()*Math.min(3,ok.length))|0]:ok[(Math.random()*ok.length)|0]}
+    else pick=cands.find(c=>c.trip.some(s=>anyFit(s)))||cands[0];
+    const cs=[0,1,2,3,4,5,6].sort(()=>Math.random()-.5);pieces=pick.trip.map((s,i)=>({s,c:cs[i]}));dealT=now_();dealSnd()}
   /* ---- actions ---- */
   function snap(d){const s=SH[pieces[d.slot].s],[h,w]=dims(s),tlx=d.x-w*C/2,tly=d.y-h*C-LIFT;d.col=Math.round((tlx-PB)/C);d.row=Math.round((tly-BY)/C);d.ok=fits(pieces[d.slot].s,d.row,d.col);
     d.lines=null;if(d.ok){const B=board.slice();for(const [r,c] of s)B[(d.row+r)*N+d.col+c]=pieces[d.slot].c;d.lines=full(B)}}

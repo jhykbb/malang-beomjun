@@ -121,6 +121,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
       <button class="mode" id="m-wax" data-mode="wax" aria-pressed="false">왁뿌볼<small>코팅 깨기</small></button>
       <button class="mode" id="m-wax2" data-mode="wax2" aria-pressed="false">왁뿌볼2<small>사진이 깨짐</small></button>
       <button class="mode" id="m-key" data-mode="key" aria-pressed="false" hidden>키캡<small>도각도각</small></button>
+      <button class="mode" id="m-spin" data-mode="spin" aria-pressed="false" hidden>스피너<small>위잉</small></button>
     </div>
     <label class="bounce ext" for="bounce"><span>반동 세기</span>
       <input type="range" id="bounce" min="0" max="100" value="60">
@@ -307,8 +308,8 @@ document.querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{
   if(wantBall!==ball){ball=wantBall;computeRest(false,false);Sfx.squish('press')} // springs morph it: 뽀옹
   if(mode==='wax'&&Wax.left()===0)Wax.coat();
   if(mode==='wax2'&&Wax2.left()===0)Wax2.coat();
-  if(mode!=='key')Keys.reset();
-  hint.textContent=mode==='key'?'키캡을 눌러보세요 · 여러 손가락으로 타닥타닥, 쓸면 타라락':mode==='wax2'?'톡 두드리면 빠직 · 꾹 누르고 있으면 주위로 꾸욱 깨져요':mode==='wax'?'얼굴을 꾹 누르고 문질러서 와작 깨보세요':'볼을 잡고 쭈욱 당겨보세요 · 두 손가락도 돼요';hint.style.opacity=1;
+  if(mode!=='key')Keys.reset();if(mode!=='spin')Spinner.reset();
+  hint.textContent=mode==='spin'?'손가락으로 휙 돌려보세요 · 잡으면 멈춰요':mode==='key'?'키캡을 눌러보세요 · 여러 손가락으로 타닥타닥, 쓸면 타라락':mode==='wax2'?'톡 두드리면 빠직 · 꾹 누르고 있으면 주위로 꾸욱 깨져요':mode==='wax'?'얼굴을 꾹 누르고 문질러서 와작 깨보세요':'볼을 잡고 쭈욱 당겨보세요 · 두 손가락도 돼요';hint.style.opacity=1;
   Sfx.tick();
 }));
 const grabs=new Map(); // pointerId -> grab
@@ -316,6 +317,7 @@ let count=0;const cntEl=document.getElementById('cnt'),hint=document.getElementB
 function local(e){const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
 cv.addEventListener('pointerdown',e=>{
   if(!rest)return;Sfx.unlock();if(Sleep.wake())return;
+  if(mode==='spin'){const [qx,qy]=local(e);cv.setPointerCapture(e.pointerId);Spinner.down(e,qx,qy);return}
   if(mode==='key'){const [kx,ky]=local(e);cv.setPointerCapture(e.pointerId);
     if(Keys.down(e,kx,ky)){kcount++;if(window.MB)MB.add(1,'key');else cntEl.textContent=kcount;if(!msgT)hint.style.opacity=0}return}   // 키캡 모드: 이스터에그 없음
   cv.setPointerCapture(e.pointerId);
@@ -331,6 +333,7 @@ cv.addEventListener('pointerdown',e=>{
   if(mode==='wax'){Wax.hit(x,y,true)}else if(mode==='wax2'){Wax2.tap(x,y)}else Sfx.squish(mode);
 });
 cv.addEventListener('pointermove',e=>{
+  if(mode==='spin'){const [qx,qy]=local(e);Spinner.move(e,qx,qy);return}
   if(mode==='key'){const [kx,ky]=local(e);if(Keys.move(e,kx,ky)){kcount++;if(window.MB)MB.add(1,'key');else cntEl.textContent=kcount}return}
   const g=grabs.get(e.pointerId);if(!g)return;
   const [x,y]=local(e);const sp=Math.hypot(x-g.x,y-g.y);
@@ -351,7 +354,7 @@ cv.addEventListener('pointermove',e=>{
   if(sp>2&&now-g.lastSq>42){g.lastSq=now;Sfx.squelch(Math.min(1,sp/24))}
 });
 function release(e){
-  Keys.up(e);
+  Keys.up(e);Spinner.up(e);
   const g=grabs.get(e.pointerId);if(!g)return;grabs.delete(e.pointerId);
   if(g.mode==='wax'||g.mode==='wax2')return;
   if(g.mode==='puff'){Sfx.stopInflate(g);const p=Math.min(1,(performance.now()-g.t0)/1400);
@@ -813,13 +816,73 @@ const Keys=(()=>{
   function reset(){held.clear();for(const k of keys){k.down=0;k.p=0;k.v=0}}
   return{down,move,up,draw,reset}
 })();
+/* ---------- 스피너: the face becomes a 3-lobe fidget spinner you flick (위잉) ---------- */
+const Spinner=(()=>{
+  let a=0,w=0,lt=performance.now(),turn=0,drag=null,best=0,rpmShow=0;
+  const hist=[];                                   // recent [time, angle] while dragging, for flick speed
+  const geo=()=>{const R=Math.min(W,H)*.44;return{cx:W/2,cy:H/2,R,d:R*.6,lr:R*.36,hub:R*.3}};
+  const ang=(x,y,g)=>Math.atan2(y-g.cy,x-g.cx);
+  function down(e,x,y){const g=geo();if(Math.hypot(x-g.cx,y-g.cy)>g.R*1.15)return false;
+    const spinning=Math.abs(w)>3;
+    drag={id:e.pointerId,t0:performance.now(),th:ang(x,y,g),a0:a,moved:0,wasSpinning:spinning};hist.length=0;hist.push([performance.now(),a]);
+    if(spinning){w*=.25;Sfx.spinBrake()}      // grabbing a spinning spinner: 칙 (slows hard)
+    return true}
+  function move(e,x,y){if(!drag||drag.id!==e.pointerId)return;const g=geo();let th=ang(x,y,g),d=th-drag.th;
+    if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;drag.th=th;a+=d;drag.moved+=Math.abs(d);count(Math.abs(d));
+    const t=performance.now();hist.push([t,a]);while(hist.length&&t-hist[0][0]>90)hist.shift();w=0}
+  function up(e){if(!drag||drag.id!==e.pointerId)return;const t=performance.now();
+    if(hist.length>=2){const [t0,a0]=hist[0],[t1,a1]=hist[hist.length-1];const dt=(t1-t0)/1000;
+      if(dt>0&&t-t1<80){w=Math.max(-160,Math.min(160,(a1-a0)/dt*1.15));if(Math.abs(w)>6){Sfx.spinFlick(Math.min(1,Math.abs(w)/80));if(window.MBV)MBV(14,170)}}}
+    if(drag.moved<.05&&!drag.wasSpinning){w+=(Math.random()<.5?-1:1)*18;Sfx.spinFlick(.25)}   // a plain tap gives it a little push
+    drag=null}
+  function count(da){turn+=da;while(turn>=2*Math.PI){turn-=2*Math.PI;
+    if(window.MB)MB.add(1,'spin');else{scount++;cntEl.textContent=scount}}}
+  function draw(now){const dt=Math.min(.05,(now-lt)/1000);lt=now;
+    if(mode!=='spin'){if(Sfx.spinHum)Sfx.spinHum(0);return}
+    if(!drag){const s=Math.sign(w);w-=s*Math.min(Math.abs(w),(.35+Math.abs(w)*.035)*dt);a+=w*dt;count(Math.abs(w*dt))}   // bearing friction: long, smooth spin-down
+    const rpm=Math.abs(w)*60/(2*Math.PI);rpmShow+=(rpm-rpmShow)*Math.min(1,dt*6);
+    if(rpm>best+1){best=rpm;if(window.MB&&MB.rpm)MB.rpm(Math.round(best))}
+    Sfx.spinHum(Math.abs(w));
+    const g=geo(),iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,s=Math.min(iw,ih)*.78,sx=(iw-s)/2,sy=Math.max(0,ih*.42-s/2);
+    // speed readout
+    wctx.save();wctx.textAlign='center';wctx.fillStyle='rgba(74,39,48,.35)';wctx.font='400 '+Math.round(g.R*.2)+'px "Jua",system-ui,sans-serif';
+    wctx.fillText(Math.round(rpmShow).toLocaleString('ko-KR')+' RPM',g.cx,g.cy-g.R*1.1);wctx.restore();
+    // motion blur: a few fading copies trailing behind when it's fast
+    const ghosts=Math.abs(w)>10?4:1;
+    for(let i=ghosts-1;i>=0;i--){const aa=a-w*i*.006;wctx.save();wctx.globalAlpha=i?(.18/i):1;drawBody(g,aa,s,sx,sy,i>0);wctx.restore()}
+    // fixed center cap (doesn't spin while you hold the middle)
+    wctx.save();const cg=wctx.createRadialGradient(g.cx-g.hub*.3,g.cy-g.hub*.3,g.hub*.1,g.cx,g.cy,g.hub*.62);cg.addColorStop(0,'#fff');cg.addColorStop(1,'#c9b6be');
+    wctx.beginPath();wctx.arc(g.cx,g.cy,g.hub*.55,0,6.29);wctx.fillStyle=cg;wctx.fill();wctx.strokeStyle='rgba(74,39,48,.25)';wctx.lineWidth=2;wctx.stroke();wctx.restore()}
+  function drawBody(g,aa,s,sx,sy,ghost){
+    wctx.save();wctx.translate(g.cx,g.cy);wctx.rotate(aa);
+    // frame: three lobes joined to the hub
+    wctx.beginPath();for(let k=0;k<3;k++){const t=k*2*Math.PI/3,x=Math.cos(t)*g.d,y=Math.sin(t)*g.d;wctx.moveTo(x+g.lr*1.12,y);wctx.arc(x,y,g.lr*1.12,0,6.29)}
+    wctx.moveTo(g.hub*1.25,0);wctx.arc(0,0,g.hub*1.25,0,6.29);
+    for(let k=0;k<3;k++){const t=k*2*Math.PI/3,c=Math.cos(t),s=Math.sin(t),px=-s*g.lr*.55,py=c*g.lr*.55;   // arms
+      wctx.moveTo(px,py);wctx.lineTo(c*g.d+px,s*g.d+py);wctx.lineTo(c*g.d-px,s*g.d-py);wctx.lineTo(-px,-py);wctx.closePath()}
+    const fg=wctx.createLinearGradient(-g.R,-g.R,g.R,g.R);fg.addColorStop(0,'#ff8fab');fg.addColorStop(.5,'#ff5d7e');fg.addColorStop(1,'#c93d63');
+    wctx.fillStyle=fg;wctx.fill();
+    if(!ghost){wctx.strokeStyle='rgba(255,255,255,.35)';wctx.lineWidth=2;for(let k=0;k<3;k++){const t=k*2*Math.PI/3;wctx.beginPath();wctx.arc(Math.cos(t)*g.d,Math.sin(t)*g.d,g.lr*1.05,-2.4,-1.2);wctx.stroke()}}
+    // each lobe holds a bearing with 범준's face in it
+    for(let k=0;k<3;k++){const t=k*2*Math.PI/3,x=Math.cos(t)*g.d,y=Math.sin(t)*g.d;
+      wctx.beginPath();wctx.arc(x,y,g.lr,0,6.29);wctx.fillStyle='#e9e1e4';wctx.fill();
+      wctx.save();wctx.beginPath();wctx.arc(x,y,g.lr*.86,0,6.29);wctx.clip();wctx.translate(x,y);
+      wctx.drawImage(img,sx,sy,s,s,-g.lr*.86,-g.lr*.86,g.lr*1.72,g.lr*1.72);wctx.restore();
+      wctx.beginPath();wctx.arc(x,y,g.lr*.86,0,6.29);wctx.strokeStyle='rgba(74,39,48,.35)';wctx.lineWidth=3;wctx.stroke()}
+    // hub bearing balls
+    for(let k=0;k<8;k++){const t=k*Math.PI/4;wctx.beginPath();wctx.arc(Math.cos(t)*g.hub*.82,Math.sin(t)*g.hub*.82,g.hub*.12,0,6.29);wctx.fillStyle='#d8d0d4';wctx.fill()}
+    wctx.restore()}
+  function reset(){w=0;drag=null;if(Sfx.spinHum)Sfx.spinHum(0)}
+  return{down,move,up,draw,reset,active:()=>!!drag||Math.abs(w)>.2}
+})();
 /* 앱 고르기: 제목(▾)을 누르면 말랑 ↔ 키캡. 키캡은 주무른 수와 따로 셈 */
-const APP_NAMES={malang:'말랑 범준',key:'키캡 범준'};
-let appKind='malang',prevMode='stretch',kcount=0;
+const APP_NAMES={malang:'말랑 범준',key:'키캡 범준',spin:'스피너 범준'};
+let appKind='malang',prevMode='stretch',kcount=0,scount=0;
 const apick=document.createElement('div');apick.className='apick';apick.id='apick';apick.hidden=true;
 apick.innerHTML='<div class="apick-card" role="dialog" aria-label="앱 바꾸기">'+
   '<button role="menuitemradio" data-app="malang"><span class="ic">🫠</span><span><b></b><small>잡고 늘리고 말고 깨기</small></span><span class="chk">✓</span></button>'+
-  '<button role="menuitemradio" data-app="key"><span class="ic key">⌨</span><span><b></b><small>키캡 도각도각 · 랭킹 따로</small></span><span class="chk">✓</span></button></div>';
+  '<button role="menuitemradio" data-app="key"><span class="ic key">⌨</span><span><b></b><small>키캡 도각도각 · 랭킹 따로</small></span><span class="chk">✓</span></button>'+
+  '<button role="menuitemradio" data-app="spin"><span class="ic">🌀</span><span><b></b><small>휙 돌리기 · 바퀴 랭킹 따로</small></span><span class="chk">✓</span></button></div>';
 document.body.append(apick);
 apick.querySelectorAll('[data-app] b').forEach(b=>b.textContent=APP_NAMES[b.closest('[data-app]').dataset.app]);
 apick.querySelectorAll('[data-app]').forEach(b=>b.setAttribute('aria-checked',b.dataset.app==='malang'));
@@ -827,23 +890,23 @@ const appBtn=document.getElementById('appBtn');
 function pickOpen(o){apick.hidden=!o;appBtn.setAttribute('aria-expanded',o)}
 appBtn.addEventListener('click',()=>{Sfx.unlock();Sfx.tick();pickOpen(apick.hidden)});
 apick.addEventListener('click',e=>{const b=e.target.closest('[data-app]');if(b)setApp(b.dataset.app,true);pickOpen(false)});
-function setApp(k,user){appKind=k==='key'?'key':'malang';try{localStorage.setItem('mb_app',appKind)}catch(e){}
+function setApp(k,user){appKind=k==='key'||k==='spin'?k:'malang';try{localStorage.setItem('mb_app',appKind)}catch(e){}
   document.getElementById('appName').textContent=APP_NAMES[appKind];document.title=APP_NAMES[appKind];
   apick.querySelectorAll('[data-app]').forEach(b=>b.setAttribute('aria-checked',b.dataset.app===appKind));
-  document.querySelector('.modes').hidden=appKind==='key';const bl=document.querySelector('.bounce');if(bl)bl.hidden=appKind==='key';
-  if(appKind==='key'){if(mode!=='key')prevMode=mode;document.getElementById('m-key').click()}
-  else if(mode==='key')document.getElementById('m-'+(prevMode&&prevMode!=='key'?prevMode:'stretch')).click();
-  const lbl=document.getElementById('cntLbl');if(lbl)lbl.textContent=appKind==='key'?'누름':'주물';
-  if(!window.MB)cntEl.textContent=appKind==='key'?kcount:count;
+  const special=appKind!=='malang';document.querySelector('.modes').hidden=special;const bl=document.querySelector('.bounce');if(bl)bl.hidden=special;
+  if(special){if(mode!=='key'&&mode!=='spin')prevMode=mode;document.getElementById('m-'+appKind).click()}
+  else if(mode==='key'||mode==='spin')document.getElementById('m-'+(prevMode&&prevMode!=='key'&&prevMode!=='spin'?prevMode:'stretch')).click();
+  const lbl=document.getElementById('cntLbl');if(lbl)lbl.textContent=appKind==='key'?'누름':appKind==='spin'?'바퀴':'주물';
+  if(!window.MB)cntEl.textContent=appKind==='key'?kcount:appKind==='spin'?scount:count;
   document.dispatchEvent(new CustomEvent('mb-app',{detail:appKind}));
-  if(user){hint.textContent=appKind==='key'?'키캡을 눌러보세요 · 여러 손가락으로 타닥타닥':'볼을 잡고 쭈욱 당겨보세요';hint.style.opacity=1}}
+  if(user){hint.textContent=appKind==='spin'?'손가락으로 휙 돌려보세요 · 잡으면 멈춰요':appKind==='key'?'키캡을 눌러보세요 · 여러 손가락으로 타닥타닥':'볼을 잡고 쭈욱 당겨보세요';hint.style.opacity=1}}
 
 /* ---------- 사진 3 이스터에그: 15초 안 건드리면 잠들고, 건드리면 깜짝 깸 ---------- */
 const Sleep=(()=>{
   let asleep=false,lastAct=performance.now(),nextSnore=0,zs=[],nextZ=0;
   function poke(){lastAct=performance.now()}
   function check(now){
-    if(curPhoto!==2||mode==='key'){if(asleep&&curPhoto===2){altOn=false;zs=[]}asleep=false;lastAct=now;return}
+    if(curPhoto!==2||mode==='key'||mode==='spin'){if(asleep&&curPhoto===2){altOn=false;zs=[]}asleep=false;lastAct=now;return}
     if(!asleep&&grabs.size===0&&now-lastAct>15000){asleep=true;altOn=true;mxRate=.025;(MB.egg('sleep'),showMsg('Zzz…'));nextSnore=now+600;nextZ=now}
     if(asleep){
       if(now>=nextSnore){Sfx.snore();nextSnore=now+2800}
@@ -956,8 +1019,8 @@ function loop(now){
   gl.bindBuffer(gl.ARRAY_BUFFER,uvBuf);gl.enableVertexAttribArray(aUV);gl.vertexAttribPointer(aUV,2,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,shBuf);if(!still||!uploaded){gl.bufferData(gl.ARRAY_BUFFER,shade,gl.DYNAMIC_DRAW);uploaded=still}gl.enableVertexAttribArray(aS);gl.vertexAttribPointer(aS,1,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,idxBuf);
-  if(mode!=='key')gl.drawElements(gl.TRIANGLES,idxCount,gl.UNSIGNED_SHORT,0);
-  Wax.draw();Wax2.draw();Keys.draw();Tooth.draw();Sleep.draw(now);
+  if(mode!=='key'&&mode!=='spin')gl.drawElements(gl.TRIANGLES,idxCount,gl.UNSIGNED_SHORT,0);
+  Wax.draw();Wax2.draw();Keys.draw();Spinner.draw(now);Tooth.draw();Sleep.draw(now);
   requestAnimationFrame(loop);
 }
 
@@ -1146,6 +1209,18 @@ const Sfx={on:true,style:0,ctx:null,noise:null,
     if(dir==='down'&&P.pop)keyThud(c,c.destination,t+.004,900,.045,.22);return true},
   keyDown(k){if(!this.ok())return;if(this.keySmp('down',k))return;keyDownSnd(this.ctx,keyOut(this.ctx),this.noise,this.ctx.currentTime,KEYS_SND[this.style||0],k.pitch*(.98+Math.random()*.04))},
   keyUp(k){if(!this.ok())return;if(this.keySmp('up',k))return;keyUpSnd(this.ctx,keyOut(this.ctx),this.noise,this.ctx.currentTime,KEYS_SND[this.style||0],k.pitch)},
+  /* 스피너 소리: continuous bearing hum that rises with speed, a whoosh on flick, 칙 on grab */
+  spinHum(w){if(!this.ctx)return;const c=this.ctx,t=c.currentTime,rps=w/(2*Math.PI);
+    if(!this._hum){if(!this.on||w<.3)return;const s=c.createBufferSource();s.buffer=this.noise;s.loop=true;const bp=c.createBiquadFilter();bp.type='bandpass';bp.Q.value=2.5;
+      const gn=c.createGain();gn.gain.value=0;s.connect(bp);bp.connect(gn);gn.connect(c.destination);s.start();
+      const o=c.createOscillator();o.type='triangle';const go=c.createGain();go.gain.value=0;o.connect(go);go.connect(c.destination);o.start();
+      const o2=c.createOscillator();o2.type='sine';const g2=c.createGain();g2.gain.value=0;o2.connect(g2);g2.connect(c.destination);o2.start();this._hum={bp,gn,o,go,o2,g2}}
+    const h=this._hum,on=this.on&&w>.3?1:0,v=Math.min(1,rps/18);
+    h.bp.frequency.setTargetAtTime(260+rps*95,t,.05);h.gn.gain.setTargetAtTime(on*(.03+.2*v),t,.06);
+    h.o.frequency.setTargetAtTime(90+rps*22,t,.05);h.go.gain.setTargetAtTime(on*.09*v,t,.06);
+    h.o2.frequency.setTargetAtTime(3*rps>20?3*rps*8:160,t,.05);h.g2.gain.setTargetAtTime(on*.04*v,t,.06)},
+  spinFlick(v){if(!this.ok())return;const t=this.ctx.currentTime;this.nz(t,.28,'bandpass',500,1900,1.5,.25+.3*v);this.nz(t,.02,'highpass',4000,3000,.7,.25)},
+  spinBrake(){if(!this.ok())return;const t=this.ctx.currentTime;this.nz(t,.09,'highpass',3500,2000,.8,.35);this.tone(t,.08,320,150,.2,'triangle')},
   tick(){if(!this.ok())return;const t=this.ctx.currentTime;this.tone(t,.07,700,420,.18,'triangle')}
 };
 
@@ -1214,7 +1289,7 @@ const SHAKE=[
  function(v){const t=this.ctx.currentTime;this.tone(t,.16,150,260+v*100,.3+.2*v,'sine');this.nz(t,.08,'lowpass',500,200,2,.25+.2*v)},
  function(v){const t=this.ctx.currentTime;for(let i=0;i<1+Math.round(v*2);i++){const ti=t+i*.04;this.nz(ti,.01,'highpass',3200,2200,.7,.35+.2*v);this.tone(ti,.06,1100+R_()*500,280,.22+.1*v)}}
 ];
-try{if(localStorage.getItem('mb_app')==='key')setTimeout(()=>setApp('key'),0)}catch(e){}
+try{const s=localStorage.getItem('mb_app');if(s==='key'||s==='spin')setTimeout(()=>setApp(s),0)}catch(e){}
 })();
 </script>
 
@@ -1328,9 +1403,9 @@ window.MB=(()=>{
   try{me.eggs=JSON.parse(LS('eggs')||'{}')||{}}catch(e){}
   /* 오늘의 주무른 수: resets at 0시 (Korea time) */
   const kday=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
-  me.day=LS('day')||kday();me.today=+(LS('today')||0);me.kcount=+(LS('kcount')||0);me.ktoday=+(LS('ktoday')||0);
+  me.day=LS('day')||kday();me.today=+(LS('today')||0);me.kcount=+(LS('kcount')||0);me.ktoday=+(LS('ktoday')||0);me.scount=+(LS('scount')||0);me.stoday=+(LS('stoday')||0);me.srpm=+(LS('srpm')||0);
   let app='malang';const K=()=>app==='key';   // 키캡 범준 keeps its own count and ranking
-  function rollDay(){const k=kday();if(me.day!==k){me.day=k;me.today=0;me.ktoday=0;SS('day',k);SS('today',0);SS('ktoday',0)}}
+  function rollDay(){const k=kday();if(me.day!==k){me.day=k;me.today=0;me.ktoday=0;me.stoday=0;SS('day',k);SS('today',0);SS('ktoday',0);SS('stoday',0)}}
   rollDay();
   if(!me.id){me.id=Date.now().toString(36)+Math.random().toString(36).slice(2,10);SS('id',me.id)}
   const fmt=n=>Math.floor(n).toLocaleString('ko-KR');
@@ -1361,12 +1436,13 @@ window.MB=(()=>{
 
   /* ---- 주무른 수 + 서버 동기화 ---- */
   let dirty=true,pushT=0,profileDirty=true;
-  function show(){$('cnt').textContent=fmt(K()?me.kcount:me.count);const l=$('cntLbl');if(l)l.textContent=K()?'누른 수':'주무른 수'}
+  function show(){$('cnt').textContent=fmt(me[F()[0]]||0);const l=$('cntLbl');if(l)l.textContent=K()?'누른 수':app==='spin'?'돌린 바퀴':'주무른 수'}
   function add(n,kind){rollDay();if(kind==='key'){me.kcount+=n;me.ktoday+=n;SS('kcount',me.kcount);SS('ktoday',me.ktoday)}
+    else if(kind==='spin'){me.scount+=n;me.stoday+=n;SS('scount',me.scount);SS('stoday',me.stoday)}
     else{me.count+=n;me.today+=n;SS('count',me.count);SS('today',me.today)}show();dirty=true;schedule()}
   function schedule(d){if(pushT)return;pushT=setTimeout(push,d||2500)}
   async function push(){pushT=0;if(!FB_URL||!me.name||!dirty)return;dirty=false;
-    rollDay();const body={name:me.name,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,day:me.day,eggs:nEggs(),t:Date.now()};body.el=eggKeys();if(profileDirty){body.photo=me.photo;if(me.pin)body.pin=me.pin}
+    rollDay();const body={name:me.name,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,scount:me.scount,stoday:me.stoday,srpm:me.srpm,day:me.day,eggs:nEggs(),t:Date.now()};body.el=eggKeys();if(profileDirty){body.photo=me.photo;if(me.pin)body.pin=me.pin}
     try{const r=await fetch(FB_URL+'/players/'+encodeURIComponent(me.id)+'.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(!r.ok)throw new Error(r.status);profileDirty=false}
     catch(e){dirty=true;schedule(15000)}}
@@ -1379,12 +1455,12 @@ window.MB=(()=>{
   function row(rank,p,isMe,val){const li=document.createElement('li');if(isMe)li.className='me';
     const n=document.createElement('span');n.className='rk-n';n.textContent=rank<=3?['🥇','🥈','🥉'][rank-1]:rank;
     const nm=document.createElement('span');nm.className='rk-nm';nm.textContent=p.name||'이름 없음';
-    const sm=document.createElement('small');sm.textContent='📖 '+(p.eggs||0)+'/'+EGGS.length+(isMe?' · 나':'');nm.append(sm);
+    const sm=document.createElement('small');sm.textContent=(app==='spin'?'최고 '+fmt(p.srpm||0)+' RPM':'📖 '+(p.eggs||0)+'/'+EGGS.length)+(isMe?' · 나':'');nm.append(sm);
     const c=document.createElement('b');c.className='rk-c';c.textContent=fmt(val||0);
     li.append(n,avaEl(p.name,p.photo),nm,c);return li}
   let rankT=0,tab='all',players=null;
-  const mine=()=>({name:me.name,photo:me.photo,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,day:me.day,eggs:nEggs()});
-  const F=()=>K()?['kcount','ktoday']:['count','today'];   // which numbers the ranking uses
+  const mine=()=>({name:me.name,photo:me.photo,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,scount:me.scount,stoday:me.stoday,srpm:me.srpm,day:me.day,eggs:nEggs()});
+  const F=()=>K()?['kcount','ktoday']:app==='spin'?['scount','stoday']:['count','today'];   // which numbers the ranking uses
   async function fetchPlayers(){flush();const r=await fetch(FB_URL+'/players.json',{cache:'no-store'});if(!r.ok)throw new Error(r.status);
     const all=(await r.json())||{};all[me.id]=Object.assign({},all[me.id]||{},mine());
     players=Object.entries(all).filter(([,p])=>p&&typeof p.count==='number'&&p.name);checkOvertake();return players}
@@ -1401,8 +1477,8 @@ window.MB=(()=>{
     if(!L.children.length)sub.textContent='불러오는 중…';
     try{await fetchPlayers();renderRank()}
     catch(e){sub.textContent='랭킹을 못 불러왔어요. 인터넷 연결을 확인해 주세요.';if(!L.children.length){players=[[me.id,mine()]];renderRank()}}}
-  document.addEventListener('mb-app',e=>{app=e.detail==='key'?'key':'malang';above=null;show();
-    $('rankTitle').textContent=K()?'⌨️ 키캡 누른 수 랭킹':'🏆 주무른 수 랭킹';if(!$('rankOv').hidden)loadRank()});
+  document.addEventListener('mb-app',e=>{app=e.detail==='key'||e.detail==='spin'?e.detail:'malang';above=null;show();
+    $('rankTitle').textContent=K()?'⌨️ 키캡 누른 수 랭킹':app==='spin'?'🌀 스피너 돌린 바퀴 랭킹':'🏆 주무른 수 랭킹';if(!$('rankOv').hidden)loadRank()});
   function setTab(t){tab=t;$('tabAll').setAttribute('aria-selected',t==='all');$('tabToday').setAttribute('aria-selected',t==='today');if(players)renderRank();loadRank()}
   $('tabAll').addEventListener('click',()=>setTab('all'));$('tabToday').addEventListener('click',()=>setTab('today'));
 
@@ -1477,8 +1553,8 @@ window.MB=(()=>{
         if(!hit){err(Object.values(all).some(p=>p&&p.name===n)?'비밀번호가 틀렸어요.':'그 이름의 계정이 없어요.');return}
         const [id,p]=hit;me.id=id;me.name=p.name;me.photo=safePhoto(p.photo);me.pin=p.pin;
         me.count=Math.max(p.count||0,0);me.eggs={};String(p.el||'').split(',').forEach(k=>{if(EGGS.some(e=>e.k===k))me.eggs[k]=p.t||Date.now()});
-        me.day=kday();me.today=p.day===me.day?(p.today||0):0;me.kcount=p.kcount||0;me.ktoday=p.day===me.day?(p.ktoday||0):0;
-        ['id','name','photo','pin','count','today','kcount','ktoday','day'].forEach(k=>SS(k,me[k]));SS('eggs',JSON.stringify(me.eggs));
+        me.day=kday();me.today=p.day===me.day?(p.today||0):0;me.kcount=p.kcount||0;me.ktoday=p.day===me.day?(p.ktoday||0):0;me.scount=p.scount||0;me.stoday=p.day===me.day?(p.stoday||0):0;me.srpm=p.srpm||0;
+        ['id','name','photo','pin','count','today','kcount','ktoday','scount','stoday','srpm','day'].forEach(k=>SS(k,me[k]));SS('eggs',JSON.stringify(me.eggs));
         above=null;show();renderDex();$('obOv').hidden=true;toast('다시 왔구나! '+fmt(me.count)+'번부터 이어서 해요');return}
       if(FB_URL){let all=null;try{all=await allPlayers()}catch(e){}
         if(all&&Object.entries(all).some(([id,p])=>id!==me.id&&p&&p.name===n)){err('이미 있는 이름이에요. 다른 이름을 쓰거나 "전에 하던 계정이 있어요"를 눌러주세요.');return}}
@@ -1522,7 +1598,8 @@ window.MB=(()=>{
       im.onerror=()=>toast('이 사진은 열 수 없어요','', 'warn');im.src=rd.result};rd.readAsDataURL(f)});
 
   show();renderDex();if(!me.name)openProfile(true);else{schedule(800);if(!me.pin)setTimeout(()=>{if($('obOv').hidden)openProfile(false,'기록이 안 날아가게 비밀번호 4자리를 정해주세요. 나중에 다른 폰이나 웹에서 이름이랑 비밀번호로 이어할 수 있어요.')},1500)}
-  return{add,egg,flush}
+  function rpm(v){if(v>me.srpm){me.srpm=v;SS('srpm',v);dirty=true;schedule(4000)}}
+  return{add,egg,flush,rpm}
 })();
 </script>
 

@@ -1304,7 +1304,7 @@ function setApp(k,user){appKind=['key','spin','suika','block'].includes(k)?k:'ma
   const un=cntEl.nextSibling;if(un&&un.nodeType===3&&/^(번|점)$/.test(un.textContent.trim()))un.textContent=appKind==='suika'||appKind==='block'?'점':'번';
   const lbl=document.getElementById('cntLbl');if(lbl)lbl.textContent=appKind==='key'?'누름':appKind==='spin'?'바퀴':appKind==='suika'||appKind==='block'?'최고':'주물';
   if(!window.MB)cntEl.textContent=appKind==='key'?kcount:appKind==='spin'?scount:appKind==='suika'?Suika.best():appKind==='block'?Block.best():count;
-  document.dispatchEvent(new CustomEvent('mb-app',{detail:appKind}));
+  window.MB_APP=appKind;document.dispatchEvent(new CustomEvent('mb-app',{detail:appKind}));
   if(sk){const ak=appKind;setTimeout(()=>{if(appKind===ak)hint.style.opacity=0},2600)}
   if(user){hint.textContent=appKind==='block'?'조각을 끌어서 판에 놓으세요 · 가로·세로 한 줄을 채우면 펑!':appKind==='suika'?'좌우로 끌어서 조준 · 손을 떼면 떨어져요 · 같은 범준끼리 합체!':appKind==='spin'?'손가락으로 휙 돌려보세요 · 잡으면 멈춰요':appKind==='key'?'키캡을 눌러보세요 · 여러 손가락으로 타닥타닥':'볼을 잡고 쭈욱 당겨보세요';hint.style.opacity=1}}
 
@@ -1888,8 +1888,10 @@ window.MB=(()=>{
     if(!L.children.length)sub.textContent='불러오는 중…';
     try{await fetchPlayers();renderRank()}
     catch(e){sub.textContent='랭킹을 못 불러왔어요. 인터넷 연결을 확인해 주세요.';if(!L.children.length){players=[[me.id,mine()]];renderRank()}}}
-  document.addEventListener('mb-app',e=>{app=['key','spin','suika','block'].includes(e.detail)?e.detail:'malang';above=null;show();
-    $('rankTitle').textContent=K()?'⌨️ 키캡 누른 수 랭킹':app==='spin'?'🌀 스피너 돌린 바퀴 랭킹':app==='suika'?'🍉 수박 최고 점수 랭킹':app==='block'?'🧩 블록 최고 점수 랭킹':'🏆 주무른 수 랭킹';if(!$('rankOv').hidden)loadRank()});
+  function onApp(k){app=['key','spin','suika','block'].includes(k)?k:'malang';above=null;show();
+    $('rankTitle').textContent=K()?'⌨️ 키캡 누른 수 랭킹':app==='spin'?'🌀 스피너 돌린 바퀴 랭킹':app==='suika'?'🍉 수박 최고 점수 랭킹':app==='block'?'🧩 블록 최고 점수 랭킹':'🏆 주무른 수 랭킹';if(!$('rankOv').hidden)loadRank()}
+  document.addEventListener('mb-app',e=>onApp(e.detail));
+
   function setTab(t){tab=t;$('tabAll').setAttribute('aria-selected',t==='all');$('tabToday').setAttribute('aria-selected',t==='today');if(players)renderRank();loadRank()}
   $('tabAll').addEventListener('click',()=>setTab('all'));$('tabToday').addEventListener('click',()=>setTab('today'));
 
@@ -2011,6 +2013,8 @@ window.MB=(()=>{
   show();renderDex();if(!me.name)openProfile(true);else{schedule(800);if(!me.pin)setTimeout(()=>{if($('obOv').hidden)openProfile(false,'기록이 안 날아가게 비밀번호 4자리를 정해주세요. 나중에 다른 폰이나 웹에서 이름이랑 비밀번호로 이어할 수 있어요.')},1500)}
   function score(v,kind){rollDay();let ch=false;const [B,T]=kind==='block'?['bbest','btoday']:['wbest','wtoday'];if(v>me[B]){me[B]=v;SS(B,v);ch=true}if(v>me[T]){me[T]=v;SS(T,v);ch=true}if(ch){dirty=true;show();schedule(4000)}}
   function rpm(v){if(v>me.srpm){me.srpm=v;SS('srpm',v);dirty=true;schedule(4000)}}
+  // the page may have switched app (saved choice) before this layer loaded: pick it up now
+  try{onApp(window.MB_APP||localStorage.getItem('mb_app'))}catch(e){}
   return{add,egg,flush,rpm,score}
 })();
 </script>

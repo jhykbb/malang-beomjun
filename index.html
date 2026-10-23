@@ -1139,8 +1139,8 @@ const Grow=(()=>{
     save()}
   // too much of one thing: warn twice, then 범준 dies
   function overdo(k){S.over[k]+=1;save();if(S.over[k]>=S.lim[k]-.5){die(k);return true}return false}   // 몰래 쌓였다가 3번째에 갑자기
-  // 배부름 0 → 굶어 죽음, 똥 100 → 터져 죽음, 기운 0 → 과로사
-  function vitals(){if(S.dead||dying)return;if(S.full<=0)die('starve');else if(S.bowel>=100)die('burst');else if(S.energy<=0&&!S.sleeping)die('tired')}
+  // 배부름 0 → 굶어 죽음, 똥 100 → 바닥에 쌈, 기운 0 → 과로사
+  function vitals(){if(S.dead||dying)return;if(S.full<=0)die('starve');else if(S.bowel>=100&&!(act&&act.k==='poop'))accident(false);else if(S.energy<=0&&!S.sleeping)die('tired')}
   function die(k){S.dead={c:k,lv:S.lv,form:S.form,t:Date.now()};S.deaths++;S.sleeping=false;dying={c:k,t:now_(),st:stageOf(S.lv),form:S.form,boom:false};act=null;drag=null;holds.clear();evo=null;save();
     if(k==='eat'||k==='burst'){thud()}else if(k==='sleep'){if(A()){const t=T();Sfx.tone(t,2.5,220,110,.1,'sine')}}else if(k==='wash')meltSnd();else if(k==='poop')sinkSnd();else fallSnd();if(window.MBV)MBV(120,255)}
   /* ---- effects ---- */
@@ -1179,7 +1179,7 @@ const Grow=(()=>{
     talk(f0>=90?['끄망!!','배불러 끄만~','시러 시러!']:f.cake?['다라 히히','케이크 조아!']:['마시따!','냠냠 마시써','또 줘!'],true);
     if(f0>=90&&overdo('eat'))return;
     if(f.cake){S.cnt.cake++;if(head)hearts(5,head.hx,head.hy-head.R)}texts.push({x:CX,y:RT+70,txt:'냠냠냠 '+f.e,t:now_(),c:'#e07a00',s:20,dur:900});gain(3+(100-f0)/12,CX,RT+96)
-    healCheck();if(S.bowel>=100)texts.push({x:CX,y:RT+120,txt:'똥 마려워요! 빨리 화장실! 💩',t:now_(),c:'#a8703f',s:15,dur:1600});save()}
+    healCheck();save()}
   function push(){if(!act||act.done)return;act.strain=Math.min(100,act.strain+12);grunt(act.strain/100);if(window.MBV)MBV(12,90);
     if(head&&Math.random()<.6)texts.push({x:head.hx+(Math.random()-.5)*60,y:head.hy-head.R-6,txt:'끙!',t:now_(),c:'#c93d63',s:15,dur:600});
     if(Math.random()<.25)talk(['끄응!','힘드러…','나온다!']);

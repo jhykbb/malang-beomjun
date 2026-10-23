@@ -934,7 +934,7 @@ const Claw=(()=>{
   const now_=()=>performance.now();
   let eng=null,P=[],acc=0,started=false,lt=now_();
   // claw: carriage x (cx), nominal cable length (cy-RAIL), pendulum swing (th, om), vertical bob
-  let cx=HOME,pcx=HOME,pvx=0,cy=TOPY,tx=HOME,th=0,om=0,bob=0,bobV=0,hx=HOME,hy=TOPY,st='ready',stT=now_(),ang=.6,closeA=.06,power=1,cargo=null,hkL=null,hkR=null,held=null,grip=0,hold=0,drag=null,readyAt=now_(),head=null,prL=null,prR=null,flash=null;
+  let cx=HOME,pcx=HOME,pvx=0,cy=TOPY,tx=HOME,th=0,om=0,bob=0,bobV=0,hx=HOME,hy=TOPY,st='ready',stT=now_(),aimB=null,angL=.6,angR=.6,stallL=false,stallR=false,baseL=.06,baseR=.06,closeA=.06,power=1,cargo=null,hkL=null,hkR=null,held=null,grip=0,hold=0,drag=null,readyAt=now_(),head=null,prL=null,prR=null,flash=null;
   let parts=[],texts=[],prize=null,lights=0,hum=null,dex=false,dexTab=0,lastSt='ready',btns=[];
   /* ---- faces / sprites ---- */
   const imgs=[];function face(i){if(!imgs[i]){const im=new Image();im.onload=()=>cache.clear();im.src=i<5?PHOTOS[i]:XFACES[i-5];imgs[i]=im}return imgs[i]}
@@ -991,27 +991,30 @@ const Claw=(()=>{
     const o={isStatic:true,friction:.4,restitution:.05},T=60;
     MT.Composite.add(eng.world,[MT.Bodies.rectangle(GX0-T/2,GY1/2,T,GY1*2,o),MT.Bodies.rectangle(GX1+T/2,GY1/2,T,GY1*2,o),
       MT.Bodies.rectangle((DIV+GX1)/2,GY1+T/2,GX1-DIV,T,o),MT.Bodies.rectangle(DIV,GY1-DIVH/2,8,DIVH,Object.assign({chamfer:{radius:3}},o)),MT.Bodies.rectangle(PW/2,GY0-30,PW+120,60,o)]);
-    const cf=()=>({isStatic:true,collisionFilter:{group:-1},friction:.45,frictionStatic:.6,restitution:0});
-    head=MT.Bodies.circle(cx,cy,13,cf());prL=MT.Bodies.rectangle(cx,cy,6,34,cf());prR=MT.Bodies.rectangle(cx,cy,6,34,cf());
-    hkL=MT.Bodies.rectangle(cx,cy,14,6,Object.assign(cf(),{chamfer:{radius:2.5}}));hkR=MT.Bodies.rectangle(cx,cy,14,6,Object.assign(cf(),{chamfer:{radius:2.5}}));MT.Composite.add(eng.world,[head,prL,prR,hkL,hkR]);
+    const cf=()=>({isStatic:true,collisionFilter:{group:-1},friction:.8,frictionStatic:.9,restitution:0});
+    head=MT.Bodies.circle(cx,cy,13,cf());const ghost=()=>Object.assign(cf(),{collisionFilter:{group:-1,category:2,mask:0}});prL=MT.Bodies.rectangle(cx,cy,6,34,ghost());prR=MT.Bodies.rectangle(cx,cy,6,34,ghost());
+    hkL=MT.Bodies.rectangle(cx,cy,14,6,ghost());hkR=MT.Bodies.rectangle(cx,cy,14,6,ghost());MT.Composite.add(eng.world,[head,prL,prR,hkL,hkR]);
     for(let i=0;i<16;i++)spawn(140+Math.random()*(GX1-170),GY1-50-Math.random()*200)}
   function rollRar(){let r=Math.random();for(let g=NG-1;g>0;g--){if(r<GR[g].p)return g;r-=GR[g].p}return 0}
   function spawn(x,y){const rar=rollRar(),k=(Math.random()*NK)|0,r=[21+Math.random()*6,23+Math.random()*4,25,26.5,28][rar],f=(Math.random()*NF)|0,{b,off}=plushBody(k,r);
-    b._p={k,f,rar,r,off};b.friction=Math.min(.9,.5*KINDS[k].grip)*GR[rar].fr;b.frictionStatic=.8;MT.Body.setPosition(b,{x:x+off.x,y:y+off.y});MT.Body.setAngle(b,(Math.random()-.5)*1.2);P.push(b);MT.Composite.add(eng.world,b);return b}
+    b._p={k,f,rar,r,off};b.friction=Math.min(.9,.65*KINDS[k].grip)*GR[rar].fr;b.frictionStatic=.8;MT.Body.setPosition(b,{x:x+off.x,y:y+off.y});MT.Body.setAngle(b,(Math.random()-.5)*1.2);P.push(b);MT.Composite.add(eng.world,b);return b}
   /* claw on a cable: the carriage moves rigidly, the head swings like a pendulum and bobs on the cable */
   function swing(dt){const vx=(cx-pcx)/dt;let ax=(vx-pvx)/dt;pcx=cx;pvx=vx;ax=Math.max(-4000,Math.min(4000,ax));
     const L=Math.max(28,cy-RAIL),load=cargo?1.3:1;
-    om+=(-(1600/L)*Math.sin(th)-1.6*om-(ax/L)*Math.cos(th)*.9*load)*dt;th+=om*dt;if(Math.abs(th)>.6){th=Math.sign(th)*.6;om*=-.3}
+    om+=(-(1600/L)*Math.sin(th)-(2.6+L/90)*om-(ax/L)*Math.cos(th)*.45*load)*dt;th+=om*dt;if(Math.abs(th)>.3){th=Math.sign(th)*.3;om*=-.3}
     bobV+=(-320*bob-9*bobV)*dt;bob+=bobV*dt;
     hx=cx+L*Math.sin(th);hy=RAIL+L*Math.cos(th)+bob}
   const rot=(x,y)=>[x*Math.cos(th)+y*Math.sin(th),-x*Math.sin(th)+y*Math.cos(th)];
   // two arms with inward hooks at the tips; the hooks scoop under a plush when the claw closes
-  function prongs(){const out=[];for(const s of [-1,1]){const [pvx0,pvy0]=rot(s*9,8),[dx,dy]=rot(s*Math.sin(ang),Math.cos(ang)),[nx,ny]=rot(-s*Math.cos(ang),Math.sin(ang)*.35-.0);
+  function prongs(){const out=[];for(const s of [-1,1]){const ang=s<0?angL:angR,[pvx0,pvy0]=rot(s*9,8),[dx,dy]=rot(s*Math.sin(ang),Math.cos(ang)),[nx,ny]=rot(-s*Math.cos(ang),Math.sin(ang)*.35);
       const px=hx+pvx0,py=hy+pvy0,ex=px+dx*34,ey=py+dy*34;out.push({s,px,py,dx,dy,nx,ny,ex,ey,hx2:ex+nx*12,hy2:ey+ny*12})}return out}
   function placeClaw(){MT.Body.setPosition(head,{x:hx,y:hy},true);
     for(const p of prongs()){const a=p.s<0?prL:prR,h=p.s<0?hkL:hkR;
       MT.Body.setPosition(a,{x:p.px+p.dx*17,y:p.py+p.dy*17},true);MT.Body.setAngle(a,Math.atan2(-p.dx,p.dy),true);
       MT.Body.setPosition(h,{x:p.ex+p.nx*6,y:p.ey+p.ny*6},true);MT.Body.setAngle(h,Math.atan2(p.ny,p.nx),true)}}
+  // how deep the claw's parts are pushed into any plush (the claw is a hard motor: it stops instead of going through)
+  function hitDepth(bodies){let d=0;for(const b of bodies)for(const c of MT.Query.collides(b,P))if(c.depth>d)d=c.depth;return d}
+  function cupHas(b,slack){const c=centerOf(b),dx=c.x-hx,dy=c.y-hy,lx=dx*Math.cos(th)-dy*Math.sin(th),ly=dx*Math.sin(th)+dy*Math.cos(th),r=b._p.r;return Math.abs(lx)<14+r*.35+slack&&ly>6-slack&&ly<40+r*.6+slack}
   // which plush is sitting in the claw's cup right now
   function inCup(){let best=null,bd=1e9;for(const b of P){const c=centerOf(b),dx=c.x-hx,dy=c.y-hy,lx=dx*Math.cos(th)-dy*Math.sin(th),ly=dx*Math.sin(th)+dy*Math.cos(th),r=b._p.r;
       if(Math.abs(lx)<14+r*.35&&ly>6&&ly<40+r*.6){const d=Math.abs(lx);if(d<bd){bd=d;best=b}}}return best}
@@ -1030,7 +1033,7 @@ const Claw=(()=>{
   function go(){if(st!=='ready'||dex)return;
     if(col.money<COST){flash={t:now_(),txt:invN()?'돈이 부족해요! 시장에서 인형을 팔아요':'돈이 부족해요!'};Sfx.tick();if(window.MBV)MBV(30,120);return}
     col.money-=COST;save();texts.push({x:PW-40,y:30,txt:'-100원',t:now_(),c:'#c93d63',s:14,dur:800});coinSnd();
-    power=.5+Math.random()*.5;set('down');Sfx.tick();if(window.MBV)MBV(10,120)}
+    power=.5+Math.random()*.5;stallL=stallR=false;aimB=null;set('down');Sfx.tick();if(window.MBV)MBV(10,120)}
   function save(){LS('mb_claw',JSON.stringify(col))}
   function win(b){const p=b._p,t=now_(),key=p.k+'-'+p.f,isNew=!col.c[key];col.c[key]=(col.c[key]||0)+1;col.r[key]=Math.max(col.r[key]==null?-1:col.r[key],p.rar);col.total++;col.inv[p.rar]++;save();
     prize={k:p.k,f:p.f,rar:p.rar,t,isNew};winSnd(p.rar);if(window.MBV)MBV(p.rar?60:35,220);
@@ -1040,24 +1043,41 @@ const Claw=(()=>{
     texts.push({x:PW/2,y:TOTAL-70,txt:'+'+won(v),t:now_(),c:'#e09a00',s:22,dur:900});if(window.MBV)MBV(12,120)}
   function aidCheck(){if(col.money>=COST||invN()||st!=='ready'){col.broke=0;return}const t=Date.now();if(!col.broke){col.broke=t;save()}
     if(t-col.broke>=SLOT){col.money+=AID;col.broke=0;save();coinSnd();flash={t:now_(),txt:'지원금 '+won(AID)+' 도착!'}}}
+  function drop(){if(!cargo)return;cargo=null;slip()}
   function slip(){slipSnd();flash={t:now_(),txt:'앗! 미끄러졌다'};if(window.MBV)MBV(25,120)}
   function step(dt){const t=now_();if(Math.random()<dt)aidCheck();
     if(st==='ready'){let v=0;if(hold)v=hold*190;else if(drag!=null){const d=tx-cx;v=Math.max(-230,Math.min(230,d*10))}
       cx=Math.max(40,Math.min(GX1-26,cx+v*dt));humSet(Math.abs(v)>20,110);if(t-readyAt>20000&&!dex){if(col.money>=COST)go();else readyAt=t}}
     else if(st==='down'){cy+=210*dt;humSet(true,150);
-      let stop=cy>=GY1-48;const tipY=hy+Math.cos(ang)*34+4;
+      let stop=cy>=GY1-48;const tipY=hy+Math.cos((angL+angR)/2)*34+4;
+      if(hitDepth([head])>2)stop=true;                                           // the head bumped into a plush
       for(const b of P){const p=b._p,c=centerOf(b),dx=Math.abs(c.x-hx);
         if(dx<p.r+10&&tipY>=c.y+p.r*.15){stop=true;break}                     // hooks reached below the plush's middle
         if(dx<p.r*.7&&hy+14>=c.y-p.r*.95){stop=true;break}}                   // head landed on top of one
       if(stop){set('close');bobV+=140;thunk()}}                                // the cable overshoots a little when it stops
-    else if(st==='close'){humSet(false);const k=Math.min(1,(t-stT)/450);ang=.6+(closeA-.6)*(k<1?1-Math.pow(1-k,2):1);
-      if(k>=1){clank();bobV-=70;cargo=null;set('up')}}
+    else if(st==='close'){humSet(false);const k=Math.min(1,(t-stT)/450),target=.6+(closeA-.6)*(k<1?1-Math.pow(1-k,2):1);
+      if(!aimB){let bd=1e9;for(const b of P){const c=centerOf(b),d=Math.hypot(c.x-hx,c.y-(hy+34));if(d<b._p.r+24&&d<bd){bd=d;aimB=b}}}
+      for(const s of [-1,1]){if(s<0?stallL:stallR)continue;const prev=s<0?angL:angR,next=Math.min(prev,target);if(s<0)angL=next;else angR=next;
+        if(aimB){const c=centerOf(aimB),r=aimB._p.r*.92,p=prongs().find(q=>q.s===s);
+          const touch=Math.hypot(p.hx2-c.x,p.hy2-c.y)<r||Math.hypot(p.ex-c.x,p.ey-c.y)<r||Math.hypot((p.px+p.ex)/2-c.x,(p.py+p.ey)/2-c.y)<r;
+          if(touch){if(s<0){angL=prev;stallL=true}else{angR=prev;stallR=true}}}}               // the arm presses on the plush and stops
+      if(k>=1||(stallL&&stallR)){clank();bobV-=70;baseL=angL;baseR=angR;
+        // the plush is lifted only if it ended up between the arms with the hooks under it
+        cargo=null;grip=0;const c=aimB;aimB=null;
+        if(c){const p=c._p,cc=centerOf(c),dx=cc.x-hx,dy=cc.y-hy,lx=dx*Math.cos(th)-dy*Math.sin(th),ly=dx*Math.sin(th)+dy*Math.cos(th),pr=prongs(),tipY=Math.max(...pr.map(q=>{const ex=q.hx2-hx,ey=q.hy2-hy;return ex*Math.sin(th)+ey*Math.cos(th)})),gap=Math.abs(pr[1].hx2-pr[0].hx2);
+          const under=tipY>ly-p.r*.05,inside=Math.abs(lx)<gap/2+2;
+          grip=power*KINDS[p.k].grip*GR[p.rar].fr*Math.max(0,1-Math.abs(lx)/(p.r*1.1))*(under?1:.35);if(inside&&grip>.15)cargo=c}
+        set('up')}}
     else if(st==='up'||st==='carry'){
-      const loose=(1-power)*.34*Math.min(1,(t-stT)/900+(st==='carry'?1:0));ang=closeA+loose;          // a weak claw slowly loses its grip
-      const c=inCup();if(c)cargo=c;else if(cargo){cargo=null;slip()}
-      if(st==='up'){cy-=150*dt;humSet(true,140);if(cy<=TOPY){cy=TOPY;bobV-=200;om+=(Math.random()-.5)*2.6;set('carry')}}   // the jolt at the top
+      const loose=(1-power)*.22*Math.min(1,(t-stT)/900+(st==='carry'?1:0));angL=Math.min(.6,baseL+loose);angR=Math.min(.6,baseR+loose);          // a weak claw slowly loses its grip
+      if(cargo){const pr=prongs(),gap=Math.abs(pr[1].hx2-pr[0].hx2);if(gap>cargo._p.r*1.7)drop()}
+      if(cargo){const c=cargo,p=c._p;
+        if(Math.random()<dt*(.03+(1-grip)*.55))drop();                     // slipped out of the claw
+        else{const [ox2,oy2]=rot(0,16+p.r*.9),tgx=hx+ox2,tgy=hy+oy2,cc=centerOf(c),v=c.velocity;   // resting in the claw's cup
+          MT.Body.setVelocity(c,{x:v.x*.5+(tgx-cc.x)*.25,y:v.y*.5+(tgy-cc.y)*.25});MT.Body.setAngularVelocity(c,c.angularVelocity*.9)}}
+      if(st==='up'){cy-=150*dt;humSet(true,140);if(cy<=TOPY){cy=TOPY;bobV-=200;om+=(Math.random()-.5)*1.6;if(cargo&&Math.random()<(1-grip)*.5)drop();set('carry')}}   // the jolt at the top
       else{const d=HOME-cx;cx+=Math.sign(d)*Math.min(Math.abs(d),140*dt);humSet(true,115);if(Math.abs(HOME-cx)<.5&&t-stT>300)set('open')}}
-    else if(st==='open'){ang=Math.min(.6,ang+dt*1.6);cargo=null;
+    else if(st==='open'){angL=Math.min(.6,angL+dt*1.6);angR=Math.min(.6,angR+dt*1.6);cargo=null;
       if(t-stT>1500){set('ready');readyAt=now_()}}
     swing(dt);placeClaw();
     MT.Engine.update(eng,STEP);
@@ -1146,7 +1166,9 @@ const Claw=(()=>{
     wctx.fillStyle='#c93d63';wctx.font=font(14);wctx.fillText('출구',(GX0+DIV)/2,GY1-DIVH+16);wctx.font=font(18);wctx.fillText('⬇',(GX0+DIV)/2,GY1-DIVH+36);
     rr(DIV-4,GY1-DIVH,8,DIVH,3);wctx.fillStyle='rgba(255,255,255,.85)';wctx.fill();wctx.lineWidth=1.5;wctx.strokeStyle='#f4b3c2';wctx.stroke();
     wctx.fillStyle='#ffc2d1';wctx.fillRect(DIV,GY1-2,GX1-DIV,4);
-    for(const b of P)drawPlush(b);
+    const behind=(st==='down'||st==='close'||st==='up')&&!cargo;
+    if(!behind)for(const b of P)if(b!==cargo)drawPlush(b);
+    if(cargo)drawPlush(cargo);
     // rail, carriage, cable, claw
     wctx.fillStyle='#d9c6cd';rr(GX0+6,RAIL-5,GX1-GX0-12,10,5);wctx.fill();
     wctx.fillStyle='#b8a3ab';rr(cx-16,RAIL-8,32,16,5);wctx.fill();
@@ -1154,6 +1176,7 @@ const Claw=(()=>{
     for(const p of prongs()){wctx.beginPath();wctx.moveTo(p.px,p.py);wctx.lineTo(p.ex,p.ey);wctx.lineTo(p.hx2,p.hy2);wctx.lineWidth=5;wctx.lineCap='round';wctx.lineJoin='round';wctx.strokeStyle='#9e8a92';wctx.stroke();
       wctx.lineWidth=2;wctx.strokeStyle='rgba(255,255,255,.6)';wctx.beginPath();wctx.moveTo(p.px,p.py);wctx.lineTo(p.ex,p.ey);wctx.stroke()}
     g=wctx.createRadialGradient(hx-4,hy-5,1,hx,hy,15);g.addColorStop(0,'#fff');g.addColorStop(1,'#a8949c');wctx.beginPath();wctx.arc(hx,hy,13,0,6.29);wctx.fillStyle=g;wctx.fill();
+    if(behind)for(const b of P)drawPlush(b);
     if(st==='ready'){wctx.save();wctx.setLineDash([4,6]);wctx.beginPath();wctx.moveTo(cx,hy+40);wctx.lineTo(cx,GY1);wctx.lineWidth=2;wctx.strokeStyle='rgba(255,93,126,.35)';wctx.stroke();wctx.restore()}
     wctx.save();rr(GX0,GY0,GX1-GX0,GY1-GY0,10);wctx.clip();wctx.globalAlpha=.35;wctx.fillStyle='#fff';wctx.beginPath();wctx.moveTo(GX1-70,GY0);wctx.lineTo(GX1-40,GY0);wctx.lineTo(GX1-130,GY1);wctx.lineTo(GX1-160,GY1);wctx.fill();wctx.globalAlpha=1;wctx.restore();
     rr(GX0,GY0,GX1-GX0,GY1-GY0,10);wctx.lineWidth=3;wctx.strokeStyle='rgba(255,255,255,.9)';wctx.stroke();

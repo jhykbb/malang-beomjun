@@ -979,8 +979,10 @@ const Enh=(()=>{
     wctx.save();wctx.shadowColor=L>=5?col:'rgba(74,39,48,.3)';wctx.shadowBlur=L>=5?20+pulse*10:12;wctx.beginPath();wctx.arc(CX,CY,R,0,6.29);
     const fg=wctx.createLinearGradient(CX-R,CY-R,CX+R,CY+R);if(L>=20){['#ff6b8b','#ffe066','#7be495','#5cc8ff','#a98bff'].forEach((c,i)=>fg.addColorStop(i/4,c))}else{fg.addColorStop(0,'#fff');fg.addColorStop(1,col)}
     wctx.fillStyle=fg;wctx.fill();wctx.restore();
-    const im=face(S.face),fr=R*.86;wctx.save();wctx.beginPath();wctx.arc(CX,CY,fr,0,6.29);wctx.clip();wctx.fillStyle='#f3d9d0';wctx.fillRect(CX-fr,CY-fr,fr*2,fr*2);
-    if(im.complete&&im.naturalWidth){const iw=im.naturalWidth,ih=im.naturalHeight,F=FC[S.face],s=Math.min(iw,ih,iw*F[2]),sx=Math.max(0,Math.min(iw-s,iw*F[0]-s/2)),sy=Math.max(0,Math.min(ih-s,ih*F[1]-s/2));wctx.drawImage(im,sx,sy,s,s,CX-fr,CY-fr,fr*2,fr*2)}
+    const fi=(S.face+L)%NF,im=face(fi),fr=R*.86;wctx.save();
+    if(res&&(res.k==='ok'||res.k==='down'||res.k==='saved')&&now-res.t<320){const k=(now-res.t)/320;wctx.translate(CX,CY);wctx.scale(Math.max(.05,Math.abs(Math.cos(k*Math.PI))),1);wctx.translate(-CX,-CY)}   // photo flips to the next 범준
+    wctx.beginPath();wctx.arc(CX,CY,fr,0,6.29);wctx.clip();wctx.fillStyle='#f3d9d0';wctx.fillRect(CX-fr,CY-fr,fr*2,fr*2);
+    if(im.complete&&im.naturalWidth){const iw=im.naturalWidth,ih=im.naturalHeight,F=FC[fi],s=Math.min(iw,ih,iw*F[2]),sx=Math.max(0,Math.min(iw-s,iw*F[0]-s/2)),sy=Math.max(0,Math.min(ih-s,ih*F[1]-s/2));wctx.drawImage(im,sx,sy,s,s,CX-fr,CY-fr,fr*2,fr*2)}
     if(L>=5){wctx.globalAlpha=.12+L*.006;wctx.fillStyle=col;wctx.fillRect(CX-fr,CY-fr,fr*2,fr*2);wctx.globalAlpha=1}
     if(dim){wctx.fillStyle='rgba(40,20,30,'+dim+')';wctx.fillRect(CX-fr,CY-fr,fr*2,fr*2)}
     const gl=wctx.createRadialGradient(CX-fr*.35,CY-fr*.45,0,CX,CY,fr);gl.addColorStop(0,'rgba(255,255,255,.3)');gl.addColorStop(.6,'rgba(255,255,255,0)');wctx.fillStyle=gl;wctx.fillRect(CX-fr,CY-fr,fr*2,fr*2);wctx.restore();

@@ -1144,7 +1144,7 @@ const Grow=(()=>{
   function vitals(){if(S.dead||dying)return;if(S.full<=0)die('starve');else if(S.bowel>=100&&!(act&&act.k==='poop'))accident(false);else if(S.energy<=0&&!S.sleeping)die('tired')}
   /* ---- 입학 시험 (8~11살) ---- */
   const passP=()=>{const k=S.study||0;return k>=10?1:Math.min(.95,.1+k*.08)};
-  function startExam(){const p=passP(),pass=Math.random()<p;exam={t:now_(),lv:S.lv,p,pass,last:S.lv>=11,done:false};act=null;drag=null;holds.clear();
+  function startExam(){const p=passP(),pass=Math.random()<p;exam={t:now_(),lv:S.lv,p,pass,last:S.lv>=10,done:false};act=null;drag=null;holds.clear();
     if(pass)S.school='pass';else S.tries=(S.tries||0)+1;save()}
   function closeExam(){const e=exam;exam=null;if(!e.pass&&e.last){die('abandon');dying=null;funeral()}}
   function die(k){exam=null;S.dead={c:k,lv:S.lv,form:S.form,t:Date.now()};S.deaths++;S.sleeping=false;dying={c:k,t:now_(),st:stageOf(S.lv),form:S.form,boom:false};act=null;drag=null;holds.clear();evo=null;save();
@@ -1433,7 +1433,7 @@ const Grow=(()=>{
     wctx.save();wctx.translate(CX-6,FLOOR-86);wctx.rotate(-.05);wctx.fillStyle='#fff';wctx.fillRect(-34,-10,68,14);wctx.strokeStyle='#ccc';wctx.lineWidth=1;for(let j=0;j<3;j++){wctx.beginPath();wctx.moveTo(-28,-6+j*4);wctx.lineTo(-28+Math.min(52,(k/2600)*52*(1+j*.3)),-6+j*4);wctx.stroke()}wctx.restore();
     if(!res){wctx.save();wctx.translate(CX+40+Math.sin(now/60)*4,FLOOR-92);wctx.rotate(-.5);wctx.fillStyle='#ffd35c';wctx.fillRect(-14,-2.5,24,5);wctx.fillStyle='#f6c7a0';wctx.beginPath();wctx.moveTo(10,-2.5);wctx.lineTo(16,0);wctx.lineTo(10,2.5);wctx.fill();wctx.restore()}
     if(k>2600&&!res){wctx.font=font(26);wctx.fillStyle='#c93d63';wctx.fillText('두근두근…',CX,RT+112)}
-    if(res){const kk=Math.min(1,(k-3600)/250);wctx.save();wctx.translate(CX,RT+112);wctx.scale(kk,kk);const t1=e.pass?'🎉 합격!! 범준초 입학!':'😢 불합격…',t2=e.pass?'이제 학교 다니는 범준이에요':e.last?'기회가 끝났어요…':(S.lv+1)+'살이 되면 다시 볼 수 있어요 (남은 기회 '+(11-S.lv)+'번)';
+    if(res){const kk=Math.min(1,(k-3600)/250);wctx.save();wctx.translate(CX,RT+112);wctx.scale(kk,kk);const t1=e.pass?'🎉 합격!! 범준초 입학!':'😢 불합격…',t2=e.pass?'이제 학교 다니는 범준이에요':e.last?'기회가 끝났어요…':'다음 나이에 다시 볼 수 있어요';
       wctx.font=font(24);const tw=Math.max(wctx.measureText(t1).width,wctx.measureText(t2).width*.6)+34;rr(-tw/2,-26,tw,56,18);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle=e.pass?'#4cd18a':'#ff7a8a';wctx.lineWidth=3;wctx.stroke();
       wctx.fillStyle=e.pass?'#2fa86a':'#e0485f';wctx.fillText(t1,0,-6);wctx.font=font(12);wctx.fillStyle='#7a5560';wctx.fillText(t2,0,16);wctx.restore()}
     return h}

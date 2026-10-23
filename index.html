@@ -918,7 +918,7 @@ const Block=(()=>{
     [[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],
     [[0,0],[1,0],[1,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,1],[1,1],[2,1],[2,0]],[[0,0],[0,1],[0,2],[1,1]],[[0,1],[0,2],[1,0],[1,1]],[[0,0],[0,1],[1,1],[1,2]],
     [[0,0],[1,0],[2,0],[2,1],[2,2]]];
-  const BW8=[2,4,7,8,6, 8,5,7, 6,7,7,7,5,5, 7];                    // how often each base shape shows up
+  const BW8=[2,4,7,9,8, 9,5,6, 7,7,7,5,3,3, 6];                    // how often each base shape shows up
   const norm=s=>{const r0=Math.min(...s.map(p=>p[0])),c0=Math.min(...s.map(p=>p[1]));return s.map(([r,c])=>[r-r0,c-c0]).sort((a,b)=>a[0]-b[0]||a[1]-b[1])};
   const rot=s=>norm(s.map(([r,c])=>[c,-r]));
   const SH=[],SW=[],SMALL=[];
@@ -982,23 +982,29 @@ const Block=(()=>{
     for(let r=0;r<N;r++){const e=[];for(let c=0;c<N;c++)if(!B[r*N+c])e.push(c);if(e.length&&e.length<=5&&e[e.length-1]-e[0]===e.length-1){const k=SKEY.get(JSON.stringify(e.map((_,i)=>[0,i])));if(k!=null)out.push(k)}}
     for(let c=0;c<N;c++){const e=[];for(let r=0;r<N;r++)if(!B[r*N+c])e.push(r);if(e.length&&e.length<=5&&e[e.length-1]-e[0]===e.length-1){const k=SKEY.get(JSON.stringify(e.map((_,i)=>[i,0])));if(k!=null)out.push(k)}}
     return out}
-  function deal(){const B0=Array.from(board,v=>v>=0?1:0),fill=B0.reduce((a,v)=>a+v,0)/64,gaps=gapShapes(B0);
-    const cands=[];for(let t=0;t<20;t++){const trip=[pickShape(fill),pickShape(fill),pickShape(fill)];
-      if(gaps.length&&Math.random()<.22)trip[(Math.random()*3)|0]=gaps[(Math.random()*gaps.length)|0];
-      cands.push({trip,r:plan(B0,trip)})}
-    const ok=cands.filter(c=>c.r.ok),clears=ok.filter(c=>c.r.clear);
-    const fair=Math.max(.45,.92-(lvOf(score)-1)*.06);                                      // later in the game, unfair sets slip in more often
+  // every piece that could finish at least one row/column somewhere on this board (weighted by how many lines)
+  function finishers(B){const out=[];for(let k=0;k<SH.length;k++){const [h,w]=dims(SH[k]);let best=0;
+      for(let r=0;r<=N-h;r++)for(let c=0;c<=N-w;c++)if(canAt(B,k,r,c)){const n=simPlace(B,k,r,c)[1];if(n>best)best=n}
+      if(best)out.push([k,best])}return out}
+  const pickW=L=>{let t=0;for(const x of L)t+=x[1];let r=Math.random()*t;for(const x of L){r-=x[1];if(r<=0)return x[0]}return L[0][0]};
+  /* 진짜 블록 블라스트처럼: 대부분은 줄을 지울 기회가 있는 조각을 섞어 주고(가끔은 판을 다 비울 수 있게),
+     가끔씩만 아무 조각이나 줘서 긴장감을 남김. 레벨이 오를수록 아무 조각이 조금 더 자주 나옴 */
+  function deal(){const B0=Array.from(board,v=>v>=0?1:0),fill=B0.reduce((a,v)=>a+v,0)/64,fin=finishers(B0),L=lvOf(score);
+    const cands=[];for(let t=0;t<24;t++){const trip=[pickShape(fill),pickShape(fill),pickShape(fill)];
+      if(fin.length){if(Math.random()<.7)trip[0]=pickW(fin);if(Math.random()<.3)trip[1]=pickW(fin)}
+      trip.sort(()=>Math.random()-.5);cands.push({trip,r:plan(B0,trip)})}
+    const ok=cands.filter(c=>c.r.ok),clears=ok.filter(c=>c.r.clear),help=Math.max(.62,.86-(L-1)*.03);
     let pick;
-    if(clears.length&&Math.random()<.25)pick=clears[(Math.random()*clears.length)|0];   // 올 클리어 기회
-    else if(ok.length&&Math.random()<fair){ok.sort((a,b)=>b.r.v-a.r.v);
-      pick=Math.random()<.08+.3*fill?ok[(Math.random()*Math.min(3,ok.length))|0]:ok[(Math.random()*ok.length)|0]}
-    else pick=cands.find(c=>c.trip.some(s=>anyFit(s)))||cands[0];
+    if(clears.length&&Math.random()<.6)pick=clears[(Math.random()*clears.length)|0];          // 올 클리어 기회
+    else if(ok.length&&Math.random()<help){ok.sort((a,b)=>b.r.v-a.r.v);const top=ok.slice(0,Math.max(1,Math.ceil(ok.length*.3)));pick=top[(Math.random()*top.length)|0]}
+    else pick=cands[(Math.random()*cands.length)|0];
+    if(!pick.trip.some(s=>anyFit(s)))pick=ok[0]||cands.find(c=>c.trip.some(s=>anyFit(s)))||pick;
     const cs=[0,1,2,3,4,5,6].sort(()=>Math.random()-.5);pieces=pick.trip.map((s,i)=>({s,c:cs[i]}));dealT=now_();dealSnd()}
   /* ---- actions ---- */
   function snap(d){const s=SH[pieces[d.slot].s],[h,w]=dims(s),tlx=d.x-w*C/2,tly=d.y-h*C-LIFT;d.col=Math.round((tlx-PB)/C);d.row=Math.round((tly-BY)/C);d.ok=fits(pieces[d.slot].s,d.row,d.col);
     d.lines=null;if(d.ok){const B=board.slice();for(const [r,c] of s)B[(d.row+r)*N+d.col+c]=pieces[d.slot].c;d.lines=full(B)}}
-  /* 레벨: 블록 1개 = 100점 × 레벨. 레벨 업: 1만 → 3만 → 6만 → 10만 → 15만 … (간격이 1만씩 늘어남) */
-  const LT=L=>10000*L*(L+1)/2,lvOf=v=>{let L=1;while(v>=LT(L))L++;return L},lvStart=L=>L<=1?0:LT(L-1);
+  /* 레벨: 블록 1개 = 100점 × 레벨. 레벨 업: 1만 → 4만 → 9만 → 16만 → 25만 … (1만 × 레벨²) */
+  const LT=L=>10000*L*L,lvOf=v=>{let L=1;while(v>=LT(L))L++;return L},lvStart=L=>L<=1?0:LT(L-1);
   let lvFx=0;
   function place(d){const t=now_(),P=pieces[d.slot],s=SH[P.s],L0=lvOf(score);
     for(const [r,c] of s){const i=(d.row+r)*N+d.col+c;board[i]=P.c;popT[i]=t}

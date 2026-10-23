@@ -1065,7 +1065,7 @@ const Grow=(()=>{
   const rollLim=()=>({eat:2+((Math.random()*4)|0),wash:2+((Math.random()*4)|0),poop:2+((Math.random()*4)|0),gym:2+((Math.random()*4)|0),sleep:20+Math.random()*20});   // 몇 번째에 죽을지 매번 랜덤
   const fresh=()=>({v:1,lv:1,exp:0,full:70,bowel:20,clean:85,fit:50,energy:80,study:0,poops:[],t:Date.now(),cnt:{eat:0,cake:0,poop:0,wash:0,jumps:0,gym:0,pat:0,sleep:0,study:0},form:null,sick:false,sickT:0,best:1,
     sleeping:false,sE0:0,over:{eat:0,wash:0,poop:0,gym:0},dead:null,deaths:0,born:Date.now(),lim:rollLim(),ovs:0,kv:2});
-  let S=fresh();try{const d=JSON.parse(LS(KEY)||'null');if(d&&d.v===1){const f=fresh(),c=Object.assign(f.cnt,d.cnt||{}),ov=Object.assign(f.over,d.over||{});S=Object.assign(f,d);S.cnt=c;S.over=ov;if(!d.lim)S.lim=rollLim();if(!d.kv){S.study=Math.floor((d.study||0)/20);S.kv=2}}}catch(e){}
+  let S=fresh();try{const d=JSON.parse(LS(KEY)||'null');if(d&&d.v===1){const f=fresh(),c=Object.assign(f.cnt,d.cnt||{}),ov=Object.assign(f.over,d.over||{});S=Object.assign(f,d);S.cnt=c;S.over=ov;if(!d.lim)S.lim=rollLim();if(!d.kv){S.study=Math.floor((d.study||0)/20);S.kv=2}if(d.school===undefined&&S.lv>=8)S.school='pass'}}catch(e){}
   const save=()=>{S.t=Date.now();LS(KEY,JSON.stringify(S))};
   const KID=new Image();KID.src=GROW_KID;const TEN=new Image();TEN.src=GROW_TEN;const FIVE=new Image();FIVE.src=GROW_FIVE;   // 10살부터는 큰 범준 사진
   const xi=[],xf=i=>{if(!xi[i]){const im=new Image();im.src=XFACES[i];xi[i]=im}return xi[i]};
@@ -1076,10 +1076,10 @@ const Grow=(()=>{
   const foods=()=>FOODS[stageOf(S.lv)?1:0];
   // 너무 많이 하면: 💀 1 → 💀 2 (경고) → 3번째에 사망. 8분마다 1씩 풀리고, 푹 자고 일어나면 1씩 풀려요
   const OVER_DECAY=480;
-  const CAUSE={eat:{msg:'배가 펑! 터져 버렸어요…',ic:'💥'},wash:{msg:'너무 씻어서 녹아 버렸어요…',ic:'💧'},poop:{msg:'똥통에 빠져 버렸어요…',ic:'🚽'},gym:{msg:'근육통으로 쓰러졌어요…',ic:'💪'},sleep:{msg:'너무 오래 자서 영원히 잠들었어요…',ic:'💤'},starve:{msg:'배가 고파서 굶어 죽었어요…',ic:'🍚'},burst:{msg:'똥이 꽉 차서 터져 버렸어요…',ic:'💩'},tired:{msg:'너무 지쳐서 과로로 쓰러졌어요…',ic:'⚡'}};
+  const CAUSE={eat:{msg:'배가 펑! 터져 버렸어요…',ic:'💥'},wash:{msg:'너무 씻어서 녹아 버렸어요…',ic:'💧'},poop:{msg:'똥통에 빠져 버렸어요…',ic:'🚽'},gym:{msg:'근육통으로 쓰러졌어요…',ic:'💪'},sleep:{msg:'너무 오래 자서 영원히 잠들었어요…',ic:'💤'},starve:{msg:'배가 고파서 굶어 죽었어요…',ic:'🍚'},burst:{msg:'똥이 꽉 차서 터져 버렸어요…',ic:'💩'},tired:{msg:'너무 지쳐서 과로로 쓰러졌어요…',ic:'⚡'},abandon:{msg:'학교에 못 붙어서 버려졌어요…',ic:'📦'}};
   let u=1,ox=0,oy=0,lt=now_(),simT=S.t,started=false,act=null,btns=[],foodR=[],parts=[],texts=[],ask=0,head=null,lastHands=null;
   let bx=CX,tx=CX,nextWalk=0,walkPh=0,patT=-9e9,shakeT=-9e9,chewT=-9e9,accT=-9e9,evo=null,drag=null,lastSnd=0,lastSave=0,flash=0,lastHeart=0,dying=null,nextSnore=0,nextZ=0,shushT=0;
-  const holds=new Set();
+  const holds=new Set();let exam=null;
   // 지식 5부터 범준이가 말을 해요
   let talkNow=null,nextTalk=0;const pick=a=>a[(Math.random()*a.length)|0];
   const canTalk=()=>(S.study||0)>=5&&!S.dead;
@@ -1135,13 +1135,19 @@ const Grow=(()=>{
     const st0=stageOf(S.lv);let up=false;while(S.exp>=need(S.lv)){S.exp-=need(S.lv);S.lv++;up=true}
     if(up){if(S.lv>S.best)S.best=S.lv;report();const st1=stageOf(S.lv);
       if(st1!==st0){if(st1===3)S.form=pickForm();evo={t:now_(),from:st0,to:st1,boom:false};act=null;drag=null}
-      else{jingle(0);say(S.lv===10||S.lv===5?S.lv+'살! 범준이 얼굴이 바뀌었어요 🎂':S.lv+'살이 됐어요! 🎂','#ff3d7f');burst(bx,300,['#ffe066','#ff8fab','#7fd0ff'],26)}}
+      else{jingle(0);say(S.lv===10||S.lv===5?S.lv+'살! 범준이 얼굴이 바뀌었어요 🎂':S.lv+'살이 됐어요! 🎂','#ff3d7f');burst(bx,300,['#ffe066','#ff8fab','#7fd0ff'],26)}
+      if(!S.school&&S.lv>=8&&!exam)startExam()}
     save()}
   // too much of one thing: warn twice, then 범준 dies
   function overdo(k){S.over[k]+=1;save();if(S.over[k]>=S.lim[k]-.5){die(k);return true}return false}   // 몰래 쌓였다가 3번째에 갑자기
   // 배부름 0 → 굶어 죽음, 똥 100 → 바닥에 쌈, 기운 0 → 과로사
   function vitals(){if(S.dead||dying)return;if(S.full<=0)die('starve');else if(S.bowel>=100&&!(act&&act.k==='poop'))accident(false);else if(S.energy<=0&&!S.sleeping)die('tired')}
-  function die(k){S.dead={c:k,lv:S.lv,form:S.form,t:Date.now()};S.deaths++;S.sleeping=false;dying={c:k,t:now_(),st:stageOf(S.lv),form:S.form,boom:false};act=null;drag=null;holds.clear();evo=null;save();
+  /* ---- 입학 시험 (8~11살) ---- */
+  const passP=()=>{const k=S.study||0;return k>=10?1:Math.min(.95,.1+k*.08)};
+  function startExam(){const p=passP(),pass=Math.random()<p;exam={t:now_(),lv:S.lv,p,pass,last:S.lv>=11,done:false};act=null;drag=null;holds.clear();
+    if(pass)S.school='pass';else S.tries=(S.tries||0)+1;save()}
+  function closeExam(){const e=exam;exam=null;if(!e.pass&&e.last){die('abandon');dying=null;funeral()}}
+  function die(k){exam=null;S.dead={c:k,lv:S.lv,form:S.form,t:Date.now()};S.deaths++;S.sleeping=false;dying={c:k,t:now_(),st:stageOf(S.lv),form:S.form,boom:false};act=null;drag=null;holds.clear();evo=null;save();
     if(k==='eat'||k==='burst'){thud()}else if(k==='sleep'){if(A()){const t=T();Sfx.tone(t,2.5,220,110,.1,'sine')}}else if(k==='wash')meltSnd();else if(k==='poop')sinkSnd();else fallSnd();if(window.MBV)MBV(120,255)}
   /* ---- effects ---- */
   function burst(x,y,cols,n,k){const t=now_();for(let i=0;i<n;i++){const a=Math.random()*6.28,v=70+Math.random()*230;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-90,r:2.5+Math.random()*3.5,c:cols[i%cols.length],t,life:800+Math.random()*600,g:420,k:k||(i%3?'dot':'star'),a:Math.random()*6})}}
@@ -1201,10 +1207,10 @@ const Grow=(()=>{
   function idleTap(x,y){for(let i=S.poops.length-1;i>=0;i--){const p=S.poops[i];if(Math.hypot(x-p.x,y-(p.y-10))<24){S.poops.splice(i,1);burst(p.x,p.y-10,['#fff','#ffe066','#bdf0ff'],12);ding();
         texts.push({x:p.x,y:p.y-30,txt:'싹싹! ✨',t:now_(),c:'#2b7bd8',s:15,dur:900});gain(2,p.x,p.y-50);healCheck();save();return}}
     if(head&&Math.hypot(x-head.hx,y-head.hy)<head.R+14||head&&x>bx-50&&x<bx+50&&y>head.hy&&y<FLOOR){patT=now_();S.cnt.pat++;giggle();hearts(4,head.hx,head.hy-head.R*.6);if(window.MBV)MBV(15,100);if(canTalk())talk(['히히','조아!','간지러워','또 해줘!'],true)}}
-  function resetAll(){const best=S.best,deaths=S.deaths;S=fresh();S.best=best;S.deaths=deaths;save();simT=Date.now();act=null;evo=null;dying=null;drag=null;ask=0;bx=tx=CX;jingle(0);say('새 아가 범준이 태어났어요! 👶','#ff3d7f');report()}
+  function resetAll(){const best=S.best,deaths=S.deaths;S=fresh();S.best=best;S.deaths=deaths;save();simT=Date.now();act=null;evo=null;dying=null;exam=null;drag=null;ask=0;bx=tx=CX;jingle(0);say('새 아가 범준이 태어났어요! 👶','#ff3d7f');report()}
   /* ---- input ---- */
   const toW=(x,y)=>[(x-ox)/u,(y-oy)/u],inR=(b,x,y)=>x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h;
-  function down(e,x,y){if(!started)return;const [wx,wy]=toW(x,y);if(evo||dying)return;
+  function down(e,x,y){if(!started)return;const [wx,wy]=toW(x,y);if(evo||dying)return;if(exam){if(now_()-exam.t>4300)closeExam();return}
     for(const b of btns)if(inR(b,wx,wy)){b.fn();return}
     if(S.dead)return;
     if(S.sleeping){const t=now_();if(wy>RT&&wy<RB&&t-shushT>900){shushT=t;texts.push({x:wx,y:wy-20,txt:'쉿! 자고 있어요 🤫',t,c:'#5a5f9a',s:14,dur:900})}return}
@@ -1415,7 +1421,35 @@ const Grow=(()=>{
       if(fall>=1){const r=o.rot,dx=hh.hx-(CX+100),dy=hh.hy-FLOOR,cx=CX+100+dx*Math.cos(r)-dy*Math.sin(r),cy=FLOOR+dx*Math.sin(r)+dy*Math.cos(r)-hh.R*1.1;for(let j=0;j<3;j++){const a=now/250+j*2.1;wctx.fillStyle='#ffd21f';wctx.font=emo(14);wctx.textAlign='center';wctx.fillText('⭐',cx+Math.cos(a)*24,cy+Math.sin(a)*8)}}}
     if(k>=1&&now-d.t>DEATH_MS+300){dying=null;funeral()}
     return hh}
+  function drawExam(now){const e=exam,k=now-e.t,st=stageOf(S.lv);
+    rr(118,RT+12,176,66,8);wctx.fillStyle='#b07a50';wctx.fill();rr(124,RT+18,164,54,5);wctx.fillStyle='#2f5d4a';wctx.fill();
+    wctx.textAlign='center';wctx.textBaseline='middle';wctx.font=font(20);wctx.fillStyle='#fff';wctx.fillText('🏫 범준초 입학 시험',206,RT+38);wctx.font=font(11);wctx.fillStyle='#cfe8da';wctx.fillText(S.lv+'살 · 합격 확률 '+Math.round(e.p*100)+'%',206,RT+60);
+    const res=k>3600,o={st,form:S.form,pose:res?(e.pass?'cheer':'idle'):'eat',panic:res&&!e.pass,sweat:!res&&k>2600||res&&!e.pass,bob:Math.sin(now/600)*1.5};
+    if(!res&&k<2600&&Math.random()<.08){texts.push({x:CX+50,y:FLOOR-120,txt:'사각사각',t:now,c:'#7a5560',s:13,dur:600});if(A())Sfx.nz(T(),.06,'highpass',3000,5000,.6,.05)}
+    if(!e.drum&&k>2600){e.drum=true;if(A()){const t=T();for(let i=0;i<10;i++)Sfx.tone(t+i*.09,.06,180,170,.08,'triangle')}}
+    if(!e.done&&res){e.done=true;if(e.pass){jingle(1);flash=1;burst(CX,300,['#ff5d7e','#ffe066','#7fd0ff','#7be495'],60);talk(['합격이다!','학교 간다!'],true)}else{nope();shakeT=now;talk(['으앙…','시러…'],true)}}
+    const h=drawBJ(CX,FLOOR,o,now);
+    wctx.fillStyle='#c98f63';rr(CX-104,FLOOR-80,208,14,5);wctx.fill();wctx.fillStyle='#b07a50';rr(CX-96,FLOOR-68,192,70,6);wctx.fill();
+    wctx.save();wctx.translate(CX-6,FLOOR-86);wctx.rotate(-.05);wctx.fillStyle='#fff';wctx.fillRect(-34,-10,68,14);wctx.strokeStyle='#ccc';wctx.lineWidth=1;for(let j=0;j<3;j++){wctx.beginPath();wctx.moveTo(-28,-6+j*4);wctx.lineTo(-28+Math.min(52,(k/2600)*52*(1+j*.3)),-6+j*4);wctx.stroke()}wctx.restore();
+    if(!res){wctx.save();wctx.translate(CX+40+Math.sin(now/60)*4,FLOOR-92);wctx.rotate(-.5);wctx.fillStyle='#ffd35c';wctx.fillRect(-14,-2.5,24,5);wctx.fillStyle='#f6c7a0';wctx.beginPath();wctx.moveTo(10,-2.5);wctx.lineTo(16,0);wctx.lineTo(10,2.5);wctx.fill();wctx.restore()}
+    if(k>2600&&!res){wctx.font=font(26);wctx.fillStyle='#c93d63';wctx.fillText('두근두근…',CX,RT+112)}
+    if(res){const kk=Math.min(1,(k-3600)/250);wctx.save();wctx.translate(CX,RT+112);wctx.scale(kk,kk);const t1=e.pass?'🎉 합격!! 범준초 입학!':'😢 불합격…',t2=e.pass?'이제 학교 다니는 범준이에요':e.last?'기회가 끝났어요…':(S.lv+1)+'살이 되면 다시 볼 수 있어요 (남은 기회 '+(11-S.lv)+'번)';
+      wctx.font=font(24);const tw=Math.max(wctx.measureText(t1).width,wctx.measureText(t2).width*.6)+34;rr(-tw/2,-26,tw,56,18);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle=e.pass?'#4cd18a':'#ff7a8a';wctx.lineWidth=3;wctx.stroke();
+      wctx.fillStyle=e.pass?'#2fa86a':'#e0485f';wctx.fillText(t1,0,-6);wctx.font=font(12);wctx.fillStyle='#7a5560';wctx.fillText(t2,0,16);wctx.restore()}
+    return h}
+  function drawBox(now,d,st){wctx.fillStyle='rgba(40,50,80,.4)';wctx.fillRect(0,RT,PW,RB-RT);
+    wctx.strokeStyle='rgba(200,220,255,.55)';wctx.lineWidth=1.5;for(let j=0;j<40;j++){const x=(j*53+now/4)%PW,y=RT+((j*97+now/2.2)%(RB-RT));wctx.beginPath();wctx.moveTo(x,y);wctx.lineTo(x-4,y+14);wctx.stroke()}
+    const D=dims(st,d.form),R=D.R*.9,hx=CX,hy=FLOOR-92+Math.sin(now/700)*2;
+    drawHead(hx,hy,R,faceFor(st,d.form,false,d.lv),{tint:'rgba(120,140,200,.3)',baby:st===0,sweat:true});
+    wctx.fillStyle='#c98f5a';wctx.fillRect(CX-80,FLOOR-80,160,82);wctx.fillStyle='#b07a45';wctx.beginPath();wctx.moveTo(CX-80,FLOOR-80);wctx.lineTo(CX-104,FLOOR-104);wctx.lineTo(CX-60,FLOOR-104);wctx.lineTo(CX-40,FLOOR-80);wctx.closePath();wctx.fill();
+    wctx.beginPath();wctx.moveTo(CX+80,FLOOR-80);wctx.lineTo(CX+104,FLOOR-104);wctx.lineTo(CX+60,FLOOR-104);wctx.lineTo(CX+40,FLOOR-80);wctx.closePath();wctx.fill();
+    wctx.strokeStyle='rgba(120,80,40,.5)';wctx.lineWidth=2;wctx.beginPath();wctx.moveTo(CX-80,FLOOR-56);wctx.lineTo(CX+80,FLOOR-56);wctx.stroke();
+    wctx.fillStyle='#fff8e6';wctx.save();wctx.translate(CX+2,FLOOR-36);wctx.rotate(-.04);rr(-58,-16,116,32,4);wctx.fill();wctx.fillStyle='#5a3a22';wctx.font=font(14);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText('데려가 주세요 🥺',0,1);wctx.restore();
+    if(Math.random()<.02)talk(['엄마…','추워…','나 버리지 마'],true);
+    const txt='📦 '+CAUSE.abandon.msg;wctx.font=font(15);const tw=wctx.measureText(txt).width+28;rr(CX-tw/2,RT+16,tw,32,16);wctx.fillStyle='rgba(255,255,255,.95)';wctx.fill();wctx.fillStyle='#6a3fb0';wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText(txt,CX,RT+33);
+    head={hx,hy,R}}
   function drawGrave(now){const d=S.dead,st=stageOf(d.lv);
+    if(d.c==='abandon'){drawBox(now,d,st);return}
     wctx.fillStyle='rgba(50,30,80,.35)';wctx.fillRect(0,RT,PW,RB-RT);
     // tombstone
     const tx2=CX,ty=FLOOR;wctx.fillStyle='rgba(0,0,0,.18)';wctx.beginPath();wctx.ellipse(tx2,ty+4,70,10,0,0,6.29);wctx.fill();
@@ -1444,7 +1478,7 @@ const Grow=(()=>{
     wctx.textAlign='left';wctx.textBaseline='middle';wctx.font=font(19);wctx.fillStyle='#c93d63';wctx.fillText(st?'🧒 범준 키우기':'🍼 범준 키우기',16,26);
     const lvT=S.lv+'살';wctx.font=font(15);const lw=wctx.measureText(lvT).width+22;rr(PW-14-lw,12,lw,28,14);wctx.fillStyle=dead?'#9d97a8':'#ff5d7e';wctx.fill();wctx.fillStyle='#fff';wctx.textAlign='center';wctx.fillText(lvT,PW-14-lw/2,26.5);
     {const age=Math.max(0,((dead?S.dead.t:Date.now())-S.born)/60000),at=age<60?Math.floor(age)+'분':age<1440?Math.floor(age/60)+'시간':Math.floor(age/1440)+'일';wctx.font=font(12);wctx.textAlign='right';wctx.fillStyle='#c97a8e';wctx.fillText('🎂 태어난 지 '+at,PW-22-lw,27)}
-    wctx.textAlign='left';wctx.font=font(14);wctx.fillStyle='#4a2730';const nm=bjName(st,S.form)+(dead?' 😇':S.sleeping?' 💤':S.sick?' 🤒':'');wctx.fillText(nm,16,53);
+    wctx.textAlign='left';wctx.font=font(14);wctx.fillStyle='#4a2730';const nm=bjName(st,S.form)+(S.school&&!dead?' 🏫':'')+(dead?(S.dead.c==='abandon'?' 📦':' 😇'):S.sleeping?' 💤':S.sick?' 🤒':'');wctx.fillText(nm,16,53);
     const ex0=Math.min(130,wctx.measureText(nm).width+26),exw=PW-16-ex0;rr(ex0,47,exw,11,5.5);wctx.fillStyle='rgba(154,75,255,.12)';wctx.fill();rr(ex0,47,Math.max(11,exw*S.exp/need(S.lv)),11,5.5);wctx.fillStyle='#b27bff';wctx.fill();
     wctx.font=font(10);wctx.fillStyle='#6a3fb0';wctx.textAlign='center';wctx.fillText(S.exp+' / '+need(S.lv),ex0+exw/2,53);
     // stats: 3 × 2
@@ -1458,8 +1492,9 @@ const Grow=(()=>{
     room(now,kind);
     wctx.save();rr(10,RT,PW-20,RB-RT,18);wctx.clip();
     if(kind!=='bath'&&kind!=='grave')for(const p of S.poops){poopShape(p.x,p.y,p.s,true);for(let j=0;j<2;j++){const a=now/300+j*3+p.x;wctx.fillStyle='#333';wctx.beginPath();wctx.arc(p.x+Math.cos(a)*16,p.y-30+Math.sin(a*1.7)*6,1.6,0,6.29);wctx.fill()}}
-    if(showDead){drawGrave(now);head=null}
+    if(showDead){head=null;drawGrave(now);if(head&&S.dead.c==='abandon')drawTalk(now,head.hx,head.hy,head.R)}
     else if(dying){const hh=drawDying(now);if(hh)head=hh}
+    else if(exam){head=drawExam(now)}
     else if(S.sleeping){wctx.fillStyle='rgba(20,22,70,.5)';wctx.fillRect(0,RT,PW,RB-RT);
       const lg=wctx.createRadialGradient(PW-70,FLOOR-120,5,PW-70,FLOOR-120,90);lg.addColorStop(0,'rgba(255,220,140,.35)');lg.addColorStop(1,'rgba(255,220,140,0)');wctx.fillStyle=lg;wctx.fillRect(0,RT,PW,RB-RT);
       wctx.fillStyle='#ffe9a8';wctx.beginPath();wctx.moveTo(PW-84,FLOOR-130);wctx.lineTo(PW-56,FLOOR-130);wctx.lineTo(PW-62,FLOOR-112);wctx.lineTo(PW-78,FLOOR-112);wctx.closePath();wctx.fill();wctx.fillStyle='#b07a50';rr(PW-72,FLOOR-112,4,40,2);wctx.fill();rr(PW-82,FLOOR-74,24,6,3);wctx.fill();
@@ -1543,7 +1578,7 @@ const Grow=(()=>{
       if(now-evo.t>4600)evo=null}
     }
     // reset (two taps) + hint
-    if(!act&&!evo&&!dying&&!S.dead&&!S.sleeping){const on=now-ask<2500,rb={x:PW-118,y:RT+6,w:104,h:24,fn:()=>{if(now-ask<2500)resetAll();else{ask=now;Sfx.tick()}}};btns.push(rb);
+    if(!act&&!evo&&!dying&&!S.dead&&!S.sleeping&&!exam){const on=now-ask<2500,rb={x:PW-118,y:RT+6,w:104,h:24,fn:()=>{if(now-ask<2500)resetAll();else{ask=now;Sfx.tick()}}};btns.push(rb);
       rr(rb.x,rb.y,rb.w,rb.h,12);wctx.fillStyle=on?'#ff5d7e':'rgba(255,255,255,.75)';wctx.fill();wctx.font=font(11);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle=on?'#fff':'#c97a8e';wctx.fillText(on?'한 번 더 누르면 처음부터':'↺ 처음부터',rb.x+rb.w/2,rb.y+12.5);
       wctx.font=font(12);wctx.fillStyle='rgba(122,85,96,.75)';wctx.fillText(S.poops.length?'바닥의 똥을 눌러서 치워줘요':S.sick?'배부름·깨끗함 40 넘기고 똥 치우면 나아요':'범준이를 톡 쓰다듬어 보세요',CX,RB-12)}
     // particles
@@ -1553,9 +1588,10 @@ const Grow=(()=>{
     wctx.restore();   // room clip
     // controls
     const by=RB+10,bh=TOTAL-by-12;
-    if(dying){wctx.font=font(15);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle='#e0485f';wctx.fillText('으아앗… 범준아!!',CX,by+bh/2)}
+    if(exam){wctx.font=font(15);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle='#7a5560';wctx.fillText(now-exam.t>4300?'화면을 눌러서 계속':now-exam.t>3600?'':'시험 보는 중… ✏️',CX,by+bh/2)}
+    else if(dying){wctx.font=font(15);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle='#e0485f';wctx.fillText('으아앗… 범준아!!',CX,by+bh/2)}
     else if(showDead){button({x:14,y:by,w:PW-28,h:bh-24,fn:resetAll},'👶 새 범준 키우기',null,'#ff5d7e','#fff',false);
-      wctx.font=font(12);wctx.textAlign='center';wctx.fillStyle='#9a8090';wctx.fillText('지금까지 떠나보낸 범준 '+S.deaths+'명 · 최고 '+S.best+'살',CX,TOTAL-20)}
+      wctx.font=font(12);wctx.textAlign='center';wctx.fillStyle='#9a8090';wctx.fillText((S.dead.c==='abandon'?'버려진 범준까지 ':'지금까지 ')+'떠나보낸 범준 '+S.deaths+'명 · 최고 '+S.best+'살',CX,TOTAL-20)}
     else if(evo){wctx.font=font(15);wctx.textAlign='center';wctx.fillStyle='#9a4bff';wctx.fillText('✨ 진화 중… ✨',CX,by+bh/2)}
     else if(S.sleeping){const pw=PW-28-90;rr(14,by,pw,bh,16);wctx.fillStyle='#f1f0ff';wctx.fill();wctx.strokeStyle='#c9c6ff';wctx.lineWidth=2;wctx.stroke();
       wctx.textAlign='center';wctx.textBaseline='middle';wctx.font=font(15);wctx.fillStyle='#5a5f9a';wctx.fillText('쿨쿨 자는 중… 💤',14+pw/2,by+24);

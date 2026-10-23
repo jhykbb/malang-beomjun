@@ -1120,6 +1120,23 @@ const Claw=(()=>{
   function drawPlush(b){const p=b._p,s=plushSpr(p.k,p.f,p.rar),D=p.r*SZ*(34/34),c=centerOf(b);wctx.save();wctx.translate(c.x,c.y);wctx.rotate(b.angle);wctx.drawImage(s,-D/2,-D/2,D,D);wctx.restore()}
   function icon(k,f,rar,x,y,r){const s=plushSpr(k,f,rar),D=r*SZ;wctx.drawImage(s,x-D/2,y-D/2,D,D)}
   let view='dex';
+  let askReset=false;
+  function resetAll(){col={c:{},r:{},total:0,v:2,inv:[0,0,0,0,0],money:START,broke:0,earned:0};save();
+    for(const b of P)MT.Composite.remove(eng.world,b);P=[];cargo=null;aimB=null;prize=null;parts=[];texts=[];
+    for(let i=0;i<16;i++)spawn(140+Math.random()*(GX1-170),GY1-50-Math.random()*200);
+    cx=tx=HOME;cy=TOPY;th=om=0;angL=angR=.6;set('ready');readyAt=now_();lastSt='ready';
+    dex=false;askReset=false;flash={t:now_(),txt:'초기화 완료! 500원 지급'};coinSnd();if(!window.MB&&appKind==='claw')cntEl.textContent=0}
+  function resetBtn(){
+    const b={x:PW/2-70,y:TOTAL-72,w:140,h:28,fn:()=>{askReset=true;Sfx.tick()}};btns.push(b);rr(b.x,b.y,b.w,b.h,14);wctx.fillStyle='#fff';wctx.fill();wctx.lineWidth=1.5;wctx.strokeStyle='#f4b3c2';wctx.stroke();
+    wctx.textAlign='center';wctx.textBaseline='middle';wctx.font=font(13);wctx.fillStyle='#c93d63';wctx.fillText('↺ 인형뽑기 초기화',PW/2,b.y+15);
+    if(!askReset)return;btns=[];
+    wctx.fillStyle='rgba(40,15,25,.45)';rr(10,20,PW-20,TOTAL-40,22);wctx.fill();
+    wctx.save();wctx.shadowColor='rgba(0,0,0,.25)';wctx.shadowBlur=20;rr(40,TOTAL/2-90,PW-80,180,22);wctx.fillStyle='#fff';wctx.fill();wctx.restore();
+    wctx.fillStyle='#c93d63';wctx.font=font(20);wctx.fillText('정말 초기화할까요?',PW/2,TOTAL/2-56);
+    wctx.font=font(13);wctx.fillStyle='rgba(74,39,48,.7)';wctx.fillText('돈은 500원으로 돌아가고',PW/2,TOTAL/2-24);wctx.fillText('가진 인형과 도감이 전부 지워져요',PW/2,TOTAL/2-4);
+    const ok={x:58,y:TOTAL/2+28,w:(PW-128)/2,h:40,fn:resetAll},no={x:70+(PW-128)/2,y:TOTAL/2+28,w:(PW-128)/2,h:40,fn:()=>{askReset=false;Sfx.tick()}};btns.push(ok,no);
+    rr(ok.x,ok.y,ok.w,ok.h,20);wctx.fillStyle='#ff5d7e';wctx.fill();wctx.fillStyle='#fff';wctx.font=font(16);wctx.fillText('초기화',ok.x+ok.w/2,ok.y+21);
+    rr(no.x,no.y,no.w,no.h,20);wctx.fillStyle='#ffe0e8';wctx.fill();wctx.fillStyle='#c93d63';wctx.fillText('취소',no.x+no.w/2,no.y+21)}
   function drawDex(now){btns=[];
     wctx.fillStyle='rgba(40,15,25,.55)';rr(0,0,PW,TOTAL,22);wctx.fill();
     rr(10,20,PW-20,TOTAL-40,22);wctx.fillStyle='#fff7f9';wctx.fill();wctx.lineWidth=3;wctx.strokeStyle='#ff8fab';wctx.stroke();
@@ -1128,7 +1145,7 @@ const Claw=(()=>{
     for(const [i,v,lab] of [[0,'dex','📖 도감'],[1,'mkt','📈 시장']]){const b={x:26+i*146,y:84,w:140,h:28,fn:()=>{view=v;Sfx.tick()}};btns.push(b);rr(b.x,b.y,b.w,b.h,14);wctx.fillStyle=view===v?'#ff5d7e':'#ffe0e8';wctx.fill();
       wctx.textAlign='center';wctx.font=font(14);wctx.fillStyle=view===v?'#fff':'#c93d63';wctx.fillText(lab,b.x+b.w/2,b.y+15)}
     const close={x:PW-56,y:30,w:36,h:36,fn:()=>{dex=false;Sfx.tick()}};btns.push(close);rr(close.x,close.y,close.w,close.h,18);wctx.fillStyle='#ffe0e8';wctx.fill();wctx.textAlign='center';wctx.fillStyle='#c93d63';wctx.font=font(18);wctx.fillText('✕',close.x+18,close.y+19);
-    if(view==='mkt'){drawMarket(now);return}
+    if(view==='mkt'){drawMarket(now);resetBtn();return}
     // kind tabs
     const tw=(PW-40)/NK;for(let k=0;k<NK;k++){const x=20+k*tw,y=122,on=k===dexTab,got=Array.from({length:NF},(_,f)=>col.c[k+'-'+f]>0).filter(Boolean).length;
       rr(x+2,y,tw-4,58,12);wctx.fillStyle=on?'#ff8fab':'#ffe9ef';wctx.fill();icon(k,(k*3)%NF,0,x+tw/2,y+22,9.5);
@@ -1141,7 +1158,7 @@ const Claw=(()=>{
       if(n){icon(dexTab,f,Math.max(0,rar),x+cw/2,y+38,15);wctx.font=font(12);wctx.fillStyle='#4a2730';wctx.fillText('×'+n,x+cw/2,y+ch-16);
         if(rar>0){wctx.font=font(10);wctx.fillStyle=GR[rar].col;wctx.fillText(GR[rar].name,x+cw-22,y+16)}}
       else{wctx.globalAlpha=.18;icon(dexTab,f,0,x+cw/2,y+38,15);wctx.globalAlpha=1;wctx.font=font(22);wctx.fillStyle='rgba(201,61,99,.5)';wctx.fillText('?',x+cw/2,y+38)}}
-    wctx.font=font(12);wctx.fillStyle='rgba(74,39,48,.5)';wctx.fillText('등급이 높을수록 비싸지만 잘 안 나오고 더 미끄러워요',PW/2,TOTAL-34)}
+    wctx.font=font(12);wctx.fillStyle='rgba(74,39,48,.5)';wctx.fillText('등급이 높을수록 비싸지만 잘 안 나오고 더 미끄러워요',PW/2,TOTAL-30);resetBtn()}
   function drawMarket(now){const n=slotNow(),left=SLOT-(Date.now()%SLOT),mm=Math.floor(left/60000),ss=Math.floor(left/1000)%60;
     const rh=62,y0=124;wctx.textBaseline='middle';
     for(let g=0;g<NG;g++){const y=y0+g*rh,pr=priceAt(g,n),prev=priceAt(g,n-1),ch=(pr-prev)/prev,G=GR[g];

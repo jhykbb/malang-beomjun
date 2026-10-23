@@ -1121,7 +1121,7 @@ const Grow=(()=>{
   function tick(sec,q){if(S.dead)return;const zz=S.sleeping;
     S.full=cl(S.full-sec/(zz?180:90),0,100);S.bowel=cl(S.bowel+sec/(zz?480:240),0,100);S.clean=cl(S.clean-sec/(zz?300:150)-S.poops.length*sec/90,0,100);S.fit=cl(S.fit-sec/300,0,100);
     for(const k in S.over)S.over[k]=Math.max(0,S.over[k]-sec/OVER_DECAY*(zz?2:1));
-    if(zz){S.energy=cl(S.energy+sec*1.6,0,100);if(S.energy>=100){S.ovs=(S.ovs||0)+sec;if(S.ovs>=S.lim.sleep){die('sleep');return}}}
+    if(zz){S.energy=cl(S.energy+sec*5,0,100);if(S.energy>=100){S.ovs=(S.ovs||0)+sec;if(S.ovs>=S.lim.sleep){die('sleep');return}}}
     else{S.energy=cl(S.energy-sec/120*(night()?1.8:1),0,100);}
     if(S.full<=0||S.clean<=0||S.poops.length>=3)S.sickT+=sec;else S.sickT=Math.max(0,S.sickT-sec*2);
     if(!S.sick&&S.sickT>=600){S.sick=true;if(!q){say('범준이가 아파요 🤒 밥 먹이고 씻겨줘요','#e0485f');thud()}}

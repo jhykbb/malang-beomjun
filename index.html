@@ -1080,6 +1080,10 @@ const Grow=(()=>{
   let u=1,ox=0,oy=0,lt=now_(),simT=S.t,started=false,act=null,btns=[],foodR=[],parts=[],texts=[],ask=0,head=null,lastHands=null;
   let bx=CX,tx=CX,nextWalk=0,walkPh=0,patT=-9e9,shakeT=-9e9,chewT=-9e9,accT=-9e9,evo=null,drag=null,lastSnd=0,lastSave=0,flash=0,lastHeart=0,dying=null,nextSnore=0,nextZ=0,shushT=0;
   const holds=new Set();let exam=null;
+  // 입학하면 친구 고르기
+  const FRIENDS=['용화','현민'],hasBatchim=n=>{const c=n.charCodeAt(n.length-1)-0xAC00;return c>=0&&c%28!==0},callName=n=>hasBatchim(n)?n+'이':n;
+  const needFriend=()=>S.school==='pass'&&!S.friend&&!S.dead&&!dying&&!exam&&!evo&&!act&&!S.sleeping;
+  function pickFriend(n){S.friend=n;save();jingle(0);if(head)hearts(8,head.hx,head.hy-head.R);say(callName(n)+'랑 친구가 됐어요! 👫','#ff3d7f');talk([callName(n)+' 조아!','친구 생겼다!'],true)}
   // 지식 5부터 범준이가 말을 해요
   let talkNow=null,nextTalk=0;const pick=a=>a[(Math.random()*a.length)|0];
   const canTalk=()=>(S.study||0)>=5&&!S.dead;
@@ -1563,7 +1567,7 @@ const Grow=(()=>{
           if(act===a&&(a.miss>=3||S.energy<=0||S.full<=0))finishGym()}}
       if(act&&!a.end&&now<a.start&&a.n===0&&a.miss===0){const k=Math.ceil((a.start-now)/450);wctx.font=font(40);wctx.textAlign='center';wctx.lineWidth=7;wctx.strokeStyle='#fff';const s=k>=1&&k<=3?k+'':'준비';wctx.strokeText(s,CX,RT+64);wctx.fillStyle='#ff5d7e';wctx.fillText(s,CX,RT+64)}
       if(act&&a.end&&now-a.end>1700)act=null}
-    if(!act&&!evo&&canTalk()&&now>nextTalk){talk(S.sick?['아파…','열나…']:S.bowel>=75?['똥 마려…','화장실!']:S.full<30?['배고파…','밥 줘!']:S.energy<25?['졸려…','하암…']:S.clean<30?['찝찝해','씻고 시퍼']:['엄마?','히히','재미따','범준이 조아','심심해','놀아줘~','뭐 해?','랄랄라~'])}
+    if(!act&&!evo&&canTalk()&&now>nextTalk){talk(S.sick?['아파…','열나…']:S.bowel>=75?['똥 마려…','화장실!']:S.full<30?['배고파…','밥 줘!']:S.energy<25?['졸려…','하암…']:S.clean<30?['찝찝해','씻고 시퍼']:['엄마?','히히','재미따','범준이 조아','심심해','놀아줘~','뭐 해?','랄랄라~'].concat(S.friend?[callName(S.friend)+'랑 놀래!',callName(S.friend)+' 보고 시퍼',callName(S.friend)+'는 내 친구!']:[]))}
     if(head)drawTalk(now,head.hx,head.hy,head.R);
     if(!act&&!evo&&!dying&&!S.dead&&!(talkNow&&now-talkNow.t<1800)){const w=wish();if(w)bubble(head.hx+head.R*.95,head.hy-head.R*.9,w,now);
       else if(S.full>60&&S.clean>60&&S.fit>40&&!S.poops.length&&now-lastHeart>3200){lastHeart=now;hearts(1,head.hx+head.R*.8,head.hy-head.R)}}
@@ -1580,6 +1584,7 @@ const Grow=(()=>{
     // reset (two taps) + hint
     if(!act&&!evo&&!dying&&!S.dead&&!S.sleeping&&!exam){const on=now-ask<2500,rb={x:PW-118,y:RT+6,w:104,h:24,fn:()=>{if(now-ask<2500)resetAll();else{ask=now;Sfx.tick()}}};btns.push(rb);
       rr(rb.x,rb.y,rb.w,rb.h,12);wctx.fillStyle=on?'#ff5d7e':'rgba(255,255,255,.75)';wctx.fill();wctx.font=font(11);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle=on?'#fff':'#c97a8e';wctx.fillText(on?'한 번 더 누르면 처음부터':'↺ 처음부터',rb.x+rb.w/2,rb.y+12.5);
+      if(S.friend){wctx.font=font(12);const ft='👫 친구 '+S.friend,fw2=wctx.measureText(ft).width+18;rr(18,RT+100,fw2,22,11);wctx.fillStyle='rgba(255,255,255,.8)';wctx.fill();wctx.fillStyle='#c93d63';wctx.textAlign='left';wctx.fillText(ft,27,RT+111.5);wctx.textAlign='center'}
       wctx.font=font(12);wctx.fillStyle='rgba(122,85,96,.75)';wctx.fillText(S.poops.length?'바닥의 똥을 눌러서 치워줘요':S.sick?'배부름·깨끗함 40 넘기고 똥 치우면 나아요':'범준이를 톡 쓰다듬어 보세요',CX,RB-12)}
     // particles
     parts=parts.filter(p=>now-p.t<p.life);for(const p of parts){if(now<p.t)continue;p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;const al=Math.min(1,(1-(now-p.t)/p.life)*1.6);wctx.globalAlpha=al;wctx.fillStyle=p.c;
@@ -1598,6 +1603,10 @@ const Grow=(()=>{
       rr(28,by+44,pw-28,16,8);wctx.fillStyle='rgba(143,140,255,.18)';wctx.fill();rr(28,by+44,Math.max(16,(pw-28)*S.energy/100),16,8);wctx.fillStyle='#8f8cff';wctx.fill();
       wctx.font=font(10);wctx.fillStyle='#fff';wctx.fillText('기운 '+Math.round(S.energy)+'%',28+(pw-28)/2,by+52.5);
       button({x:PW-14-84,y:by,w:84,h:bh,fn:()=>wake(false)},'깨우기','⏰',  '#fff','#5a5f9a',false)}
+    else if(needFriend()){const fw=(PW-28-6)/2;
+      texts=texts.filter(t=>!t.box);rr(30,RT+34,PW-60,34,17);wctx.fillStyle='rgba(255,255,255,.96)';wctx.fill();wctx.strokeStyle='#ff8fab';wctx.lineWidth=2;wctx.stroke();
+      wctx.font=font(15);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle='#c93d63';wctx.fillText('🏫 어떤 친구를 사귈까요?',CX,RT+51.5);
+      FRIENDS.forEach((n,i)=>button({x:14+i*(fw+6),y:by,w:fw,h:bh,fn:()=>pickFriend(n)},n,null,'#fff','#4a2730',false,i?'🧑':'👦',false,now))}
     else if(!act){const w3=(PW-28-8)/3,h2=(bh-6)/2,lab=[['밥 먹기',st?'🍚':'🍼',startEat,S.full<30],['똥 싸기','🚽',startPoop,S.bowel>=75],['샤워하기','🚿',startWash,S.clean<30],
         ['운동하기','🏃',startGym,S.fit<25],['공부하기','📚',startStudy,false],['잠자기','😴',startSleep,S.energy<25]];
       lab.forEach((l,i)=>button({x:14+(i%3)*(w3+4),y:by+((i/3)|0)*(h2+6),w:w3,h:h2,fn:l[2]},l[0],null,'#fff','#4a2730',false,l[1],l[3],now))}

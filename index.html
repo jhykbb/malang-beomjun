@@ -1198,8 +1198,7 @@ const Grow=(()=>{
     if(a.over&&n>=3)overdo('gym');save()}
   function idleTap(x,y){for(let i=S.poops.length-1;i>=0;i--){const p=S.poops[i];if(Math.hypot(x-p.x,y-(p.y-10))<24){S.poops.splice(i,1);burst(p.x,p.y-10,['#fff','#ffe066','#bdf0ff'],12);ding();
         texts.push({x:p.x,y:p.y-30,txt:'싹싹! ✨',t:now_(),c:'#2b7bd8',s:15,dur:900});gain(2,p.x,p.y-50);healCheck();save();return}}
-    if(head&&Math.hypot(x-head.hx,y-head.hy)<head.R+14||head&&x>bx-50&&x<bx+50&&y>head.hy&&y<FLOOR){patT=now_();S.cnt.pat++;giggle();hearts(4,head.hx,head.hy-head.R*.6);if(window.MBV)MBV(15,100);if(canTalk()){talk(['히히','조아!','간지러워','또 해줘!'],true)}else
-      if(Math.random()<.35)texts.push({x:head.hx,y:head.hy-head.R-14,txt:['히히','좋아~','헤헤','♥'][(Math.random()*4)|0],t:now_(),c:'#ff3d7f',s:15,dur:800})}}
+    if(head&&Math.hypot(x-head.hx,y-head.hy)<head.R+14||head&&x>bx-50&&x<bx+50&&y>head.hy&&y<FLOOR){patT=now_();S.cnt.pat++;giggle();hearts(4,head.hx,head.hy-head.R*.6);if(window.MBV)MBV(15,100);if(canTalk())talk(['히히','조아!','간지러워','또 해줘!'],true)}}
   function resetAll(){const best=S.best,deaths=S.deaths;S=fresh();S.best=best;S.deaths=deaths;save();simT=Date.now();act=null;evo=null;dying=null;drag=null;ask=0;bx=tx=CX;jingle(0);say('새 아가 범준이 태어났어요! 👶','#ff3d7f');report()}
   /* ---- input ---- */
   const toW=(x,y)=>[(x-ox)/u,(y-oy)/u],inR=(b,x,y)=>x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h;

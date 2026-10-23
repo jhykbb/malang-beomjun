@@ -916,7 +916,8 @@ const Enh=(()=>{
     '보랏빛 범준','마법 범준','폭풍 범준','번개 범준','불꽃 범준','황금 범준','왕관 범준','전설의 범준','신화의 범준','우주 범준','범준 그 자체'];
   const RATE=[95,90,85,80,75,70,65,60,55,50,45,40,35,30,25,20,15,10,7,5];          // 성공 확률 (%) for +L → +L+1
   const cost=L=>Math.round(50*Math.pow(1.38,L)/10)*10;
-  const sellPrice=L=>L<=0?0:Math.round(80*Math.pow(1.62,L)/10)*10;
+  const PRICE=[0,100,250,500,800,1300,2000,3000,4500,7000,12000,22000,45000,90000,200000,500000,1200000,3000000,8000000,25000000,100000000];   // 판매가: 들어간 비용보다 넉넉하게
+  const sellPrice=L=>PRICE[Math.max(0,Math.min(MAXL,L))];
   // what can happen when it fails
   const failOdds=L=>L<5?{stay:1,down:0,boom:0}:L<10?{stay:.6,down:.4,boom:0}:L<15?{stay:.35,down:.4,boom:.25}:{stay:.25,down:.35,boom:.4};
   const tierCol=L=>L>=20?'#ff5d7e':L>=15?'#ffb21f':L>=10?'#9a4bff':L>=5?'#3a9be8':'#ff8fab';
@@ -979,7 +980,7 @@ const Enh=(()=>{
     wctx.save();wctx.shadowColor=L>=5?col:'rgba(74,39,48,.3)';wctx.shadowBlur=L>=5?20+pulse*10:12;wctx.beginPath();wctx.arc(CX,CY,R,0,6.29);
     const fg=wctx.createLinearGradient(CX-R,CY-R,CX+R,CY+R);if(L>=20){['#ff6b8b','#ffe066','#7be495','#5cc8ff','#a98bff'].forEach((c,i)=>fg.addColorStop(i/4,c))}else{fg.addColorStop(0,'#fff');fg.addColorStop(1,col)}
     wctx.fillStyle=fg;wctx.fill();wctx.restore();
-    const fi=(S.face+L)%NF,im=face(fi),fr=R*.86;wctx.save();
+    const fi=L%NF,im=face(fi),fr=R*.86;wctx.save();
     if(res&&(res.k==='ok'||res.k==='down'||res.k==='saved')&&now-res.t<320){const k=(now-res.t)/320;wctx.translate(CX,CY);wctx.scale(Math.max(.05,Math.abs(Math.cos(k*Math.PI))),1);wctx.translate(-CX,-CY)}   // photo flips to the next 범준
     wctx.beginPath();wctx.arc(CX,CY,fr,0,6.29);wctx.clip();wctx.fillStyle='#f3d9d0';wctx.fillRect(CX-fr,CY-fr,fr*2,fr*2);
     if(im.complete&&im.naturalWidth){const iw=im.naturalWidth,ih=im.naturalHeight,F=FC[fi],s=Math.min(iw,ih,iw*F[2]),sx=Math.max(0,Math.min(iw-s,iw*F[0]-s/2)),sy=Math.max(0,Math.min(ih-s,ih*F[1]-s/2));wctx.drawImage(im,sx,sy,s,s,CX-fr,CY-fr,fr*2,fr*2)}

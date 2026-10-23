@@ -1129,7 +1129,8 @@ const Grow=(()=>{
   function sim(){let sec=Math.min(86400,(Date.now()-simT)/1000);if(sec<1)return;const live=sec<5;simT=Date.now();while(sec>0){const d=Math.min(60,sec);tick(d,!live);sec-=d}}
   /* ---- growth ---- */
   function pickForm(){const c=S.cnt;if(S.study>=20)return'gen';if(c.cake>=12&&c.cake*12>c.jumps)return'fat';if(c.jumps>=250)return'mus';return'hun'}
-  function gain(n,x,y){n=Math.round(n);if(n<=0||S.dead)return;if(S.sick){texts.push({x:x||CX,y:y||300,txt:'아파서 못 자라요…',t:now_(),c:'#e0485f',s:14,dur:1100});return}
+  function gain(n,x,y){n=Math.round(n*(S.lv<10?2:1));   // 10살까지는 경험치 2배
+   if(n<=0||S.dead)return;if(S.sick){texts.push({x:x||CX,y:y||300,txt:'아파서 못 자라요…',t:now_(),c:'#e0485f',s:14,dur:1100});return}
     S.exp+=n;texts.push({x:x||CX,y:y||300,txt:'+'+n+' 경험치',t:now_(),c:'#9a4bff',s:16,dur:1100});
     const st0=stageOf(S.lv);let up=false;while(S.exp>=need(S.lv)){S.exp-=need(S.lv);S.lv++;up=true}
     if(up){if(S.lv>S.best)S.best=S.lv;report();const st1=stageOf(S.lv);
@@ -1168,8 +1169,8 @@ const Grow=(()=>{
     talk(ok?['알았다!','쉽다 히히','정답!']:['어려워…','몰라잉','헷갈려'],true);
     if(ok){a.ok++;ding();if(head)burst(head.hx,head.hy-head.R,['#ffe066','#fff','#7fd0ff'],10);texts.push({x:CX,y:RT+104,txt:'정답! ⭕',t:now_(),c:'#2fa86a',s:22,dur:800})}
     else{nope();shakeT=now_();texts.push({x:CX,y:RT+104,txt:'땡! 정답은 '+q.ans,t:now_(),c:'#e0485f',s:20,dur:800})}}
-  function finishStudy(){const a=act;a.end=now_();const add=1;S.study=(S.study||0)+1;if(S.study===10)setTimeout(()=>{say('범준이가 말을 할 수 있게 됐어요! 🗣️','#ff3d7f');jingle(1);talk('엄마!',true)},900);S.energy=cl(S.energy-5,0,100);S.full=cl(S.full-2,0,100);S.cnt.study++;
-    texts.push({x:CX,y:RT+104,txt:'5문제 중 '+a.ok+'개 정답! 지식 +1 📚',t:now_(),c:'#e07a00',s:20,dur:1600});if(a.ok===5)jingle(0);gain(2+a.ok*2,CX,RT+134);save()}
+  function finishStudy(){const a=act;a.end=now_();const add=S.lv<10?2:1,k0=S.study||0;S.study=k0+add;if(k0<10&&S.study>=10)setTimeout(()=>{say('범준이가 말을 할 수 있게 됐어요! 🗣️','#ff3d7f');jingle(1);talk('엄마!',true)},900);S.energy=cl(S.energy-5,0,100);S.full=cl(S.full-2,0,100);S.cnt.study++;
+    texts.push({x:CX,y:RT+104,txt:'5문제 중 '+a.ok+'개 정답! 지식 +'+add+' 📚',t:now_(),c:'#e07a00',s:20,dur:1600});if(a.ok===5)jingle(0);gain(2+a.ok*2,CX,RT+134);save()}
   function stop(){if(act&&act.k==='gym'&&!act.end&&act.n>0){finishGym();return}act=null;drag=null;holds.clear();Sfx.tick()}
   function feed(f){const f0=S.full;S.full=cl(S.full+f.full,0,100);S.bowel=cl(S.bowel+f.bowel,0,100);S.fit=cl(S.fit+(f.fit||0)-(f.cake?3:2),0,100);S.cnt.eat++;chewT=now_();chomp();
     if(head){const t=now_();for(let i=0;i<7;i++)parts.push({x:head.hx+(Math.random()-.5)*20,y:head.hy+head.R*.5,vx:(Math.random()-.5)*90,vy:-30-Math.random()*60,r:2+Math.random()*2,c:['#fff3c4','#f0c27a','#ffd9a0'][i%3],t,life:600,g:500,k:'dot'})}

@@ -1060,9 +1060,10 @@ const Grow=(()=>{
   const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
   const now_=()=>performance.now(),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
   const need=L=>20+L*15,stageOf=L=>L>=20?3:L>=12?2:L>=5?1:0,SN=['아가','어린이','학생','어른'],FN={hun:'훈남',mus:'근육',fat:'통통',gen:'천재'};
+  const rollLim=()=>({eat:2+((Math.random()*4)|0),wash:2+((Math.random()*4)|0),poop:2+((Math.random()*4)|0),gym:2+((Math.random()*4)|0),sleep:20+Math.random()*20});   // 몇 번째에 죽을지 매번 랜덤
   const fresh=()=>({v:1,lv:1,exp:0,full:70,bowel:20,clean:85,fit:50,energy:80,study:0,poops:[],t:Date.now(),cnt:{eat:0,cake:0,poop:0,wash:0,jumps:0,gym:0,pat:0,sleep:0,study:0},form:null,sick:false,sickT:0,best:1,
-    sleeping:false,sE0:0,over:{eat:0,wash:0,poop:0,gym:0},dead:null,deaths:0,born:Date.now()});
-  let S=fresh();try{const d=JSON.parse(LS(KEY)||'null');if(d&&d.v===1){const f=fresh(),c=Object.assign(f.cnt,d.cnt||{}),ov=Object.assign(f.over,d.over||{});S=Object.assign(f,d);S.cnt=c;S.over=ov}}catch(e){}
+    sleeping:false,sE0:0,over:{eat:0,wash:0,poop:0,gym:0},dead:null,deaths:0,born:Date.now(),lim:rollLim(),ovs:0,kv:2});
+  let S=fresh();try{const d=JSON.parse(LS(KEY)||'null');if(d&&d.v===1){const f=fresh(),c=Object.assign(f.cnt,d.cnt||{}),ov=Object.assign(f.over,d.over||{});S=Object.assign(f,d);S.cnt=c;S.over=ov;if(!d.lim)S.lim=rollLim();if(!d.kv){S.study=Math.floor((d.study||0)/20);S.kv=2}}}catch(e){}
   const save=()=>{S.t=Date.now();LS(KEY,JSON.stringify(S))};
   const KID=new Image();KID.src=GROW_KID;
   const xi=[],xf=i=>{if(!xi[i]){const im=new Image();im.src=XFACES[i];xi[i]=im}return xi[i]};
@@ -1072,8 +1073,8 @@ const Grow=(()=>{
                [{e:'🍚',n:'밥',full:30,bowel:16},{e:'🍎',n:'사과',full:14,bowel:8,fit:3},{e:'🍰',n:'케이크',full:12,bowel:10,cake:1}]];
   const foods=()=>FOODS[stageOf(S.lv)?1:0];
   // 너무 많이 하면: 💀 1 → 💀 2 (경고) → 3번째에 사망. 8분마다 1씩 풀리고, 푹 자고 일어나면 1씩 풀려요
-  const OVER_DECAY=480,DIE_AT=2.5;
-  const CAUSE={eat:{msg:'배가 펑! 터져 버렸어요…',ic:'💥'},wash:{msg:'너무 씻어서 녹아 버렸어요…',ic:'💧'},poop:{msg:'똥통에 빠져 버렸어요…',ic:'🚽'},gym:{msg:'근육통으로 쓰러졌어요…',ic:'💪'}};
+  const OVER_DECAY=480;
+  const CAUSE={eat:{msg:'배가 펑! 터져 버렸어요…',ic:'💥'},wash:{msg:'너무 씻어서 녹아 버렸어요…',ic:'💧'},poop:{msg:'똥통에 빠져 버렸어요…',ic:'🚽'},gym:{msg:'근육통으로 쓰러졌어요…',ic:'💪'},sleep:{msg:'너무 오래 자서 영원히 잠들었어요…',ic:'💤'}};
   let u=1,ox=0,oy=0,lt=now_(),simT=S.t,started=false,act=null,btns=[],foodR=[],parts=[],texts=[],ask=0,head=null,lastHands=null;
   let bx=CX,tx=CX,nextWalk=0,walkPh=0,patT=-9e9,shakeT=-9e9,chewT=-9e9,accT=-9e9,evo=null,drag=null,lastSnd=0,lastSave=0,flash=0,lastHeart=0,dying=null,nextSnore=0,nextZ=0,shushT=0;
   const holds=new Set();
@@ -1108,7 +1109,7 @@ const Grow=(()=>{
   function tick(sec,q){if(S.dead)return;const zz=S.sleeping;
     S.full=cl(S.full-sec/(zz?180:90),0,100);S.bowel=cl(S.bowel+sec/(zz?480:240),0,100);S.clean=cl(S.clean-sec/(zz?300:150)-S.poops.length*sec/90,0,100);S.fit=cl(S.fit-sec/300,0,100);
     for(const k in S.over)S.over[k]=Math.max(0,S.over[k]-sec/OVER_DECAY*(zz?2:1));
-    if(zz){S.energy=cl(S.energy+sec*1.6,0,100);if(S.energy>=100)wake(q,true)}
+    if(zz){S.energy=cl(S.energy+sec*1.6,0,100);if(S.energy>=100){S.ovs=(S.ovs||0)+sec;if(S.ovs>=S.lim.sleep){die('sleep');return}}}
     else{S.energy=cl(S.energy-sec/120*(night()?1.8:1),0,100);if(S.energy<=0&&!act){S.sleeping=true;S.sE0=0;if(!q){say('범준이가 지쳐서 쓰러져 잠들었어요 😪','#5a5f9a')}}}
     if(S.bowel>=100&&!(act&&act.k==='poop')){S.urg=(S.urg||0)+sec;if(S.urg>=25){S.urg=0;accident(q)}}else S.urg=0;   // ~25초 참다가 바닥에
     if(S.full<=0||S.clean<=0||S.poops.length>=3)S.sickT+=sec;else S.sickT=Math.max(0,S.sickT-sec*2);
@@ -1116,7 +1117,7 @@ const Grow=(()=>{
     healCheck(q)}
   function sim(){let sec=Math.min(86400,(Date.now()-simT)/1000);if(sec<1)return;const live=sec<5;simT=Date.now();while(sec>0){const d=Math.min(60,sec);tick(d,!live);sec-=d}}
   /* ---- growth ---- */
-  function pickForm(){const c=S.cnt;if(S.study>=80)return'gen';if(c.cake>=12&&c.cake*12>c.jumps)return'fat';if(c.jumps>=250)return'mus';return'hun'}
+  function pickForm(){const c=S.cnt;if(S.study>=20)return'gen';if(c.cake>=12&&c.cake*12>c.jumps)return'fat';if(c.jumps>=250)return'mus';return'hun'}
   function gain(n,x,y){n=Math.round(n);if(n<=0||S.dead)return;if(S.sick){texts.push({x:x||CX,y:y||300,txt:'아파서 못 자라요…',t:now_(),c:'#e0485f',s:14,dur:1100});return}
     S.exp+=n;texts.push({x:x||CX,y:y||300,txt:'+'+n+' 경험치',t:now_(),c:'#9a4bff',s:16,dur:1100});
     const st0=stageOf(S.lv);let up=false;while(S.exp>=need(S.lv)){S.exp-=need(S.lv);S.lv++;up=true}
@@ -1125,9 +1126,9 @@ const Grow=(()=>{
       else{jingle(0);say('레벨 업! Lv.'+S.lv+' 🎉','#ff3d7f');burst(bx,300,['#ffe066','#ff8fab','#7fd0ff'],26)}}
     save()}
   // too much of one thing: warn twice, then 범준 dies
-  function overdo(k){S.over[k]+=1;save();if(S.over[k]>=DIE_AT){die(k);return true}return false}   // 몰래 쌓였다가 3번째에 갑자기
+  function overdo(k){S.over[k]+=1;save();if(S.over[k]>=S.lim[k]-.5){die(k);return true}return false}   // 몰래 쌓였다가 3번째에 갑자기
   function die(k){S.dead={c:k,lv:S.lv,form:S.form,t:Date.now()};S.deaths++;S.sleeping=false;dying={c:k,t:now_(),st:stageOf(S.lv),form:S.form,boom:false};act=null;drag=null;holds.clear();evo=null;save();
-    if(k==='eat'){thud()}else if(k==='wash')meltSnd();else if(k==='poop')sinkSnd();else fallSnd();if(window.MBV)MBV(120,255)}
+    if(k==='eat'){thud()}else if(k==='sleep'){if(A()){const t=T();Sfx.tone(t,2.5,220,110,.1,'sine')}}else if(k==='wash')meltSnd();else if(k==='poop')sinkSnd();else fallSnd();if(window.MBV)MBV(120,255)}
   /* ---- effects ---- */
   function burst(x,y,cols,n,k){const t=now_();for(let i=0;i<n;i++){const a=Math.random()*6.28,v=70+Math.random()*230;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-90,r:2.5+Math.random()*3.5,c:cols[i%cols.length],t,life:800+Math.random()*600,g:420,k:k||(i%3?'dot':'star'),a:Math.random()*6})}}
   function hearts(n,x,y){const t=now_();for(let i=0;i<n;i++)parts.push({x:x+(Math.random()-.5)*50,y:y+(Math.random()-.5)*20,vx:(Math.random()-.5)*40,vy:-50-Math.random()*60,r:7+Math.random()*5,c:['#ff5d7e','#ff8fab','#ffb3c8'][i%3],t:t+i*60,life:1100,g:-10,k:'heart'})}
@@ -1139,8 +1140,8 @@ const Grow=(()=>{
   function startWash(){act={k:'wash',cells:new Set(),phase:'rub',rinse:0,foam:[],c0:S.clean,done:0};bx=CX;Sfx.tick()}
   function startGym(){if(S.full<15){refuse('배고파서 힘이 없어요…');return}if(S.energy<12){refuse('너무 피곤해요… 재워주세요 😪');return}
     act={k:'gym',T:1.25,ph:0,jumpT:-9e9,n:0,miss:0,start:now_()+1400,end:0,tripT:-9e9,over:S.fit>=85};bx=CX;Sfx.tick()}
-  function startSleep(){if(S.energy>=85){refuse('아직 하나도 안 졸려요!');return}S.sleeping=true;S.sE0=S.energy;S.cnt.sleep++;save();nextSnore=now_()+1200;Sfx.tick();say('잘 자 범준아 🌙','#5a5f9a')}
-  function wake(q,full){if(!S.sleeping)return;S.sleeping=false;const got=S.energy-(S.sE0||0);
+  function startSleep(){S.sleeping=true;S.ovs=0;S.sE0=S.energy;S.cnt.sleep++;save();nextSnore=now_()+1200;Sfx.tick();say('잘 자 범준아 🌙','#5a5f9a')}
+  function wake(q){if(!S.sleeping)return;S.sleeping=false;S.ovs=0;const got=S.energy-(S.sE0||0),full=S.energy>=99;
     if(full){for(const k in S.over)S.over[k]=Math.max(0,S.over[k]-1)}   // 푹 자면 무리한 몸이 회복돼요
     if(!q){if(full){say('잘 잤다! 개운해요 ☀️','#e07a00');ding()}else{say(S.energy<50?'으앙… 더 자고 싶었는데 😫':'하암~ 일어났어요','#5a5f9a');Sfx.tick()}}
     gain(got>20?3+got/10:0,CX,RT+92);save()}
@@ -1155,8 +1156,8 @@ const Grow=(()=>{
   function answer(j){const a=act;if(!a||a.k!=='study'||a.res||a.end)return;const q=a.qs[a.i],ok=q.ch[j]===q.ans;a.res={t:now_(),ok,j};
     if(ok){a.ok++;ding();if(head)burst(head.hx,head.hy-head.R,['#ffe066','#fff','#7fd0ff'],10);texts.push({x:CX,y:RT+104,txt:'정답! ⭕',t:now_(),c:'#2fa86a',s:22,dur:800})}
     else{nope();shakeT=now_();texts.push({x:CX,y:RT+104,txt:'땡! 정답은 '+q.ans,t:now_(),c:'#e0485f',s:20,dur:800})}}
-  function finishStudy(){const a=act;a.end=now_();const add=a.ok*4;S.study=cl(S.study+add,0,100);S.energy=cl(S.energy-6,0,100);S.full=cl(S.full-3,0,100);S.cnt.study++;
-    texts.push({x:CX,y:RT+104,txt:'5문제 중 '+a.ok+'개 정답!'+(add?' 공부 +'+add:''),t:now_(),c:'#e07a00',s:20,dur:1600});if(a.ok===5)jingle(0);gain(2+a.ok*2,CX,RT+134);save()}
+  function finishStudy(){const a=act;a.end=now_();const add=1;S.study=(S.study||0)+1;S.energy=cl(S.energy-6,0,100);S.full=cl(S.full-3,0,100);S.cnt.study++;
+    texts.push({x:CX,y:RT+104,txt:'5문제 중 '+a.ok+'개 정답! 지식 +1 📚',t:now_(),c:'#e07a00',s:20,dur:1600});if(a.ok===5)jingle(0);gain(2+a.ok*2,CX,RT+134);save()}
   function stop(){if(act&&act.k==='gym'&&!act.end&&act.n>0){finishGym();return}act=null;drag=null;holds.clear();Sfx.tick()}
   function feed(f){const f0=S.full;S.full=cl(S.full+f.full,0,100);S.bowel=cl(S.bowel+f.bowel,0,100);if(f.fit)S.fit=cl(S.fit+f.fit,0,100);S.cnt.eat++;chewT=now_();chomp();
     if(head){const t=now_();for(let i=0;i<7;i++)parts.push({x:head.hx+(Math.random()-.5)*20,y:head.hy+head.R*.5,vx:(Math.random()-.5)*90,vy:-30-Math.random()*60,r:2+Math.random()*2,c:['#fff3c4','#f0c27a','#ffd9a0'][i%3],t,life:600,g:500,k:'dot'})}
@@ -1355,17 +1356,19 @@ const Grow=(()=>{
     rr(CX-98,RIM,196,FLOOR-RIM+4,26);const g=wctx.createLinearGradient(0,RIM,0,FLOOR);g.addColorStop(0,'#ffffff');g.addColorStop(1,'#e6eef5');wctx.fillStyle=g;wctx.fill();wctx.strokeStyle='#d3dde6';wctx.lineWidth=2;wctx.stroke();
     rr(CX-104,RIM-6,208,14,7);wctx.fillStyle='#fff';wctx.fill();wctx.stroke();wctx.fillStyle='#ffb6cc';for(const s of [-1,1]){rr(CX+s*70-8,FLOOR,16,10,4);wctx.fill()}}
   /* ---- sleeping in bed ---- */
-  function drawBed(now){const st=stageOf(S.lv),D=dims(st,S.form),R=D.R*.92,br=Math.sin(now/900);
+  function drawBed(now,dk){const st=stageOf(S.lv),D=dims(st,S.form),R=D.R*.92,br=dk==null?Math.sin(now/900):0;
     wctx.fillStyle='rgba(20,20,60,.12)';wctx.beginPath();wctx.ellipse(CX,FLOOR+4,130,12,0,0,6.29);wctx.fill();
     wctx.fillStyle='#c98f63';rr(CX-128,FLOOR-110,16,112,6);wctx.fill();rr(CX+112,FLOOR-74,16,76,6);wctx.fill();   // headboard + footboard
     wctx.fillStyle='#fff';rr(CX-118,FLOOR-56,238,30,10);wctx.fill();wctx.fillStyle='#b07a50';rr(CX-120,FLOOR-30,242,18,6);wctx.fill();
     wctx.fillStyle='#fff';rr(CX-114,FLOOR-80,70,30,14);wctx.fill();wctx.strokeStyle='#e8dde3';wctx.lineWidth=2;wctx.stroke();   // pillow
     const hx=CX-74,hy=FLOOR-84-R*.35;
-    drawHead(hx,hy,R,faceFor(st,S.form,false),{cap:true,capA:-.35,tint:'rgba(40,40,110,.25)',dirt:S.clean<35?(35-S.clean)/35:0});
+    drawHead(hx,hy,R,faceFor(st,S.form,false),{cap:true,capA:-.35,tint:dk==null?'rgba(40,40,110,.25)':'rgba(200,210,255,'+(.25+dk*.5)+')',dirt:S.clean<35?(35-S.clean)/35:0});
     // blanket with a breathing bump
     wctx.save();wctx.beginPath();wctx.moveTo(CX-40,FLOOR-34);wctx.lineTo(CX-40,FLOOR-62);wctx.quadraticCurveTo(CX-20,FLOOR-86-br*3,CX+30,FLOOR-80-br*3);wctx.quadraticCurveTo(CX+90,FLOOR-76,CX+112,FLOOR-58);wctx.lineTo(CX+112,FLOOR-34);wctx.closePath();
     wctx.fillStyle='#ffb6cc';wctx.fill();wctx.clip();wctx.fillStyle='rgba(255,255,255,.45)';for(let y=FLOOR-90;y<FLOOR;y+=14)for(let x=CX-40+((y/14)%2)*10;x<CX+120;x+=20){wctx.beginPath();wctx.arc(x,y,3,0,6.29);wctx.fill()}wctx.restore();
     wctx.fillStyle='#ff8fab';rr(CX-44,FLOOR-66,12,34,6);wctx.fill();
+    if(dk!=null){const gy=hy-20-dk*130;wctx.save();wctx.globalAlpha=Math.min(1,dk*2)*.85;wctx.beginPath();wctx.arc(hx+10,gy,16,Math.PI,0);wctx.lineTo(hx+26,gy+24);wctx.quadraticCurveTo(hx+18,gy+16,hx+10,gy+26);wctx.quadraticCurveTo(hx+2,gy+16,hx-6,gy+26);wctx.closePath();wctx.fillStyle='#fff';wctx.fill();
+      wctx.fillStyle='#4a2730';for(const s2 of [-1,1]){wctx.beginPath();wctx.arc(hx+10+s2*5,gy-2,2,0,6.29);wctx.fill()}wctx.strokeStyle='#ffe066';wctx.lineWidth=3;wctx.beginPath();wctx.ellipse(hx+10,gy-22,11,4,0,0,6.29);wctx.stroke();wctx.restore();return{hx,hy,R}}
     if(now>=nextZ){nextZ=now+900;texts.push({x:hx+R*.9,y:hy-R*.9,txt:'Z',t:now,c:'#fff',s:16+Math.random()*10,dur:1800,z:1})}
     if(now>=nextSnore){nextSnore=now+2800;if(Sfx.snore)Sfx.snore()}
     return{hx,hy,R}}
@@ -1386,6 +1389,7 @@ const Grow=(()=>{
       wctx.save();wctx.beginPath();wctx.rect(0,RT,PW,FLOOR-52-RT);wctx.clip();hh=drawBJ(CX,fy,o,now);wctx.restore();potty(true);
       if(k>.55){wctx.strokeStyle='rgba(120,90,60,.6)';wctx.lineWidth=3;for(let j=0;j<3;j++){wctx.beginPath();wctx.arc(CX,FLOOR-50,10+j*8,now/90+j*2,now/90+j*2+2.4);wctx.stroke()}}
       if(Math.random()<.12)texts.push({x:CX+(Math.random()-.5)*100,y:RT+80,txt:k<.5?'으아아 빠진다!!':'꾸르륵…',t:now,c:'#8a5a35',s:17,dur:700})}
+    else if(d.c==='sleep'){wctx.fillStyle='rgba(20,22,70,'+(.5+k*.2)+')';wctx.fillRect(0,RT,PW,RB-RT);hh=drawBed(now,k);if(Math.random()<.05)texts.push({x:CX,y:RT+80,txt:'…쿨…',t:now,c:'#c9c6ff',s:16,dur:900})}
     else{const fall=Math.min(1,k/.35);o.rot=-Math.pow(fall,2)*1.45;o.pose=fall<1?'trip':'limp';o.band=2;o.tint='rgba(255,80,80,.18)';hh=drawBJ(CX+100,FLOOR,o,now);
       if(fall>=1&&!d.boom){d.boom=true;thud();shakeT=now;if(window.MBV)MBV(90,255);texts.push({x:CX,y:RT+110,txt:'으악 근육통!!',t:now,c:'#e0485f',s:24,dur:1400})}
       if(fall>=1){const r=o.rot,dx=hh.hx-(CX+100),dy=hh.hy-FLOOR,cx=CX+100+dx*Math.cos(r)-dy*Math.sin(r),cy=FLOOR+dx*Math.sin(r)+dy*Math.cos(r)-hh.R*1.1;for(let j=0;j<3;j++){const a=now/250+j*2.1;wctx.fillStyle='#ffd21f';wctx.font=emo(14);wctx.textAlign='center';wctx.fillText('⭐',cx+Math.cos(a)*24,cy+Math.sin(a)*8)}}}
@@ -1428,9 +1432,9 @@ const Grow=(()=>{
     const cw=96,cx3=[20,122,224];
     bar(cx3[0],76,cw,S.full,'#ffb21f','배부름',st?'🍚':'🍼',!dead&&S.full<30,now);bar(cx3[1],76,cw,S.bowel,'#b07a4a','똥 마려움','💩',!dead&&S.bowel>=75,now);bar(cx3[2],76,cw,S.clean,'#5cc8ff','깨끗함','🫧',!dead&&S.clean<30,now);
     bar(cx3[0],108,cw,S.fit,'#4cd18a','튼튼함','💪',!dead&&S.fit<25,now);bar(cx3[1],108,cw,S.energy,'#8f8cff','기운','⚡',!dead&&S.energy<25,now);
-    bar(cx3[2],108,cw,S.study,'#ff8a3d','공부','📚',false,now);
+    wctx.font=emo(14);wctx.textAlign='left';wctx.textBaseline='middle';wctx.fillText('📚',cx3[2],118);wctx.font=font(12);wctx.fillStyle='#7a5560';wctx.fillText('지식',cx3[2]+20,111);wctx.font=font(16);wctx.fillStyle='#e07a00';wctx.fillText(String(S.study||0),cx3[2]+20,127);
     // room
-    const kind=showDead?'grave':dying?(dying.c==='wash'?'bath':dying.c==='gym'?'gym':'room'):S.sleeping?'sleep':act&&act.k==='wash'?'bath':act&&act.k==='gym'?'gym':'room';
+    const kind=showDead?'grave':dying?(dying.c==='wash'?'bath':dying.c==='gym'?'gym':dying.c==='sleep'?'sleep':'room'):S.sleeping?'sleep':act&&act.k==='wash'?'bath':act&&act.k==='gym'?'gym':'room';
     room(now,kind);
     wctx.save();rr(10,RT,PW-20,RB-RT,18);wctx.clip();
     if(kind!=='bath'&&kind!=='grave')for(const p of S.poops){poopShape(p.x,p.y,p.s,true);for(let j=0;j<2;j++){const a=now/300+j*3+p.x;wctx.fillStyle='#333';wctx.beginPath();wctx.arc(p.x+Math.cos(a)*16,p.y-30+Math.sin(a*1.7)*6,1.6,0,6.29);wctx.fill()}}
@@ -1535,7 +1539,7 @@ const Grow=(()=>{
       wctx.textAlign='center';wctx.textBaseline='middle';wctx.font=font(15);wctx.fillStyle='#5a5f9a';wctx.fillText('쿨쿨 자는 중… 💤',14+pw/2,by+24);
       rr(28,by+44,pw-28,16,8);wctx.fillStyle='rgba(143,140,255,.18)';wctx.fill();rr(28,by+44,Math.max(16,(pw-28)*S.energy/100),16,8);wctx.fillStyle='#8f8cff';wctx.fill();
       wctx.font=font(10);wctx.fillStyle='#fff';wctx.fillText('기운 '+Math.round(S.energy)+'%',28+(pw-28)/2,by+52.5);
-      button({x:PW-14-84,y:by,w:84,h:bh,fn:()=>wake(false,false)},'깨우기','⏰',  '#fff','#5a5f9a',false)}
+      button({x:PW-14-84,y:by,w:84,h:bh,fn:()=>wake(false)},'깨우기','⏰',  '#fff','#5a5f9a',false)}
     else if(!act){const w3=(PW-28-8)/3,h2=(bh-6)/2,lab=[['밥 먹기',st?'🍚':'🍼',startEat,S.full<30],['똥 싸기','🚽',startPoop,S.bowel>=75],['샤워하기','🚿',startWash,S.clean<30],
         ['운동하기','🏃',startGym,S.fit<25],['공부하기','📚',startStudy,false],['잠자기','😴',startSleep,S.energy<25]];
       lab.forEach((l,i)=>button({x:14+(i%3)*(w3+4),y:by+((i/3)|0)*(h2+6),w:w3,h:h2,fn:l[2]},l[0],null,'#fff','#4a2730',false,l[1],l[3],now))}

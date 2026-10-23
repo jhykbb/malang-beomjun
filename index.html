@@ -1079,6 +1079,16 @@ const Grow=(()=>{
   let u=1,ox=0,oy=0,lt=now_(),simT=S.t,started=false,act=null,btns=[],foodR=[],parts=[],texts=[],ask=0,head=null,lastHands=null;
   let bx=CX,tx=CX,nextWalk=0,walkPh=0,patT=-9e9,shakeT=-9e9,chewT=-9e9,accT=-9e9,evo=null,drag=null,lastSnd=0,lastSave=0,flash=0,lastHeart=0,dying=null,nextSnore=0,nextZ=0,shushT=0;
   const holds=new Set();
+  // 지식 10부터 범준이가 말을 해요
+  let talkNow=null,nextTalk=0;const pick=a=>a[(Math.random()*a.length)|0];
+  const canTalk=()=>(S.study||0)>=10&&!S.dead;
+  function talk(t,force){if(!canTalk())return;const n=now_();if(!force&&talkNow&&n-talkNow.t<900)return;talkNow={txt:Array.isArray(t)?pick(t):t,t:n};nextTalk=n+4500+Math.random()*4000}
+  function drawTalk(now,hx,hy,R){if(!talkNow||now-talkNow.t>1800)return;const k=(now-talkNow.t)/1800,a=k>.8?(1-k)/.2:1,sc=Math.min(1,(now-talkNow.t)/140);
+    wctx.save();wctx.globalAlpha=a;wctx.font=font(15);const tw=wctx.measureText(talkNow.txt).width+22,x=cl(hx-R*.9-tw/2,16+tw/2-tw/2,PW-16-tw),y=hy-R-44;
+    wctx.translate(x+tw/2,y+15);wctx.scale(sc,sc);wctx.translate(-(x+tw/2),-(y+15));
+    rr(x,y,tw,30,15);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#ff8fab';wctx.lineWidth=2;wctx.stroke();
+    const tx0=cl(hx-R*.35,x+12,x+tw-12);wctx.beginPath();wctx.moveTo(tx0-6,y+29);wctx.lineTo(tx0+4,y+42);wctx.lineTo(tx0+6,y+29);wctx.closePath();wctx.fillStyle='#fff';wctx.fill();wctx.beginPath();wctx.moveTo(tx0-6,y+30);wctx.lineTo(tx0+4,y+42);wctx.lineTo(tx0+6,y+30);wctx.stroke();
+    wctx.fillStyle='#c93d63';wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText(talkNow.txt,x+tw/2,y+15.5);wctx.restore()}
   function geo(){u=Math.min(W*.99/PW,(H-4)/TOTAL);ox=(W-PW*u)/2;oy=Math.max(0,(H-TOTAL*u)/2)}
   function report(){if(window.MB&&MB.score)MB.score(S.best,'grow');else if(appKind==='grow')cntEl.textContent=S.best}
   /* ---- sound ---- */
@@ -1141,7 +1151,7 @@ const Grow=(()=>{
   function startWash(){act={k:'wash',cells:new Set(),phase:'rub',rinse:0,foam:[],c0:S.clean,done:0};bx=CX;Sfx.tick()}
   function startGym(){if(S.full<15){refuse('배고파서 힘이 없어요…');return}if(S.energy<12){refuse('너무 피곤해요… 재워주세요 😪');return}
     act={k:'gym',T:1.25,ph:0,jumpT:-9e9,n:0,miss:0,start:now_()+1400,end:0,tripT:-9e9,over:S.fit>=85};bx=CX;Sfx.tick()}
-  function startSleep(){S.sleeping=true;S.ovs=0;S.sE0=S.energy;S.cnt.sleep++;save();nextSnore=now_()+1200;Sfx.tick();say('잘 자 범준아 🌙','#5a5f9a')}
+  function startSleep(){S.sleeping=true;S.ovs=0;S.sE0=S.energy;S.cnt.sleep++;save();nextSnore=now_()+1200;Sfx.tick();say('잘 자 범준아 🌙','#5a5f9a');talk(['졸려…','잘 자~'],true)}
   function wake(q){if(!S.sleeping)return;S.sleeping=false;S.ovs=0;const got=S.energy-(S.sE0||0),full=S.energy>=99;
     if(full){for(const k in S.over)S.over[k]=Math.max(0,S.over[k]-1)}   // 푹 자면 무리한 몸이 회복돼요
     if(!q){if(full){say('잘 잤다! 개운해요 ☀️','#e07a00');ding()}else{say(S.energy<50?'으앙… 더 자고 싶었는데 😫':'하암~ 일어났어요','#5a5f9a');Sfx.tick()}}
@@ -1155,36 +1165,39 @@ const Grow=(()=>{
     return{txt,ans,emoji,ch:[...ch].sort(()=>Math.random()-.5)}}
   function startStudy(){if(S.energy<12){refuse('너무 피곤해요… 재워주세요 😪');return}const st=stageOf(S.lv);act={k:'study',qs:Array.from({length:5},()=>genQ(st)),i:0,ok:0,res:null,end:0};bx=CX;Sfx.tick()}
   function answer(j){const a=act;if(!a||a.k!=='study'||a.res||a.end)return;const q=a.qs[a.i],ok=q.ch[j]===q.ans;a.res={t:now_(),ok,j};
+    talk(ok?['알았다!','쉽다 히히','정답!']:['어려워…','몰라잉','헷갈려'],true);
     if(ok){a.ok++;ding();if(head)burst(head.hx,head.hy-head.R,['#ffe066','#fff','#7fd0ff'],10);texts.push({x:CX,y:RT+104,txt:'정답! ⭕',t:now_(),c:'#2fa86a',s:22,dur:800})}
     else{nope();shakeT=now_();texts.push({x:CX,y:RT+104,txt:'땡! 정답은 '+q.ans,t:now_(),c:'#e0485f',s:20,dur:800})}}
-  function finishStudy(){const a=act;a.end=now_();const add=1;S.study=(S.study||0)+1;S.energy=cl(S.energy-6,0,100);S.full=cl(S.full-3,0,100);S.cnt.study++;
+  function finishStudy(){const a=act;a.end=now_();const add=1;S.study=(S.study||0)+1;if(S.study===10)setTimeout(()=>{say('범준이가 말을 할 수 있게 됐어요! 🗣️','#ff3d7f');jingle(1);talk('엄마!',true)},900);S.energy=cl(S.energy-6,0,100);S.full=cl(S.full-3,0,100);S.cnt.study++;
     texts.push({x:CX,y:RT+104,txt:'5문제 중 '+a.ok+'개 정답! 지식 +1 📚',t:now_(),c:'#e07a00',s:20,dur:1600});if(a.ok===5)jingle(0);gain(2+a.ok*2,CX,RT+134);save()}
   function stop(){if(act&&act.k==='gym'&&!act.end&&act.n>0){finishGym();return}act=null;drag=null;holds.clear();Sfx.tick()}
   function feed(f){const f0=S.full;S.full=cl(S.full+f.full,0,100);S.bowel=cl(S.bowel+f.bowel,0,100);if(f.fit)S.fit=cl(S.fit+f.fit,0,100);S.cnt.eat++;chewT=now_();chomp();
     if(head){const t=now_();for(let i=0;i<7;i++)parts.push({x:head.hx+(Math.random()-.5)*20,y:head.hy+head.R*.5,vx:(Math.random()-.5)*90,vy:-30-Math.random()*60,r:2+Math.random()*2,c:['#fff3c4','#f0c27a','#ffd9a0'][i%3],t,life:600,g:500,k:'dot'})}
+    talk(f0>=90?['끄망!!','배불러 끄만~','시러 시러!']:f.cake?['다라 히히','케이크 조아!']:['마시따!','냠냠 마시써','또 줘!'],true);
     if(f0>=90&&overdo('eat'))return;
     if(f.cake){S.cnt.cake++;if(head)hearts(5,head.hx,head.hy-head.R)}texts.push({x:CX,y:RT+70,txt:'냠냠냠 '+f.e,t:now_(),c:'#e07a00',s:20,dur:900});gain(3+(100-f0)/12,CX,RT+96)
     healCheck();if(S.bowel>=100)texts.push({x:CX,y:RT+120,txt:'똥 마려워요! 빨리 화장실! 💩',t:now_(),c:'#a8703f',s:15,dur:1600});save()}
   function push(){if(!act||act.done)return;act.strain=Math.min(100,act.strain+12);grunt(act.strain/100);if(window.MBV)MBV(12,90);
     if(head&&Math.random()<.6)texts.push({x:head.hx+(Math.random()-.5)*60,y:head.hy-head.R-6,txt:'끙!',t:now_(),c:'#c93d63',s:15,dur:600});
-    if(act.strain>=100){act.done=now_();const b0=S.bowel;
+    if(Math.random()<.25)talk(['끄응!','힘드러…','나온다!']);
+    if(act.strain>=100){act.done=now_();const b0=S.bowel;talk(b0<20?['안 나와…','아야 엉덩이…']:['시원해~','뿌직 히히'],true);
       if(b0<20){act.empty=true;texts.push({x:CX,y:FLOOR-90,txt:'…뿡?',t:now_(),c:'#a8703f',s:26,dur:900});Sfx.tick();if(overdo('poop'))return;save();return}
       S.bowel=0;S.cnt.poop++;plop();drops(CX,FLOOR-40,14,40,'#9fdcff');shakeT=now_();if(window.MBV)MBV(40,200);
       texts.push({x:CX+78,y:FLOOR-110,txt:'뿌직!',t:now_(),c:'#a8703f',s:30,dur:900});gain(4+b0/9,CX,RT+96);save()}}
   function rub(x,y){if(!head)return;const r=foamRect();if(x<r.x||x>r.x+r.w||y<r.y||y>r.y+r.h)return;
     act.cells.add(Math.min(7,((x-r.x)/r.w*8)|0)+Math.min(7,((y-r.y)/r.h*8)|0)*8);
     if(!act.foam.some(b=>Math.hypot(b.x-x,b.y-y)<9)&&act.foam.length<150)act.foam.push({x,y,r:6+Math.random()*9,p:Math.random()*6});
-    const t=now_();if(t-lastSnd>70){lastSnd=t;bub()}
+    const t=now_();if(t-lastSnd>70){lastSnd=t;bub()}if(Math.random()<.02)talk(['간지러워 히히','거품 조아!','눈 따가워!']);
     if(act.cells.size/64>=.72&&act.phase==='rub'){act.phase='rinse';ding();texts.push({x:CX,y:RT+40,txt:'거품 충분! 꾹 눌러서 헹궈요 🚿',t:now_(),c:'#2b7bd8',s:16,dur:1600,box:true})}}
   function foamRect(){return{x:CX-88,y:head.hy-head.R-8,w:176,h:RIM+6-(head.hy-head.R-8)}}
   function jump(){const t=now_();if(t-act.jumpT<460||act.end)return;act.jumpT=t;hop()}
   const jh=(a,t)=>{const k=(t-a.jumpT)/460;return k>0&&k<1?4*k*(1-k)*46:0};
-  function finishGym(){const a=act;a.end=now_();const n=a.n;S.fit=cl(S.fit+Math.min(45,n*1.6),0,100);S.full=cl(S.full-4-n*.5,0,100);S.clean=cl(S.clean-4-n*.6,0,100);S.energy=cl(S.energy-5-n*.6,0,100);S.cnt.jumps+=n;S.cnt.gym++;
+  function finishGym(){const a=act;a.end=now_();const n=a.n;talk(n>=25?['힘드러…','헥헥 끝!']:['재미따!','또 할래!'],true);S.fit=cl(S.fit+Math.min(45,n*1.6),0,100);S.full=cl(S.full-4-n*.5,0,100);S.clean=cl(S.clean-4-n*.6,0,100);S.energy=cl(S.energy-5-n*.6,0,100);S.cnt.jumps+=n;S.cnt.gym++;
     texts.push({x:CX,y:RT+60,txt:n>=40?'줄넘기 40개 완벽! 🏅':'줄넘기 '+n+'개!',t:now_(),c:'#2fa86a',s:24,dur:1600});if(n>=40)jingle(1);else ding();gain(2+n*.8,CX,RT+92);
     if(a.over&&n>=3)overdo('gym');save()}
   function idleTap(x,y){for(let i=S.poops.length-1;i>=0;i--){const p=S.poops[i];if(Math.hypot(x-p.x,y-(p.y-10))<24){S.poops.splice(i,1);burst(p.x,p.y-10,['#fff','#ffe066','#bdf0ff'],12);ding();
         texts.push({x:p.x,y:p.y-30,txt:'싹싹! ✨',t:now_(),c:'#2b7bd8',s:15,dur:900});gain(2,p.x,p.y-50);healCheck();save();return}}
-    if(head&&Math.hypot(x-head.hx,y-head.hy)<head.R+14||head&&x>bx-50&&x<bx+50&&y>head.hy&&y<FLOOR){patT=now_();S.cnt.pat++;giggle();hearts(4,head.hx,head.hy-head.R*.6);if(window.MBV)MBV(15,100);
+    if(head&&Math.hypot(x-head.hx,y-head.hy)<head.R+14||head&&x>bx-50&&x<bx+50&&y>head.hy&&y<FLOOR){patT=now_();S.cnt.pat++;giggle();hearts(4,head.hx,head.hy-head.R*.6);if(window.MBV)MBV(15,100);if(canTalk()){talk(['히히','조아!','간지러워','또 해줘!'],true)}else
       if(Math.random()<.35)texts.push({x:head.hx,y:head.hy-head.R-14,txt:['히히','좋아~','헤헤','♥'][(Math.random()*4)|0],t:now_(),c:'#ff3d7f',s:15,dur:800})}}
   function resetAll(){const best=S.best,deaths=S.deaths;S=fresh();S.best=best;S.deaths=deaths;save();simT=Date.now();act=null;evo=null;dying=null;drag=null;ask=0;bx=tx=CX;jingle(0);say('새 아가 범준이 태어났어요! 👶','#ff3d7f');report()}
   /* ---- input ---- */
@@ -1444,7 +1457,7 @@ const Grow=(()=>{
     else if(S.sleeping){wctx.fillStyle='rgba(20,22,70,.5)';wctx.fillRect(0,RT,PW,RB-RT);
       const lg=wctx.createRadialGradient(PW-70,FLOOR-120,5,PW-70,FLOOR-120,90);lg.addColorStop(0,'rgba(255,220,140,.35)');lg.addColorStop(1,'rgba(255,220,140,0)');wctx.fillStyle=lg;wctx.fillRect(0,RT,PW,RB-RT);
       wctx.fillStyle='#ffe9a8';wctx.beginPath();wctx.moveTo(PW-84,FLOOR-130);wctx.lineTo(PW-56,FLOOR-130);wctx.lineTo(PW-62,FLOOR-112);wctx.lineTo(PW-78,FLOOR-112);wctx.closePath();wctx.fill();wctx.fillStyle='#b07a50';rr(PW-72,FLOOR-112,4,40,2);wctx.fill();rr(PW-82,FLOOR-74,24,6,3);wctx.fill();
-      head=drawBed(now)}
+      head=drawBed(now);drawTalk(now,head.hx+20,head.hy,head.R)}
     else{
     // 범준 position / pose
     if(!act&&!evo){if(now>nextWalk){nextWalk=now+2500+Math.random()*3500;tx=Math.random()<.35?bx:70+Math.random()*170}}else tx=CX;
@@ -1495,7 +1508,7 @@ const Grow=(()=>{
     if(act&&act.k==='wash'){const a=act;tub();
       if(a.phase==='rinse'&&holds.size&&!a.done){a.rinse=Math.min(1,a.rinse+dt/1.4);if(now-lastSnd>90){lastSnd=now;water()}
         for(let j=0;j<3;j++)parts.push({x:PW-66+(Math.random()-.5)*20,y:RT+62,vx:-40-Math.random()*70,vy:160+Math.random()*80,r:2+Math.random()*1.5,c:'#7fd0ff',t:now,life:650,g:500,k:'drop'});
-        if(a.rinse>=1){a.done=now;const c0=a.c0;S.clean=100;S.cnt.wash++;ding();burst(CX,head.hy,['#fff','#bdf0ff','#ffe066'],22);
+        if(a.rinse>=1){a.done=now;const c0=a.c0;S.clean=100;S.cnt.wash++;ding();talk(['뽀득뽀득!','깨끗해따!'],true);burst(CX,head.hy,['#fff','#bdf0ff','#ffe066'],22);
           if(!(c0>=90&&overdo('wash'))){texts.push({x:CX,y:RT+60,txt:'뽀득뽀득! ✨',t:now,c:'#2b7bd8',s:24,dur:1300});gain(3+(100-c0)/9,CX,RT+92)}healCheck();save()}}
       if(act){const fa=a.phase==='rinse'?1-a.rinse:1;if(fa>0){for(const b of a.foam){const r=b.r*(.9+.1*Math.sin(now/300+b.p))*(.4+.6*fa);wctx.globalAlpha=.92*fa;wctx.beginPath();wctx.arc(b.x,b.y,r,0,6.29);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='rgba(140,200,240,.7)';wctx.lineWidth=1.2;wctx.stroke();
         wctx.beginPath();wctx.arc(b.x-r*.35,b.y-r*.35,r*.22,0,6.29);wctx.fillStyle='rgba(190,230,255,.9)';wctx.fill()}wctx.globalAlpha=1}
@@ -1504,12 +1517,14 @@ const Grow=(()=>{
     if(act&&act.k==='study'&&act.end&&now-act.end>1700)act=null;
     if(act&&act.k==='gym'){const a=act;
       if(!a.end&&now>=a.start){const p0=a.ph;a.ph+=dt/a.T;if(Math.floor(a.ph-.5)>Math.floor(p0-.5)){
-          if(jh(a,now)>16){a.n++;a.T=Math.max(.62,a.T*.975);swish();texts.push({x:bx+46,y:head.hy-head.R,txt:a.n+'',t:now,c:'#2fa86a',s:18,dur:600})}
-          else{a.miss++;a.tripT=now;thud();if(window.MBV)MBV(50,200);texts.push({x:bx,y:head.hy-head.R-16,txt:'아야!',t:now,c:'#e0485f',s:18,dur:800});a.ph=Math.ceil(a.ph);a.start=now+800}
+          if(jh(a,now)>16){a.n++;a.T=Math.max(.62,a.T*.975);swish();if(a.n%6===0)talk(a.n>=18?['힘드러…','헥헥','다리 아파']:['재미따!','신난다!','하나 더!']);texts.push({x:bx+46,y:head.hy-head.R,txt:a.n+'',t:now,c:'#2fa86a',s:18,dur:600})}
+          else{a.miss++;a.tripT=now;thud();if(window.MBV)MBV(50,200);texts.push({x:bx,y:head.hy-head.R-16,txt:'아야!',t:now,c:'#e0485f',s:18,dur:800});talk(['아야!!','줄 미워!'],true);a.ph=Math.ceil(a.ph);a.start=now+800}
           if(a.miss>=3||a.n>=40)finishGym()}}
       if(act&&!a.end&&now<a.start&&a.n===0&&a.miss===0){const k=Math.ceil((a.start-now)/450);wctx.font=font(40);wctx.textAlign='center';wctx.lineWidth=7;wctx.strokeStyle='#fff';const s=k>=1&&k<=3?k+'':'준비';wctx.strokeText(s,CX,RT+64);wctx.fillStyle='#ff5d7e';wctx.fillText(s,CX,RT+64)}
       if(act&&a.end&&now-a.end>1700)act=null}
-    if(!act&&!evo&&!dying&&!S.dead){const w=wish();if(w)bubble(head.hx+head.R*.95,head.hy-head.R*.9,w,now);
+    if(!act&&!evo&&canTalk()&&now>nextTalk){talk(S.sick?['아파…','열나…']:S.bowel>=75?['똥 마려…','화장실!']:S.full<30?['배고파…','밥 줘!']:S.energy<25?['졸려…','하암…']:S.clean<30?['찝찝해','씻고 시퍼']:['엄마?','히히','재미따','범준이 조아','심심해','놀아줘~','뭐 해?','랄랄라~'])}
+    if(head)drawTalk(now,head.hx,head.hy,head.R);
+    if(!act&&!evo&&!dying&&!S.dead&&!(talkNow&&now-talkNow.t<1800)){const w=wish();if(w)bubble(head.hx+head.R*.95,head.hy-head.R*.9,w,now);
       else if(S.full>60&&S.clean>60&&S.fit>40&&!S.poops.length&&now-lastHeart>3200){lastHeart=now;hearts(1,head.hx+head.R*.8,head.hy-head.R)}}
     if(S.clean<35&&kind!=='bath'){wctx.strokeStyle='rgba(120,160,60,.55)';wctx.lineWidth=2.5;for(let j=0;j<3;j++){const x=bx-36+j*36,ph=(now/700+j*.33)%1;wctx.globalAlpha=1-ph;wctx.beginPath();for(let k=0;k<6;k++){const yy=head.hy+10-ph*40-k*6;wctx.lineTo(x+Math.sin(k*1.3+now/200)*4,yy)}wctx.stroke()}wctx.globalAlpha=1}
     if(act&&act.k==='eat'){if(drag){const f=foods()[drag.i];wctx.font=emo(40);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText(f.e,drag.x,drag.y-10)}

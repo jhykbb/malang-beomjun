@@ -1129,9 +1129,9 @@ const Grow=(()=>{
   function sim(){let sec=Math.min(86400,(Date.now()-simT)/1000);if(sec<1)return;const live=sec<5;simT=Date.now();while(sec>0){const d=Math.min(60,sec);tick(d,!live);sec-=d}}
   /* ---- growth ---- */
   function pickForm(){const c=S.cnt;if(S.study>=20)return'gen';if(c.cake>=12&&c.cake*12>c.jumps)return'fat';if(c.jumps>=250)return'mus';return'hun'}
-  function gain(n,x,y){n=Math.round(n*(S.lv<10?4:1));   // 10살까지는 경험치 4배
+  function gain(n,x,y,quiet){n=Math.round(n*(S.lv<10?4:1));   // 10살까지는 경험치 4배
    if(n<=0||S.dead)return;if(S.sick){texts.push({x:x||CX,y:y||300,txt:'아파서 못 자라요…',t:now_(),c:'#e0485f',s:14,dur:1100});return}
-    S.exp+=n;texts.push({x:x||CX,y:y||300,txt:'+'+n+' 경험치',t:now_(),c:'#9a4bff',s:16,dur:1100});
+    S.exp+=n;if(!quiet)texts.push({x:x||CX,y:y||300,txt:'+'+n+' 경험치',t:now_(),c:'#9a4bff',s:16,dur:1100});
     const st0=stageOf(S.lv);let up=false;while(S.exp>=need(S.lv)){S.exp-=need(S.lv);S.lv++;up=true}
     if(up){if(S.lv>S.best)S.best=S.lv;report();const st1=stageOf(S.lv);
       if(st1!==st0){if(st1===3)S.form=pickForm();evo={t:now_(),from:st0,to:st1,boom:false};act=null;drag=null}
@@ -1169,8 +1169,8 @@ const Grow=(()=>{
     talk(ok?['알았다!','쉽다 히히','정답!']:['어려워…','몰라잉','헷갈려'],true);
     if(ok){a.ok++;ding();if(head)burst(head.hx,head.hy-head.R,['#ffe066','#fff','#7fd0ff'],10);texts.push({x:CX,y:RT+104,txt:'정답! ⭕',t:now_(),c:'#2fa86a',s:22,dur:800})}
     else{nope();shakeT=now_();texts.push({x:CX,y:RT+104,txt:'땡! 정답은 '+q.ans,t:now_(),c:'#e0485f',s:20,dur:800})}}
-  function finishStudy(){const a=act;a.end=now_();const add=S.lv<10?2:1,k0=S.study||0;S.study=k0+add;if(k0<10&&S.study>=10)setTimeout(()=>{say('범준이가 말을 할 수 있게 됐어요! 🗣️','#ff3d7f');jingle(1);talk('엄마!',true)},900);S.energy=cl(S.energy-5,0,100);S.full=cl(S.full-2,0,100);S.cnt.study++;
-    texts.push({x:CX,y:RT+104,txt:'5문제 중 '+a.ok+'개 정답! 지식 +'+add+' 📚',t:now_(),c:'#e07a00',s:20,dur:1600});if(a.ok===5)jingle(0);gain(2+a.ok*2,CX,RT+134);save()}
+  function studyReward(){const a=act;const add=S.lv<10?2:1,k0=S.study||0;S.study=k0+add;if(k0<10&&S.study>=10)setTimeout(()=>{say('범준이가 말을 할 수 있게 됐어요! 🗣️','#ff3d7f');jingle(1);talk('엄마!',true)},900);S.energy=cl(S.energy-5,0,100);S.full=cl(S.full-2,0,100);S.cnt.study++;
+    texts.push({x:CX,y:RT+104,txt:'5문제 중 '+a.ok+'개 정답! 지식 +'+add+' 📚',t:now_(),c:'#e07a00',s:20,dur:1600});if(a.ok===5)jingle(0);else ding();const okN=a.ok;a.ok=0;a.sets=(a.sets||0)+1;gain(2+okN*2,CX,RT+134);save()}
   function stop(){if(act&&act.k==='gym'&&!act.end&&act.n>0){finishGym();return}act=null;drag=null;holds.clear();Sfx.tick()}
   function feed(f){const f0=S.full;S.full=cl(S.full+f.full,0,100);S.bowel=cl(S.bowel+f.bowel,0,100);S.fit=cl(S.fit+(f.fit||0)-(f.cake?3:2),0,100);S.cnt.eat++;chewT=now_();chomp();
     if(head){const t=now_();for(let i=0;i<7;i++)parts.push({x:head.hx+(Math.random()-.5)*20,y:head.hy+head.R*.5,vx:(Math.random()-.5)*90,vy:-30-Math.random()*60,r:2+Math.random()*2,c:['#fff3c4','#f0c27a','#ffd9a0'][i%3],t,life:600,g:500,k:'dot'})}
@@ -1193,8 +1193,8 @@ const Grow=(()=>{
   function foamRect(){return{x:CX-88,y:head.hy-head.R-8,w:176,h:RIM+6-(head.hy-head.R-8)}}
   function jump(){const t=now_();if(t-act.jumpT<460||act.end)return;act.jumpT=t;hop()}
   const jh=(a,t)=>{const k=(t-a.jumpT)/460;return k>0&&k<1?4*k*(1-k)*46:0};
-  function finishGym(){const a=act;a.end=now_();const n=a.n;talk(n>=25?['힘드러…','헥헥 끝!']:['재미따!','또 할래!'],true);S.fit=cl(S.fit+Math.min(45,n*1.6),0,100);S.full=cl(S.full-3-n*.3,0,100);S.clean=cl(S.clean-4-n*.6,0,100);S.energy=cl(S.energy-3-n*.35,0,100);S.cnt.jumps+=n;S.cnt.gym++;
-    texts.push({x:CX,y:RT+60,txt:n>=40?'줄넘기 40개 완벽! 🏅':'줄넘기 '+n+'개!',t:now_(),c:'#2fa86a',s:24,dur:1600});if(n>=40)jingle(1);else ding();gain(2+n*.8,CX,RT+92);
+  function finishGym(){const a=act;a.end=now_();const n=a.n;talk(n>=25?['힘드러…','헥헥 끝!']:['재미따!','또 할래!'],true);S.full=cl(S.full-2,0,100);S.clean=cl(S.clean-3,0,100);S.energy=cl(S.energy-2,0,100);S.cnt.gym++;
+    texts.push({x:CX,y:RT+60,txt:'줄넘기 '+n+'개!'+(n>=50?' 🏅':''),t:now_(),c:'#2fa86a',s:24,dur:1600});if(n>=50)jingle(1);else ding();
     if(a.over&&n>=3)overdo('gym');save()}
   function idleTap(x,y){for(let i=S.poops.length-1;i>=0;i--){const p=S.poops[i];if(Math.hypot(x-p.x,y-(p.y-10))<24){S.poops.splice(i,1);burst(p.x,p.y-10,['#fff','#ffe066','#bdf0ff'],12);ding();
         texts.push({x:p.x,y:p.y-30,txt:'싹싹! ✨',t:now_(),c:'#2b7bd8',s:15,dur:900});gain(2,p.x,p.y-50);healCheck();save();return}}
@@ -1460,7 +1460,7 @@ const Grow=(()=>{
       head=drawBed(now);drawTalk(now,head.hx+20,head.hy,head.R)}
     else{
     // 범준 position / pose
-    if(!act&&!evo){if(now>nextWalk){nextWalk=now+2500+Math.random()*3500;tx=Math.random()<.35?bx:70+Math.random()*170}}else tx=CX;
+    if(!act&&!evo){if(now>nextWalk){nextWalk=now+2500+Math.random()*3500;tx=Math.random()<.35?bx:CX-28+Math.random()*56}}else tx=CX;
     const walking=Math.abs(tx-bx)>1.5;if(walking){bx+=Math.sign(tx-bx)*Math.min(Math.abs(tx-bx),(act?120:32)*dt);walkPh+=dt*9}
     const ov=S.over,o={st:eSt,form:S.form,pose:'idle',walk:walking?walkPh:0,bob:walking?-Math.abs(Math.sin(walkPh))*3:Math.sin(now/600)*1.5,dirt:S.clean<35?(35-S.clean)/35:0,
       panic:S.bowel>=85||now-accT<2500||(act&&act.k==='poop'&&act.strain>55&&!act.done)||ov.eat>=1.5||ov.wash>=1.5||ov.poop>=1.5||ov.gym>=1.5,tint:S.sick?'rgba(120,200,120,.22)':null,
@@ -1480,12 +1480,12 @@ const Grow=(()=>{
     if(o.melt>0&&kind==='room'){wctx.fillStyle='rgba(150,210,255,.55)';wctx.beginPath();wctx.ellipse(bx,FLOOR+3,30+o.melt*120,5+o.melt*20,0,0,6.29);wctx.fill();
       if(Math.random()<o.melt*.4)parts.push({x:bx+(Math.random()-.5)*60,y:FLOOR-80-Math.random()*60,vx:0,vy:30,r:2.5,c:'#9fd8ff',t:now,life:600,g:300,k:'drop'})}
     if(act&&act.k==='poop')potty(false);
-    if(act&&act.k==='study'){const a=act,q=a.qs[Math.min(a.i,a.qs.length-1)];if(a.res&&now-a.res.t>850){a.res=null;a.i++;if(a.i>=a.qs.length)finishStudy()}
+    if(act&&act.k==='study'){const a=act,q=a.qs[Math.min(a.i,a.qs.length-1)];if(a.res&&now-a.res.t>850){a.res=null;a.i++;if(a.i%5===0){studyReward();if(act===a){a.qs.push(...Array.from({length:5},()=>genQ(stageOf(S.lv))));if(S.energy<5){a.end=now;texts.push({x:CX,y:RT+134,txt:'졸려서 공부 끝… 😪',t:now,c:'#5a5f9a',s:16,dur:1500})}}}}
       rr(124,RT+10,166,72,8);wctx.fillStyle='#b07a50';wctx.fill();rr(130,RT+16,154,60,5);wctx.fillStyle='#2f5d4a';wctx.fill();
       wctx.textAlign='center';wctx.textBaseline='middle';const bcx=207,bcy=RT+46;
       if(!a.end){if(q.emoji){wctx.font=emo(q.ans>4?17:20);const sp=q.ans>4?24:28;for(let j=0;j<q.ans;j++)wctx.fillText(q.emoji,bcx+(j-(q.ans-1)/2)*sp,bcy-7);wctx.font=font(12);wctx.fillStyle='#e8f5ee';wctx.fillText(q.txt,bcx,bcy+20)}
         else{wctx.font=font(q.txt.length>11?22:26);wctx.fillStyle='#fff';wctx.fillText(q.txt,bcx,bcy+1)}
-        wctx.font=font(10);wctx.fillStyle='rgba(255,255,255,.6)';wctx.textAlign='right';wctx.fillText((a.i+1)+' / '+a.qs.length,282,RT+24);
+        wctx.font=font(10);wctx.fillStyle='rgba(255,255,255,.6)';wctx.textAlign='right';wctx.fillText((a.i%5+1)+' / 5',282,RT+24);
         if(a.res){wctx.lineWidth=5;wctx.strokeStyle=a.res.ok?'#7dffb0':'#ff7a8a';wctx.beginPath();if(a.res.ok)wctx.arc(bcx,bcy,24,0,6.29);else{wctx.moveTo(bcx-20,bcy-20);wctx.lineTo(bcx+20,bcy+20);wctx.moveTo(bcx+20,bcy-20);wctx.lineTo(bcx-20,bcy+20)}wctx.stroke()}}
       else{wctx.font=font(20);wctx.fillStyle='#fff';wctx.fillText('참 잘했어요 💮',bcx,bcy)}
       if(a.res)o.pose=a.res.ok?'cheer':'idle';else o.pose='eat';if(a.res&&!a.res.ok){o.panic=true;o.sweat=true}}
@@ -1517,9 +1517,9 @@ const Grow=(()=>{
     if(act&&act.k==='study'&&act.end&&now-act.end>1700)act=null;
     if(act&&act.k==='gym'){const a=act;
       if(!a.end&&now>=a.start){const p0=a.ph;a.ph+=dt/a.T;if(Math.floor(a.ph-.5)>Math.floor(p0-.5)){
-          if(jh(a,now)>16){a.n++;a.T=Math.max(.62,a.T*.975);swish();if(a.n%6===0)talk(a.n>=18?['힘드러…','헥헥','다리 아파']:['재미따!','신난다!','하나 더!']);texts.push({x:bx+46,y:head.hy-head.R,txt:a.n+'',t:now,c:'#2fa86a',s:18,dur:600})}
+          if(jh(a,now)>16){a.n++;a.T=Math.max(.62,a.T*.975);swish();S.cnt.jumps++;S.fit=cl(S.fit+1.2,0,100);S.full=cl(S.full-.25,0,100);S.clean=cl(S.clean-.5,0,100);S.energy=cl(S.energy-.3,0,100);gain(1,0,0,true);a.xp=(a.xp||0)+(S.lv<10?4:1);if(a.n%6===0)talk(a.n>=18?['힘드러…','헥헥','다리 아파']:['재미따!','신난다!','하나 더!']);if(act===a)texts.push({x:bx+46,y:head.hy-head.R,txt:a.n+'',t:now,c:'#2fa86a',s:18,dur:600})}
           else{a.miss++;a.tripT=now;thud();if(window.MBV)MBV(50,200);texts.push({x:bx,y:head.hy-head.R-16,txt:'아야!',t:now,c:'#e0485f',s:18,dur:800});talk(['아야!!','줄 미워!'],true);a.ph=Math.ceil(a.ph);a.start=now+800}
-          if(a.miss>=3||a.n>=40)finishGym()}}
+          if(act===a&&(a.miss>=3||S.energy<=0||S.full<=0))finishGym()}}
       if(act&&!a.end&&now<a.start&&a.n===0&&a.miss===0){const k=Math.ceil((a.start-now)/450);wctx.font=font(40);wctx.textAlign='center';wctx.lineWidth=7;wctx.strokeStyle='#fff';const s=k>=1&&k<=3?k+'':'준비';wctx.strokeText(s,CX,RT+64);wctx.fillStyle='#ff5d7e';wctx.fillText(s,CX,RT+64)}
       if(act&&a.end&&now-a.end>1700)act=null}
     if(!act&&!evo&&canTalk()&&now>nextTalk){talk(S.sick?['아파…','열나…']:S.bowel>=75?['똥 마려…','화장실!']:S.full<30?['배고파…','밥 줘!']:S.energy<25?['졸려…','하암…']:S.clean<30?['찝찝해','씻고 시퍼']:['엄마?','히히','재미따','범준이 조아','심심해','놀아줘~','뭐 해?','랄랄라~'])}
@@ -1581,7 +1581,7 @@ const Grow=(()=>{
       button({x:PW-14-78,y:by,w:78,h:bh,fn:stop},'그만',null,'#fff','#c93d63',!!a.done)}
     else if(act.k==='gym'){const a=act,pw=PW-28-84;rr(14,by,pw,bh,16);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#bfe9cf';wctx.lineWidth=2;wctx.stroke();
       wctx.textAlign='center';wctx.font=font(13);wctx.fillStyle='#2fa86a';wctx.fillText(a.end?'수고했어요!':'줄이 발에 오기 전에 톡! 점프',14+pw/2,by+20);
-      wctx.font=font(30);wctx.fillStyle='#1f7a4a';wctx.fillText(a.n+' / 40',14+pw/2-30,by+54);
+      wctx.font=font(30);wctx.fillStyle='#1f7a4a';wctx.fillText(a.n+'개',14+pw/2-30,by+54);wctx.font=font(11);wctx.fillStyle='#9a4bff';wctx.fillText('경험치 +'+(a.xp||0),14+pw/2-30,by+78);
       wctx.font=font(18);let hs='';for(let j=0;j<3;j++)hs+=j<3-a.miss?'♥':'♡';wctx.fillStyle='#ff5d7e';wctx.fillText(hs,14+pw-44,by+54);
       button({x:PW-14-78,y:by,w:78,h:bh,fn:stop},a.n?'끝내기':'그만',null,'#fff','#c93d63',!!a.end)}
     // texts

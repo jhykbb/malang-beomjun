@@ -1176,7 +1176,8 @@ const Grow=(()=>{
     {q:f.c+'랑 같이 시험 공부할까요?',o:[['같이 한다',{study:1,bond:5,energy:-10}],['혼자 논다',{energy:5,bond:-2}]]},
     {q:'누가 범준이를 놀렸어요!',o:[['참는다',{energy:-5}],['맞선다 😤',Math.random()<.5?{fit:3,bond:5}:{clean:-15,energy:-6}]]},
     {q:'체육 시간에 달리기 시합!',o:[['전력 질주',{fit:6,energy:-10,clean:-6}],['천천히 뛴다',{fit:2}]]}]};
-  function applyFx(fx){const parts2=[];for(const k in fx){let v=fx[k];if(!v)continue;
+  function applyFx(fx){const parts2=[];for(const k in fx){let v=fx[k];if(!v||k==='exp')continue;   // 학교에선 경험치 변동 없음
+
       if(k==='bond'){if(!S.friend)continue;S.bond=cl((S.bond||0)+v,0,100)}else if(k==='study')S.study=Math.max(0,(S.study||0)+v);else if(k==='exp'){v=Math.round(v*(S.lv<10?4:1));gain(v/(S.lv<10?4:1),0,0,true)}else S[k]=cl(S[k]+v,0,100);
       act&&act.k==='school'&&(act.sum[k]=(act.sum[k]||0)+v);parts2.push(FXN[k]+(v>0?' +':' ')+Math.round(v))}
     return parts2.join(', ')}
@@ -1188,7 +1189,7 @@ const Grow=(()=>{
   function warnBeep(){if(!A())return;const t=T();Sfx.tone(t,.08,880,1100,.08,'triangle');Sfx.tone(t+.1,.1,1100,1320,.08,'triangle')}
   function talkSchool(){if(Math.random()<.3)talk(['학교 재미따!','공부 시러','급식 마시써','집에 가고 시퍼',fr().c+' 조아!'])}
   function choose(j){const a=act;if(!a||!a.ch)return;const o=a.ch.o[j],fx=applyFx(o[1]);schoolLog('→ '+o[0]+(fx?'  ('+fx+')':''),'#9a4bff');a.ch=null;ding();if(a.n>=20)endSchool()}
-  function endSchool(){const a=act;a.end=now_();jingle(0);gain(8,CX,RT+90);S.cnt.school=(S.cnt.school||0)+1;save()}
+  function endSchool(){const a=act;a.end=now_();jingle(0);S.cnt.school=(S.cnt.school||0)+1;save()}
   function die(k){exam=null;S.dead={c:k,lv:S.lv,form:S.form,t:Date.now()};S.deaths++;S.sleeping=false;dying={c:k,t:now_(),st:stageOf(S.lv),form:S.form,boom:false};act=null;drag=null;holds.clear();evo=null;save();
     if(k==='eat'||k==='burst'){thud()}else if(k==='sleep'){if(A()){const t=T();Sfx.tone(t,2.5,220,110,.1,'sine')}}else if(k==='wash')meltSnd();else if(k==='poop')sinkSnd();else fallSnd();if(window.MBV)MBV(120,255)}
   /* ---- effects ---- */

@@ -934,7 +934,7 @@ const Claw=(()=>{
   const now_=()=>performance.now();
   let eng=null,P=[],acc=0,started=false,lt=now_();
   // claw: carriage x (cx), nominal cable length (cy-RAIL), pendulum swing (th, om), vertical bob
-  let cx=HOME,pcx=HOME,pvx=0,cy=TOPY,tx=HOME,th=0,om=0,bob=0,bobV=0,hx=HOME,hy=TOPY,st='ready',stT=now_(),aimB=null,angL=.6,angR=.6,stallL=false,stallR=false,baseL=.06,baseR=.06,closeA=.06,power=1,cargo=null,hkL=null,hkR=null,held=null,grip=0,hold=0,drag=null,readyAt=now_(),head=null,prL=null,prR=null,flash=null;
+  let cx=HOME,pcx=HOME,pvx=0,cy=TOPY,tx=HOME,th=0,om=0,bob=0,bobV=0,hx=HOME,hy=TOPY,st='ready',stT=now_(),aimB=null,holdOff=[0,40],angL=.6,angR=.6,stallL=false,stallR=false,baseL=.06,baseR=.06,closeA=.06,power=1,cargo=null,hkL=null,hkR=null,held=null,grip=0,hold=0,drag=null,readyAt=now_(),head=null,prL=null,prR=null,flash=null;
   let parts=[],texts=[],prize=null,lights=0,hum=null,dex=false,dexTab=0,lastSt='ready',btns=[];
   /* ---- faces / sprites ---- */
   const imgs=[];function face(i){if(!imgs[i]){const im=new Image();im.onload=()=>cache.clear();im.src=i<5?PHOTOS[i]:XFACES[i-5];imgs[i]=im}return imgs[i]}
@@ -979,7 +979,8 @@ const Claw=(()=>{
     else if(id==='cat')parts.push(B.circle(0,0,r,{},18),tri([{x:-.9*r,y:-.45*r},{x:-.2*r,y:-.9*r},{x:-.78*r,y:-1.38*r}]),tri([{x:.9*r,y:-.45*r},{x:.78*r,y:-1.38*r},{x:.2*r,y:-.9*r}]));
     else if(id==='cushion')parts.push(B.rectangle(0,0,2*r,1.72*r,{chamfer:{radius:.45*r}}));
     else if(id==='egg'){const v=[];for(let i=0;i<16;i++){const a=i/16*6.283;v.push({x:Math.cos(a)*.9*r,y:Math.sin(a)*1.15*r})}parts.push(B.fromVertices(0,0,[v]))}
-    else if(id==='star')parts.push(B.polygon(0,0,5,1.05*r,{chamfer:{radius:.2*r}}));
+    else if(id==='star'){parts.push(B.polygon(0,0,5,.66*r,{},));for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5,a1=a-Math.PI/5,a2=a+Math.PI/5;
+        parts.push(tri([{x:Math.cos(a1)*.62*r,y:Math.sin(a1)*.62*r},{x:Math.cos(a)*1.2*r,y:Math.sin(a)*1.2*r},{x:Math.cos(a2)*.62*r,y:Math.sin(a2)*.62*r}]))}}
     else parts.push(B.circle(-.45*r,-.25*r,.56*r,{},12),B.circle(.45*r,-.25*r,.56*r,{},12),tri([{x:-.98*r,y:0},{x:.98*r,y:0},{x:0,y:1.0*r}]));
     const opt={restitution:.12,friction:.7,frictionStatic:1,frictionAir:.02,density:.0012};
     const b=parts.length>1?MT.Body.create(Object.assign({parts},opt)):Object.assign(parts[0],opt);
@@ -1014,6 +1015,11 @@ const Claw=(()=>{
       MT.Body.setPosition(h,{x:p.ex+p.nx*6,y:p.ey+p.ny*6},true);MT.Body.setAngle(h,Math.atan2(p.ny,p.nx),true)}}
   // how deep the claw's parts are pushed into any plush (the claw is a hard motor: it stops instead of going through)
   function hitDepth(bodies){let d=0;for(const b of bodies)for(const c of MT.Query.collides(b,P))if(c.depth>d)d=c.depth;return d}
+  // shape-true hit test: is a point inside the plush's actual outline (ears, star points, heart lobes…)
+  function inside(b,x,y){const ps=b.parts.length>1?b.parts.slice(1):b.parts;for(const q of ps)if(MT.Vertices.contains(q.vertices,{x,y}))return true;return false}
+  const toLocal=(x,y)=>{const dx=x-hx,dy=y-hy;return[dx*Math.cos(th)-dy*Math.sin(th),dx*Math.sin(th)+dy*Math.cos(th)]};
+  const toWorld=(lx,ly)=>{const [a,b]=rot(lx,ly);return[hx+a,hy+b]};
+  function armPts(p){const out=[];for(const k of [.45,.7,.9,1])out.push([p.px+(p.ex-p.px)*k,p.py+(p.ey-p.py)*k]);out.push([(p.ex+p.hx2)/2,(p.ey+p.hy2)/2],[p.hx2,p.hy2]);return out}
   function cupHas(b,slack){const c=centerOf(b),dx=c.x-hx,dy=c.y-hy,lx=dx*Math.cos(th)-dy*Math.sin(th),ly=dx*Math.sin(th)+dy*Math.cos(th),r=b._p.r;return Math.abs(lx)<14+r*.35+slack&&ly>6-slack&&ly<40+r*.6+slack}
   // which plush is sitting in the claw's cup right now
   function inCup(){let best=null,bd=1e9;for(const b of P){const c=centerOf(b),dx=c.x-hx,dy=c.y-hy,lx=dx*Math.cos(th)-dy*Math.sin(th),ly=dx*Math.sin(th)+dy*Math.cos(th),r=b._p.r;
@@ -1056,27 +1062,32 @@ const Claw=(()=>{
         if(dx<p.r*.7&&hy+14>=c.y-p.r*.95){stop=true;break}}                   // head landed on top of one
       if(stop){set('close');bobV+=140;thunk()}}                                // the cable overshoots a little when it stops
     else if(st==='close'){humSet(false);const k=Math.min(1,(t-stT)/450),target=.6+(closeA-.6)*(k<1?1-Math.pow(1-k,2):1);
-      if(!aimB){let bd=1e9;for(const b of P){const c=centerOf(b),d=Math.hypot(c.x-hx,c.y-(hy+34));if(d<b._p.r+24&&d<bd){bd=d;aimB=b}}}
+      if(!aimB){for(let d=14;d<=64&&!aimB;d+=3){const [px,py]=toWorld(0,d);for(const b of P)if(inside(b,px,py)){aimB=b;break}}           // whatever is right under the claw
+        if(!aimB){let bd=1e9;for(const b of P){const c=centerOf(b),d=Math.hypot(c.x-hx,c.y-(hy+34));if(d<b._p.r+20&&d<bd){bd=d;aimB=b}}}}
       for(const s of [-1,1]){if(s<0?stallL:stallR)continue;const prev=s<0?angL:angR,next=Math.min(prev,target);if(s<0)angL=next;else angR=next;
-        if(aimB){const c=centerOf(aimB),r=aimB._p.r*.92,p=prongs().find(q=>q.s===s);
-          const touch=Math.hypot(p.hx2-c.x,p.hy2-c.y)<r||Math.hypot(p.ex-c.x,p.ey-c.y)<r||Math.hypot((p.px+p.ex)/2-c.x,(p.py+p.ey)/2-c.y)<r;
-          if(touch){if(s<0){angL=prev;stallL=true}else{angR=prev;stallR=true}}}}               // the arm presses on the plush and stops
+        if(aimB){const p=prongs().find(q=>q.s===s);if(armPts(p).some(([x,y])=>inside(aimB,x,y))){if(s<0){angL=prev;stallL=true}else{angR=prev;stallR=true}}}}   // the arm presses on the plush's real outline and stops
       if(k>=1||(stallL&&stallR)){clank();bobV-=70;baseL=angL;baseR=angR;
-        // the plush is lifted only if it ended up between the arms with the hooks under it
         cargo=null;grip=0;const c=aimB;aimB=null;
-        if(c){const p=c._p,cc=centerOf(c),dx=cc.x-hx,dy=cc.y-hy,lx=dx*Math.cos(th)-dy*Math.sin(th),ly=dx*Math.sin(th)+dy*Math.cos(th),pr=prongs(),tipY=Math.max(...pr.map(q=>{const ex=q.hx2-hx,ey=q.hy2-hy;return ex*Math.sin(th)+ey*Math.cos(th)})),gap=Math.abs(pr[1].hx2-pr[0].hx2);
-          const under=tipY>ly-p.r*.05,inside=Math.abs(lx)<gap/2+2;
-          grip=power*KINDS[p.k].grip*GR[p.rar].fr*Math.max(0,1-Math.abs(lx)/(p.r*1.1))*(under?1:.35);if(inside&&grip>.15)cargo=c}
+        if(c){const p=c._p,cc=centerOf(c),[clx,cly]=toLocal(cc.x,cc.y);let q=0,highest=1e9;const sides=[];
+          for(const q2 of prongs()){const [hlx,hly]=toLocal(q2.hx2,q2.hy2),[mlx,mly]=toLocal((q2.ex+q2.hx2)/2,(q2.ey+q2.hy2)/2);
+            // is there plush right above this hook? (it can lift it) — tested against the real shape
+            const under=[[hlx,hly-5],[mlx,mly-5],[hlx,hly-10]].some(([a,b2])=>{const [x,y]=toWorld(a,b2);return inside(c,x,y)});
+            const touch=q2.s<0?stallL:stallR;sides.push({under,touch});if(under)highest=Math.min(highest,hly)}
+          const nu=sides.filter(x=>x.under).length,nt=sides.filter(x=>x.touch).length;
+          q=nu===2?1:nu===1&&nt>=1?.62:nt===2?.3:0;
+          if(q&&highest<cly-p.r*.55)q*=.55;                                     // hooked only by the ears / tips: wobbly
+          grip=power*KINDS[p.k].grip*GR[p.rar].fr*q;if(grip>.12){cargo=c;holdOff=[clx,cly]}}
         set('up')}}
     else if(st==='up'||st==='carry'){
       const loose=(1-power)*.22*Math.min(1,(t-stT)/900+(st==='carry'?1:0));angL=Math.min(.6,baseL+loose);angR=Math.min(.6,baseR+loose);          // a weak claw slowly loses its grip
       if(cargo){const pr=prongs(),gap=Math.abs(pr[1].hx2-pr[0].hx2);if(gap>cargo._p.r*1.7)drop()}
       if(cargo){const c=cargo,p=c._p;
-        if(Math.random()<dt*(.03+(1-grip)*.55))drop();                     // slipped out of the claw
-        else{const [ox2,oy2]=rot(0,16+p.r*.9),tgx=hx+ox2,tgy=hy+oy2,cc=centerOf(c),v=c.velocity;   // resting in the claw's cup
+        const hz=st==='up'?.05+(1-grip)*.6:.08+(1-grip)*.7+Math.abs(om)*.5;          // can slip the whole way, worse while swinging to the chute
+        if(Math.random()<dt*hz)drop();
+        else{const [tgx,tgy]=toWorld(holdOff[0],holdOff[1]),cc=centerOf(c),v=c.velocity;   // resting in the claw's cup
           MT.Body.setVelocity(c,{x:v.x*.5+(tgx-cc.x)*.25,y:v.y*.5+(tgy-cc.y)*.25});MT.Body.setAngularVelocity(c,c.angularVelocity*.9)}}
       if(st==='up'){cy-=150*dt;humSet(true,140);if(cy<=TOPY){cy=TOPY;bobV-=200;om+=(Math.random()-.5)*1.6;if(cargo&&Math.random()<(1-grip)*.5)drop();set('carry')}}   // the jolt at the top
-      else{const d=HOME-cx;cx+=Math.sign(d)*Math.min(Math.abs(d),140*dt);humSet(true,115);if(Math.abs(HOME-cx)<.5&&t-stT>300)set('open')}}
+      else{const d=HOME-cx;cx+=Math.sign(d)*Math.min(Math.abs(d),140*dt);humSet(true,115);if(Math.abs(HOME-cx)<.5&&t-stT>300){if(cargo&&Math.random()<(1-grip)*.3)drop();set('open')}}}   // the stop above the chute can shake it loose too
     else if(st==='open'){angL=Math.min(.6,angL+dt*1.6);angR=Math.min(.6,angR+dt*1.6);cargo=null;
       if(t-stT>1500){set('ready');readyAt=now_()}}
     swing(dt);placeClaw();

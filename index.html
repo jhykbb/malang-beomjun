@@ -1505,7 +1505,7 @@ const Grow=(()=>{
       head=drawBed(now);drawTalk(now,head.hx+20,head.hy,head.R)}
     else{
     // 범준 position / pose
-    if(!act&&!evo){if(now>nextWalk){nextWalk=now+2500+Math.random()*3500;tx=Math.random()<.35?bx:CX-28+Math.random()*56}}else tx=CX;
+    tx=CX;bx=CX;   // 항상 방 가운데
     const walking=Math.abs(tx-bx)>1.5;if(walking){bx+=Math.sign(tx-bx)*Math.min(Math.abs(tx-bx),(act?120:32)*dt);walkPh+=dt*9}
     const ov=S.over,o={st:eSt,form:S.form,pose:'idle',walk:walking?walkPh:0,bob:walking?-Math.abs(Math.sin(walkPh))*3:Math.sin(now/600)*1.5,dirt:S.clean<35?(35-S.clean)/35:0,
       panic:S.bowel>=85||now-accT<2500||(act&&act.k==='poop'&&act.strain>55&&!act.done)||ov.eat>=1.5||ov.wash>=1.5||ov.poop>=1.5||ov.gym>=1.5,tint:S.sick?'rgba(120,200,120,.22)':null,

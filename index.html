@@ -1152,7 +1152,7 @@ const Grow=(()=>{
   // too much of one thing: warn twice, then 범준 dies
   function overdo(k){S.over[k]+=1;save();if(S.over[k]>=S.lim[k]-.5){die(k);return true}return false}   // 몰래 쌓였다가 3번째에 갑자기
   // 배부름 0 → 굶어 죽음, 똥 100 → 바닥에 쌈, 기운 0 → 과로사
-  function vitals(){if(S.dead||dying)return;if(S.full<=0)die('starve');else if(S.bowel>=100&&!(act&&act.k==='poop'))accident(false);else if(S.energy<=0&&!S.sleeping)die('tired')}
+  function vitals(){if(S.dead||dying)return;if(S.full<=0)die('starve');else if(S.bowel>=100&&!(act&&(act.k==='poop'||act.k==='school')))accident(false);else if(S.energy<=0&&!S.sleeping)die('tired')}
   /* ---- 입학 시험 (8~11살) ---- */
   const passP=()=>{const k=S.study||0;return k>=10?1:Math.min(.95,.1+k*.08)};
   function startExam(){const p=passP(),pass=Math.random()<p;exam={t:now_(),lv:S.lv,p,pass,last:S.lv>=10,done:false};act=null;drag=null;holds.clear();
@@ -1161,21 +1161,38 @@ const Grow=(()=>{
   /* ---- 학교 가기: 톡 할 때마다 일어난 일이 기록돼요 (가마토토처럼), 20번이면 하교, 10%는 선택지 ---- */
   const FXN={full:'배부름',bowel:'똥',clean:'깨끗함',fit:'튼튼함',energy:'기운',study:'지식',bond:'우정',exp:'경험치'};
   const fr=()=>{const n=S.friend;return n?{c:callName(n),s:hasBatchim(n)?n+'이가':n+'가'}:{c:'반 친구',s:'반 친구가'}};
-  const SEV=()=>{const f=fr();return[
-    ['수업 시간에 꾸벅꾸벅 졸았다 😪',{energy:4}],['칠판 글씨를 열심히 받아 적었다 ✏️',{energy:-3,exp:2}],['급식에 돈까스가 나왔다! 🍛',{full:12,bowel:6}],['급식에 브로콜리가 나왔다… 🥦',{full:5,fit:2}],
-    ['체육 시간에 축구를 했다 ⚽',{fit:4,energy:-5,clean:-6}],['체육 시간에 피구를 했다 🏐',{fit:3,energy:-4}],['쉬는 시간에 매점에 갔다 🍞',{full:8}],['창밖 구름을 멍하니 봤다 ☁️',{}],
-    [f.s+' 장난을 쳤다 😆',{bond:3}],[f.c+'랑 같이 급식 먹었다 🍱',{bond:4,full:6}],['쪽지 시험을 봤다 📝',{energy:-3,exp:3}],['선생님한테 칭찬받았다 💮',{exp:4}],
-    ['화장실에 다녀왔다 🚽',{bowel:-20}],['흙바닥에서 넘어졌다 🤕',{clean:-10,fit:-2}],['음악 시간에 노래를 불렀다 🎵',{energy:-2}],['도서관에서 책을 읽었다 📚',{exp:3}],
-    ['수업이 너무 어려웠다 😵',{energy:-5}],['점심시간에 운동장을 뛰어다녔다 🏃',{fit:3,energy:-4,clean:-4}],['손을 깨끗이 씻었다 🧼',{clean:8}],['짝꿍이랑 지우개 따먹기를 했다 ✏️',{bond:2}]]};
-  const CEV=()=>{const f=fr();return[
-    {q:f.s+' 숙제를 보여달래요',o:[['보여준다',{bond:10}],['거절한다',{bond:-6,exp:3}]]},
-    {q:'선생님이 질문했어요!',o:[['손 든다 ✋',Math.random()<.6?{study:1,exp:4}:{energy:-6}],['모른 척한다',{energy:3}]]},
+  // 일반 이벤트: [메시지, 효과, 뜨는 조건]  (이든 시트 기준 + 추가분)
+  const SEV=()=>{const f=fr(),fn=S.friend,coin=()=>Math.random()<.5;return[
+    ['수업 시간에 꾸벅꾸벅 졸았다 😪',{energy:4,study:-3}],['칠판 글씨를 열심히 받아 적었다 ✏️',{energy:-3,study:3}],['급식에 돈까스가 나왔다! 🍛',{full:12,bowel:6}],['급식에 브로콜리가 나왔다… 🥦',{full:5,fit:2}],
+    ['체육 시간에 축구를 했다 ⚽',{fit:4,energy:-5,clean:-6}],['체육 시간에 피구를 했다 🏐',{fit:3,energy:-4}],['쉬는 시간에 매점에 갔다 🍞',{full:8}],['창밖 구름을 멍하니 봤다 ☁️',{energy:8}],
+    [f.s+' 장난을 쳤다 😆',{bond:3}],[f.c+'랑 같이 급식 먹었다 🍱',{bond:4,full:6}],['쪽지 시험을 봤다 📝',{energy:-3}],['선생님한테 칭찬받았다 💮',{}],
+    ['화장실이 부끄러워서 참았다 🚽',{bowel:20}],['흙바닥에서 넘어졌다 🤕',{clean:-10,fit:-2,study:coin()?1:-1}],['음악 시간에 노래를 불렀다 🎵',{energy:-2}],['도서관에서 책을 읽었다 📚',{}],
+    ['수업이 너무 어려웠다 😵',{energy:-5}],['점심시간에 운동장을 뛰어다녔다 🏃',{fit:3,energy:-4,clean:-4}],['손을 깨끗이 씻었다 🧼',{clean:8}],['짝꿍이랑 지우개 따먹기를 했다 ✏️',{bond:2}],
+    ['선생님이 왜케 웃어대냐고 혼냈다 😠',{energy:-4}],['체육 시간에 넘어졌다 🤕',{clean:-5}],
+    [f.s+' 나보다 너무 커서 슬펐다 😢',{energy:-3},fn==='용화'],[f.c+' 여드름에 옮아버렸다 😖',{clean:-10},fn==='현민'],
+    ['냄새가 너무 나서 친구들에게 왕따 당했다 🦨',{clean:-10,energy:-15},S.clean<=25],['너무 굶어서 수업에 집중을 못했다 😵‍💫',{full:-5,study:-1},S.full<=25],
+    // 추가
+    [f.c+'랑 몰래 과자를 나눠 먹었다 🍪',{full:5,bond:3},!!fn],['숙제를 안 해 와서 복도에 서 있었다 🧍',{energy:-6,study:-1}],
+    ['너무 피곤해서 책상에 엎드려 잤다 💤',{energy:10,study:-1},S.energy<=25],['배가 너무 불러서 수업 내내 졸았다 🥱',{energy:5,study:-1},S.full>=90],
+    ['수학 문제를 반에서 제일 먼저 풀었다 ✨',{study:2},(S.study||0)>=10],[f.s+' 범준이 몰래 사진 찍었다 📸',{bond:2},fn==='현민'],[f.s+' 범준이를 번쩍 들어 올렸다 💪',{fit:2,bond:3},fn==='용화']
+  ].filter(e=>e[2]===undefined||e[2])};
+  // 선택지 이벤트: {질문, 선택지[[이름, 효과, 남길 말]], 뜨는 조건}
+  const CEV=()=>{const f=fr(),fn=S.friend,r=p=>Math.random()<p;return[
+    {q:f.s+' 숙제를 보여달래요',o:[['보여준다',{bond:10}],['거절한다',{bond:-6}]]},
+    {q:'선생님이 질문했어요!',o:[['손 든다 ✋',r(.6)?{study:1}:{energy:-6}],['모른 척한다',{energy:3}]]},
     {q:'급식에 남은 빵이 하나 있어요',o:[['내가 먹는다',{full:15,bowel:10}],[f.c+'한테 준다',{bond:8}]]},
-    {q:'복도에서 뛰고 싶어요!',o:[['뛴다 🏃',Math.random()<.4?{energy:-12}:{fit:5}],['얌전히 걷는다',{exp:2}]]},
-    {q:'오늘 청소 당번이에요',o:[['열심히 한다',{clean:-10,fit:3,bond:3}],['몰래 땡땡이',Math.random()<.4?{energy:-10,bond:-4}:{energy:6}]]},
+    {q:'복도에서 뛰고 싶어요!',o:[['뛴다 🏃',r(.4)?{energy:-12}:{fit:5}],['얌전히 걷는다',{}]]},
+    {q:'오늘 청소 당번이에요',o:[['열심히 한다',{clean:-10,fit:3,bond:3}],['몰래 땡땡이',r(.4)?{energy:-10,bond:-4}:{energy:6}]]},
     {q:f.c+'랑 같이 시험 공부할까요?',o:[['같이 한다',{study:1,bond:5,energy:-10}],['혼자 논다',{energy:5,bond:-2}]]},
-    {q:'누가 범준이를 놀렸어요!',o:[['참는다',{energy:-5}],['맞선다 😤',Math.random()<.5?{fit:3,bond:5}:{clean:-15,energy:-6}]]},
-    {q:'체육 시간에 달리기 시합!',o:[['전력 질주',{fit:6,energy:-10,clean:-6}],['천천히 뛴다',{fit:2}]]}]};
+    {q:'누가 범준이를 놀렸어요!',o:[['참는다',{energy:-5}],['맞선다 😤',r(.5)?{fit:3,bond:5}:{clean:-15,energy:-6}]]},
+    {q:'체육 시간에 달리기 시합!',o:[['전력 질주',{fit:6,energy:-10,clean:-6}],['천천히 뛴다',{fit:2}]]},
+    {q:f.c+' 발가락이 파열됐어요!',o:[['부축한다',{fit:-5,energy:-10,bond:25}],['버린다',{energy:10,study:3,bond:-10}]],c:fn==='용화'},
+    {q:f.s+' 재결합하겠대요!',o:[['재결합하지 마',{energy:10,bond:20}],['재결합해',{energy:10,study:10,bond:-30}]].concat(r(.01)?[['내가 사귄다 💘',{},'💘 '+f.c+'랑 사귀게 됐다…?!']]:[]),c:fn==='현민'},
+    // 추가
+    {q:f.s+' 게임하자고 해요 🎮',o:[['같이 한다',{energy:-5,bond:8,study:-1}],['공부한다',{study:2,bond:-3}]],c:!!fn},
+    {q:'시험 시간에 옆자리 답이 보여요 👀',o:[['베낀다',r(.3)?{energy:-15,study:-2}:{study:2}],['내 실력대로',{study:1}]]},
+    {q:'수업 중에 똥이 너무 마려워요 💩',o:[['손 들고 화장실',{bowel:-100,bond:-3}],['참는다',{bowel:10,energy:-5}]],c:S.bowel>=80}
+  ].filter(e=>e.c===undefined||e.c)};
   function applyFx(fx){const parts2=[];for(const k in fx){let v=fx[k];if(!v||k==='exp')continue;   // 학교에선 경험치 변동 없음
 
       if(k==='bond'){if(!S.friend)continue;S.bond=cl((S.bond||0)+v,0,100)}else if(k==='study')S.study=Math.max(0,(S.study||0)+v);else if(k==='exp'){v=Math.round(v*(S.lv<10?4:1));gain(v/(S.lv<10?4:1),0,0,true)}else S[k]=cl(S[k]+v,0,100);
@@ -1184,11 +1201,12 @@ const Grow=(()=>{
   function startSchool(){if((S.ticket||0)<1)return;S.ticket--;act={k:'school',n:0,log:[],ch:null,end:0,sum:{},last:0};save();Sfx.tick();say('학교 가자! 🎒','#e07a00')}
   function schoolLog(t,c){act.log.push({t,c:c||'#4a2730',at:now_()});if(act.log.length>4)act.log.shift()}
   function schoolTap(){const a=act;if(a.ch||a.end)return;const t=now_();if(t-a.last<280)return;a.last=t;a.n++;patT=t;Sfx.tick();
-    if(Math.random()<.1){const ev=CEV()[(Math.random()*8)|0];a.ch=ev;texts.push({x:CX,y:RT+50,txt:'❗ 선택하세요!',t,c:'#e0485f',s:16,dur:900,box:true});warnBeep();return}
+    if(S.bowel>=100){S.bowel=0;const fx=applyFx({clean:-20});schoolLog('수업 시간에 똥을 지렸다 💩  (똥 0, '+fx+')','#a8703f');plop();shakeT=t;if(a.n>=20)endSchool();return}   // 똥 100이면 무조건
+    if(Math.random()<.1){const cs=CEV(),ev=cs[(Math.random()*cs.length)|0];a.ch=ev;texts.push({x:CX,y:RT+50,txt:'❗ 선택하세요!',t,c:'#e0485f',s:16,dur:900,box:true});warnBeep();return}
     const evs=SEV(),e=evs[(Math.random()*evs.length)|0],fx=applyFx(e[1]);schoolLog(e[0]+(fx?'  ('+fx+')':''));talkSchool();if(a.n>=20)endSchool()}
   function warnBeep(){if(!A())return;const t=T();Sfx.tone(t,.08,880,1100,.08,'triangle');Sfx.tone(t+.1,.1,1100,1320,.08,'triangle')}
   function talkSchool(){if(Math.random()<.3)talk(['학교 재미따!','공부 시러','급식 마시써','집에 가고 시퍼',fr().c+' 조아!'])}
-  function choose(j){const a=act;if(!a||!a.ch)return;const o=a.ch.o[j],fx=applyFx(o[1]);schoolLog('→ '+o[0]+(fx?'  ('+fx+')':''),'#9a4bff');a.ch=null;ding();if(a.n>=20)endSchool()}
+  function choose(j){const a=act;if(!a||!a.ch)return;const o=a.ch.o[j],fx=applyFx(o[1]);schoolLog('→ '+o[0]+(fx?'  ('+fx+')':''),'#9a4bff');if(o[2]){schoolLog(o[2],'#ff3d7f');if(head)hearts(10,head.hx,head.hy-head.R);jingle(1)}a.ch=null;ding();if(a.n>=20)endSchool()}
   function endSchool(){const a=act;a.end=now_();jingle(0);S.cnt.school=(S.cnt.school||0)+1;save()}
   function die(k){exam=null;S.dead={c:k,lv:S.lv,form:S.form,t:Date.now()};S.deaths++;S.sleeping=false;dying={c:k,t:now_(),st:stageOf(S.lv),form:S.form,boom:false};act=null;drag=null;holds.clear();evo=null;save();
     if(k==='eat'||k==='burst'){thud()}else if(k==='sleep'){if(A()){const t=T();Sfx.tone(t,2.5,220,110,.1,'sine')}}else if(k==='wash')meltSnd();else if(k==='poop')sinkSnd();else fallSnd();if(window.MBV)MBV(120,255)}
@@ -1675,7 +1693,7 @@ const Grow=(()=>{
       lab.forEach((l,i)=>button({x:14+(i%3)*(w3+4),y:by+((i/3)|0)*(h2+6),w:w3,h:h2,fn:l[2]},l[0],null,'#fff','#4a2730',false,l[1],l[3],now))}
     else if(act.k==='school'){const a=act;
       if(a.ch){wctx.font=font(15);wctx.textAlign='center';wctx.textBaseline='middle';const tw=wctx.measureText(a.ch.q).width+30;rr(CX-tw/2,RT+100,tw,36,18);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#ff7a8a';wctx.lineWidth=2.5;wctx.stroke();wctx.fillStyle='#c93d63';wctx.fillText('❓ '+a.ch.q,CX,RT+118.5);
-        const cw2=(PW-28-6)/2;a.ch.o.forEach((o,j)=>button({x:14+j*(cw2+6),y:by,w:cw2,h:bh,fn:()=>choose(j)},o[0],null,j?'#fff':'#fff0f4','#4a2730',false))}
+        const no=a.ch.o.length,cw2=(PW-28-6*(no-1))/no;a.ch.o.forEach((o,j)=>button({x:14+j*(cw2+6),y:by,w:cw2,h:bh,fn:()=>choose(j)},o[0],null,j?'#fff':'#fff0f4','#4a2730',false))}
       else{rr(14,by,PW-28,bh,14);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#f6d6de';wctx.lineWidth=1.5;wctx.stroke();wctx.textAlign='left';wctx.textBaseline='middle';
         if(a.end){const sm=Object.keys(a.sum).filter(k=>Math.round(a.sum[k])).map(k=>FXN[k]+(a.sum[k]>0?' +':' ')+Math.round(a.sum[k]));wctx.font=font(15);wctx.fillStyle='#e07a00';wctx.textAlign='center';wctx.fillText('🏠 학교 끝! 집에 가요',CX,by+18);
           wctx.font=font(11);wctx.fillStyle='#7a5560';const l1=sm.slice(0,4).join(' · '),l2=sm.slice(4).join(' · ');wctx.fillText(l1||'별일 없었어요',CX,by+42);if(l2)wctx.fillText(l2,CX,by+58);wctx.fillStyle='#b0909a';wctx.fillText('화면을 눌러서 집으로',CX,by+78)}

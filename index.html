@@ -1195,7 +1195,8 @@ const Grow=(()=>{
   ].filter(e=>e.c===undefined||e.c)};
   function applyFx(fx){const parts2=[];for(const k in fx){let v=fx[k];if(!v||k==='exp')continue;   // 학교에선 경험치 변동 없음
 
-      if(k==='bond'){if(!S.friend)continue;S.bond=cl((S.bond||0)+v,0,100)}else if(k==='study')S.study=Math.max(0,(S.study||0)+v);else if(k==='exp'){v=Math.round(v*(S.lv<10?4:1));gain(v/(S.lv<10?4:1),0,0,true)}else S[k]=cl(S[k]+v,0,100);
+      if(k==='bond'){if(!S.friend)continue;S.bond=cl((S.bond||0)+v,0,100)}else if(k==='study')S.study=Math.max(0,(S.study||0)+v);else if(k==='exp'){v=Math.round(v*(S.lv<10?4:1));gain(v/(S.lv<10?4:1),0,0,true)}else if((k==='energy'||k==='full')&&v<0){const nv=Math.max(Math.min(S[k],5),S[k]+v);v=Math.round((nv-S[k])*10)/10;S[k]=nv;if(!v)continue}   // 학교에선 기운·배부름이 5 밑으로 안 내려감
+      else S[k]=cl(S[k]+v,0,100);
       act&&act.k==='school'&&(act.sum[k]=(act.sum[k]||0)+v);parts2.push(FXN[k]+(v>0?' +':' ')+Math.round(v))}
     return parts2.join(', ')}
   function startSchool(){if((S.ticket||0)<1)return;S.ticket--;act={k:'school',n:0,log:[],ch:null,end:0,sum:{},last:0};save();Sfx.tick();say('학교 가자! 🎒','#e07a00')}

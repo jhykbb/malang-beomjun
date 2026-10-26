@@ -1686,12 +1686,12 @@ const Grow=(()=>{
       if(Math.random()<o.melt*.4)parts.push({x:bx+(Math.random()-.5)*60,y:FLOOR-80-Math.random()*60,vx:0,vy:30,r:2.5,c:'#9fd8ff',t:now,life:600,g:300,k:'drop'})}
     if(act&&act.k==='poop')potty(false);
     if(act&&act.k==='dance'){const a=act;if(a.phase==='dance'){micStep(a,now);const m0=60000/a.bpm;while(now-a.t0>=m0){a.t0+=m0;a.beatN++}}
-      const ms=60000/a.bpm,silent=a.mic&&mic&&now-mic.last>3500&&now-a.t0>0&&mic.last>0?true:a.mic&&mic&&!mic.last,beat=a.phase==='dance'?a.beatN+Math.min(.999,(now-a.t0)/ms):0,bp=beat%1,pat=Math.floor(beat/8)%4;
+      const ms=60000/a.bpm,silent=a.mic&&mic&&now-mic.last>3500&&now-a.t0>0&&mic.last>0?true:a.mic&&mic&&!mic.last,beat=a.phase==='dance'?Math.max(0,a.beatN+Math.max(0,Math.min(.999,(now-a.t0)/ms))):0,bp=beat%1,pat=Math.floor(beat/8)%4;
       wctx.fillStyle='rgba(30,15,60,.55)';wctx.fillRect(0,RT,PW,RB-RT);
       for(let j=0;j<4;j++){const ang=Math.sin(now/700+j*1.7)*.5,col=['#ff5d7e','#ffe066','#7fd0ff','#7be495'][j];wctx.save();wctx.translate(40+j*87,RT);wctx.rotate(ang);const g2=wctx.createLinearGradient(0,0,0,320);g2.addColorStop(0,col+'88');g2.addColorStop(1,col+'00');wctx.fillStyle=g2;wctx.beginPath();wctx.moveTo(-8,0);wctx.lineTo(8,0);wctx.lineTo(60,330);wctx.lineTo(-60,330);wctx.closePath();wctx.fill();wctx.restore()}
       wctx.fillStyle='#ccd';wctx.fillRect(CX-1,RT,2,22);const db2=wctx.createRadialGradient(CX-5,RT+30,2,CX,RT+34,14);db2.addColorStop(0,'#fff');db2.addColorStop(1,'#8890aa');wctx.fillStyle=db2;wctx.beginPath();wctx.arc(CX,RT+34,13,0,6.29);wctx.fill();
       if(a.phase==='dance'&&silent){o.pose='idle';o.rot=Math.sin(now/600)*.04;if(Math.random()<.01)texts.push({x:CX,y:RT+110,txt:'🎵 노래를 틀어주세요',t:now,c:'#fff',s:15,dur:1200})}
-      else if(a.phase==='dance'){const seq=a.song?SONGS[a.song].seq:GEN[pat],bi=Math.floor(beat),ka=seq[(bi+7)%8],kb=seq[bi%8],e=easeOB(Math.min(1,bp/.24)),amp=a.mic&&mic?Math.max(.75,Math.min(1.25,.6+mic.level*2.5)):1,
+      else if(a.phase==='dance'){const seq=a.song?SONGS[a.song].seq:GEN[((pat%4)+4)%4],bi=Math.max(0,Math.floor(beat)),ka=seq[(bi+7)%8]||seq[0],kb=seq[bi%8]||seq[0],e=easeOB(Math.min(1,bp/.24)),amp=a.mic&&mic?Math.max(.75,Math.min(1.25,.6+mic.level*2.5)):1,
           L=p=>((ka[p]||0)+((kb[p]||0)-(ka[p]||0))*e),kick=side=>kb.kick===side?Math.sin(Math.min(1,bp/.35)*Math.PI/2)*(bp>.6?1-(bp-.6)/.4:1):0;
         o.dp={a:[ka.L,ka.R],b:[kb.L,kb.R],t:e,dx:L('dx')*amp,dy:L('dy')*amp+(1-Math.cos(bp*6.283))*2.5,lean:L('lean')*amp,tilt:L('tilt')+Math.sin(bp*6.283)*.05,spread:L('spread'),kickL:kick('L'),kickR:kick('R')};
         o.pose='idle';o.rot=0;tx=bx=CX;fy=kb.jump?FLOOR-Math.sin(bp*Math.PI)*28:FLOOR;o.sq=bp<.1?(.1-bp)*.8:0;
@@ -1700,7 +1700,7 @@ const Grow=(()=>{
         if(a.tr&&a.tr.length>1)for(let sd=0;sd<2;sd++){for(let q=1;q<a.tr.length;q++){const p0=a.tr[q-1][sd],p1=a.tr[q][sd];wctx.strokeStyle='rgba(255,240,250,'+(q/a.tr.length*.45)+')';wctx.lineWidth=2+q*1.2;wctx.lineCap='round';wctx.beginPath();wctx.moveTo(p0[0],p0[1]);wctx.lineTo(p1[0],p1[1]);wctx.stroke()}}
         if(Math.floor(beat)!==a.lastBeat){a.lastBeat=Math.floor(beat);(a.rings=a.rings||[]).push(now);if(a.lastBeat%8===0&&a.lastBeat)burst(CX,FLOOR-150,['#ff8fab','#ffe066','#7fd0ff','#b27bff','#fff'],16);if(Math.random()<.5)texts.push({x:CX+(Math.random()-.5)*200,y:RT+120+Math.random()*80,txt:Math.random()<.5?'♪':'♫',t:now,c:['#ff8fab','#ffe066','#7fd0ff','#b27bff'][(Math.random()*4)|0],s:20,dur:900});
           if(a.lastBeat%8===0)gain(1,0,0,true)}
-        S.energy=cl(S.energy-dt*.6,0,100);S.fit=cl(S.fit-dt*.4,0,100);if(S.fit<=30&&S.energy<=30){stopDance(false,true)}
+        S.energy=cl(S.energy-dt*.6,0,100);S.fit=cl(S.fit+dt/5,0,100);   // 춤추면 튼튼함 5초에 1씩 올라요if(S.fit<=30&&S.energy<=30){stopDance(false,true)}
         if(Math.random()<.004)talk(['둠칫둠칫','신난다!','춤 조아!','헥헥','범준이 댄스!'])}
       else o.pose='idle';ytPlace()}
     if(act&&act.k==='school'){let g=wctx.createLinearGradient(0,RT,0,FLOOR);g.addColorStop(0,'#fff6e4');g.addColorStop(1,'#fbe9cc');wctx.fillStyle=g;wctx.fillRect(0,RT,PW,FLOOR-RT);

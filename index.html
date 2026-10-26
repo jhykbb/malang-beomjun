@@ -1234,6 +1234,53 @@ const Grow=(()=>{
       {L:'down',R:'grab',dx:14,lean:.12,kick:'R'},{L:'down',R:'chest',dx:-4,dy:6},{L:'grab',R:'down',dx:-14,lean:-.12,kick:'L'},{L:'chest',R:'down',dx:4,dy:6},
       {L:'chest',R:'chest',dy:10,tilt:.16},{L:'outUp',R:'outUp',spread:8},{L:'hip',R:'point',tilt:-.12,spread:10},{L:'head',R:'head',jump:1}],yt:{id:'ItSKahBISg0',hl:42}}};
   const HL_LEN=30;   // 하이라이트 길이(초)
+  // 챌린지 안무: 박자(b)를 받아 매 순간의 자세를 계산해요 — 8박 구간 4개가 이어져요
+  //  BAD: 산의 가슴 튕기기 + '다같이 꿀렁' 몸 웨이브 / REDRED: 팔랑귀 + '레드레드' X자 + 횡단보도 걷기 / 캐치캐치: 손 돌리기·얼굴 옆 손 흔들기·잡아채기 손댄스
+  const hitf=(f,k)=>1-Math.exp(-(k||10)*Math.max(0,f)),Sx=(x,y)=>({s:[x,y]}),Hx=(x,y)=>({h:[x,y]}),MX=(A,B,t)=>({m:[A,B,Math.max(0,Math.min(1,t))]});
+  const CHOREO={
+    redred:b=>{const ph=Math.floor(b/8)%4,c=b%8,i=Math.floor(c),f=c-i,h=hitf(f,12),side=i%2?1:-1;const P={dx:0,dy:(1-h)*6,lean:0,tilt:0,spread:10,bob:0};
+      const EAR=Hx(1.15,.05),X=Sx(-.72,.58),OPEN=Sx(.95,.35),DOWN=Sx(.15,.95);
+      if(ph===0||ph===2){
+        if(i<4){P.La=EAR;P.Ra=EAR;P.flapL=P.flapR=ph===2?1.4:1;P.tilt=side*.2*h;P.dx=side*8*h}
+        else if(i<6){const t=i===4?h:1;P.La=MX(EAR,X,t);P.Ra=MX(EAR,X,t);P.dy+=10*t;if(ph===2&&i===5){const q=f<.5?1-hitf(f*2,14):hitf((f-.5)*2,14);P.La=MX(OPEN,X,q);P.Ra=MX(OPEN,X,q)}}
+        else{P.La=MX(X,OPEN,h);P.Ra=MX(X,OPEN,h);P.dx=(i===6?14:-14)*h;P.lean=(i===6?.08:-.08)*h}}
+      else if(ph===1){const w=Math.sin(b*Math.PI);P.kickL=Math.max(0,w)*.55;P.kickR=Math.max(0,-w)*.55;P.dx=w*6;P.spread=4;P.tilt=w*.06;P.dy=2+Math.abs(w)*3;
+        P.La=Sx(.25+.2*w,.85-.25*Math.max(0,w));P.Ra=Sx(.25-.2*w,.85-.25*Math.max(0,-w));
+        if(i>=6){P.Ra=MX(DOWN,Sx(.55,-.85),i===6?h:1);P.La=Sx(.1,.6);P.lean=-.08;P.kickL=P.kickR=0}}
+      else{if(i<1){P.La=X;P.Ra=X;P.dy+=8}else if(i<4){P.La=EAR;P.Ra=EAR;P.flapL=P.flapR=1;P.tilt=side*.15}
+        else if(i<6){P.turn=(c-4)/2;P.La=Sx(.6,-.2);P.Ra=Sx(.6,-.2)}else{P.La=Sx(.1,.62);P.Ra=MX(Sx(.2,.5),Sx(.55,-.85),i===6?h:1);P.lean=-.1;P.tilt=-.12}}
+      return P},
+    bad:b=>{const ph=Math.floor(b/8)%4,c=b%8,i=Math.floor(c),f=c-i,h=hitf(f,14),half=(c*2)%1;const P={dx:0,dy:(1-h)*4,lean:0,tilt:0,spread:14,bob:0};
+      const LOWF=Sx(.35,.8),CH=Sx(-.3,.42),PUNCH=Sx(.95,-.1),UP=Sx(.2,-.98),HIP=Sx(.08,.6),DN=Sx(.2,.95);
+      const wave=t=>{const p=t*Math.PI*2;P.bob=6*Math.sin(p);P.pop=Math.max(0,Math.sin(p-.9));P.lean=.12*Math.sin(p-1.4);P.dx=7*Math.sin(p-1.9);P.dy+=10*Math.max(0,Math.sin(p-2.4))};   // 꿀렁
+      if(ph===0){
+        if(i<2){P.La=LOWF;P.Ra=LOWF;P.pop=1-hitf(half,9);P.tilt=.05*Math.sin(c*Math.PI*2)}
+        else if(i<4){wave((c-2)/2);P.La=Sx(.5,.55);P.Ra=Sx(.5,.55)}
+        else if(i<6){if(c<4.5){P.Ra=MX(CH,PUNCH,hitf((c-4)*2,14));P.La=CH}else if(c<5){P.Ra=PUNCH;P.La=MX(CH,PUNCH,hitf((c-4.5)*2,14))}else{P.La=MX(PUNCH,CH,h);P.Ra=MX(PUNCH,CH,h);P.dy+=8}}
+        else{wave((c-6)/2);P.La=Sx(.3,.9);P.Ra=Sx(.3,.9);if(i===7){P.dy+=12*Math.sin(f*Math.PI);P.tilt=.25*Math.sin(f*Math.PI)}}}
+      else if(ph===1){
+        if(i<4){const sh=(Math.floor(c*2)%2)?1:-1;P.La=HIP;P.Ra=HIP;P.lean=sh*.1*(1-hitf(half,10));P.tilt=-sh*.08;P.dx=sh*4}
+        else{wave(((c-4)/2)%1);const q=.5+.5*Math.sin(c*Math.PI);P.La=MX(Sx(.3,-.9),Sx(.6,-.4),q);P.Ra=MX(Sx(.3,-.9),Sx(.6,-.4),1-q)}}
+      else if(ph===2){
+        if(i<4){P.La=LOWF;P.Ra=LOWF;P.pop=1-h;P.bob=-3*(1-h);P.tilt=(i%2?.1:-.1)*h}
+        else{const s2=i%2?1:-1;P.kickL=s2<0?Math.sin(f*Math.PI)*.7:0;P.kickR=s2>0?Math.sin(f*Math.PI)*.7:0;P.La=s2<0?Sx(.5,.9):CH;P.Ra=s2>0?Sx(.5,.9):CH;P.dx=s2*8;P.dy+=6}}
+      else{
+        if(i<4){wave((c/2)%1);P.La=Sx(.45,.6);P.Ra=Sx(.45,.6)}
+        else if(i<5){P.La=MX(CH,UP,h);P.Ra=MX(CH,UP,h);P.dy-=4}
+        else if(i<6){P.La=MX(UP,DN,h);P.Ra=MX(UP,DN,h);P.dy+=18*h;P.lean=.2*h;P.tilt=.35*h}
+        else{const r=hitf((c-6)/2,4);P.La=DN;P.Ra=DN;wave((c-6)/2);P.dy+=18*(1-r);P.lean+=.2*(1-r);P.tilt=.35*(1-r)}}
+      return P},
+    catch:b=>{const ph=Math.floor(b/8)%4,c=b%8,i=Math.floor(c),f=c-i,h=hitf(f,12),sway=Math.sin(b*Math.PI);const P={dx:sway*8,dy:(1-h)*4+2,lean:sway*.05,tilt:sway*.12,spread:8,bob:0};
+      const roll=(spd,cy)=>{const a=b*Math.PI*2*spd,cx=-.55*Math.cos(a);P.La=Hx(cx,cy+.4*Math.sin(a));P.Ra=Hx(cx,cy-.4*Math.sin(a))};   // 두 손이 서로 빙글빙글
+      const CH=Sx(-.3,.42),GRAB=Sx(1,-.22),DN=Sx(.15,.95);
+      if(ph===0){if(i<4)roll(1,1.35);else{const r=i<6;const q=(i%2)?1-h:h;if(r){P.Ra=MX(CH,GRAB,q);P.La=DN;P.lean=.1*q;P.dx=10*q}else{P.La=MX(CH,GRAB,q);P.Ra=DN;P.lean=-.1*q;P.dx=-10*q}}}
+      else if(ph===1){if(i<2){P.Ra=Hx(1.25,.1);P.La=Hx(-.6,.35);P.flapR=1;P.flapL=.8;P.tilt=.15;P.dx=8}else if(i<4){P.La=Hx(1.25,.1);P.Ra=Hx(-.6,.35);P.flapL=1;P.flapR=.8;P.tilt=-.15;P.dx=-8}
+        else if(i<7)roll(1.5,1.35-((c-4)/3)*2.5);else{P.La=Sx(.6,-.75);P.Ra=Sx(.6,-.75);P.jump=1}}
+      else if(ph===2){if(i<4){const L=i%2===0;P.Ra=L?MX(DN,Sx(.55,-.86),h):Sx(.15,.8);P.La=L?Sx(.15,.8):MX(DN,Sx(.55,-.86),h);P.dy+=4*(1-h)}
+        else{roll(1,1.35);if(i>=6)P.turn=(c-6)/2}}
+      else{if(i<4){P.La=Hx(.32,-1.15);P.Ra=Hx(.32,-1.15);P.tilt=sway*.18}
+        else{const sd=Math.floor(c*2)%2,q=hitf(((c*2)%1),14);if(sd){P.Ra=MX(CH,GRAB,q);P.La=CH}else{P.La=MX(CH,GRAB,q);P.Ra=CH};P.dx=(sd?8:-8)*q}}
+      return P}};
   // 일반 춤 4가지 (8박마다 바뀜)
   const GEN=[
     [{L:'clap',R:'clap',dy:8},{L:'outUp',R:'outUp',spread:8},{L:'clap',R:'clap',dy:8},{L:'up',R:'up',kick:'R'},{L:'hip',R:'point',lean:-.1,dx:-10,spread:8},{L:'hip',R:'point',lean:-.1,dx:-10,dy:10,spread:8},{L:'point',R:'hip',lean:.1,dx:10,spread:8},{L:'point',R:'hip',lean:.1,dx:10,dy:10,spread:8}],
@@ -1443,6 +1490,7 @@ const Grow=(()=>{
     const bw=D.bw,bh=D.bh,pose=o.pose||'idle',round=D.k==='fat'||sw0>.15;
     const legH=o.sit?4:D.leg,hip=fy-legH,top=hip-bh,R=D.R;
     wctx.save();
+    if(o.dp&&o.dp.turn){let c=Math.cos(o.dp.turn*6.283);if(Math.abs(c)<.04)c=c<0?-.04:.04;wctx.translate(x,0);wctx.scale(c,1);wctx.translate(-x,0)}
     if(o.rot){wctx.translate(x,fy);wctx.rotate(o.rot);wctx.translate(-x,-fy)}
     if(o.sq){wctx.translate(x,fy);wctx.scale(1+o.sq,1-o.sq);wctx.translate(-x,-fy)}
     if(o.melt){wctx.translate(x,fy);wctx.scale(1+o.melt*.5,1-o.melt*.45);wctx.translate(-x,-fy)}
@@ -1454,7 +1502,7 @@ const Grow=(()=>{
       for(const s of [-1,1]){const k=s<0?P.kickL:P.kickR,hx2=x+P.dx+s*bw*.2,hy2=hip+P.dy-6,fx=x+s*(bw*.21+P.spread)+s*k*14,fyy=fy-5-k*26,
           [kx,ky,ffx,ffy]=ik(hx2,hy2,fx,fyy,lh,lh,s);limb(hx2,hy2,kx,ky,D.lw,D.bot);limb(kx,ky,ffx,ffy,D.lw*.92,D.bot);
         wctx.fillStyle=D.shoe;wctx.beginPath();wctx.ellipse(ffx+s*2,ffy+1,D.lw*.82,5.5,s*k*.5,0,6.29);wctx.fill()}
-      wctx.save();wctx.translate(x+P.dx,hip+P.dy);wctx.rotate(P.lean);wctx.translate(-x,-hip)}
+      wctx.save();const pp=P.pop||0;wctx.translate(x+P.dx,hip+P.dy-7*pp);wctx.rotate(P.lean-.1*pp);if(pp)wctx.scale(1+.05*pp,1+.03*pp);wctx.translate(-x,-hip)}
     // body
     const bodyPath=()=>{if(round){wctx.beginPath();wctx.ellipse(x,top+bh*.55,bw/2,bh*.58,0,0,6.29)}else rr(x-bw/2,top,bw,bh,Math.min(bw,bh)*.34)};
     bodyPath();wctx.fillStyle=D.k==='mus'?SKIN:D.top;wctx.fill();
@@ -1487,12 +1535,12 @@ const Grow=(()=>{
     // arms
     const hands=[],shY=top+D.aw*.75,shX=bw/2-D.aw*.4,hy0=top-R*.78+(o.bob||0);
     for(const s of [-1,1]){let a;
-      if(o.dp){const P=o.dp,sx=x+s*shX,A=D.arm*1.1,res=sp=>sp.h?[x+s*sp.h[0]*R,hy0+sp.h[1]*R]:[sx+s*sp.s[0]*A,shY+sp.s[1]*A],
-          pa=res(ARMK[P.a[s<0?0:1]]||ARMK.down),pb=res(ARMK[P.b[s<0?0:1]]||ARMK.down),t=P.t,
+      if(o.dp){const P=o.dp,sx=x+s*shX,A=D.arm*1.1,res=sp=>{if(sp.m){const A2=res(sp.m[0]),B2=res(sp.m[1]),q=sp.m[2];return[A2[0]+(B2[0]-A2[0])*q,A2[1]+(B2[1]-A2[1])*q]}return sp.h?[x+s*sp.h[0]*R,hy0+sp.h[1]*R]:[sx+s*sp.s[0]*A,shY+sp.s[1]*A]},
+          sp0=P.La?(s<0?P.La:P.Ra):null,pa=sp0?res(sp0):res(ARMK[P.a[s<0?0:1]]||ARMK.down),pb=sp0?pa:res(ARMK[P.b[s<0?0:1]]||ARMK.down),t=sp0?1:P.t,
           [ex2,ey2,hx3,hy3]=ik(sx,shY,pa[0]+(pb[0]-pa[0])*t,pa[1]+(pb[1]-pa[1])*t,D.arm*.56,D.arm*.56,s);hands.push([hx3,hy3]);
         if(!o.tub){limb(sx,shY,ex2,ey2,D.aw,D.k==='mus'?SKIN:D.top);limb(ex2,ey2,hx3,hy3,D.aw*(D.k==='mus'?1:.85),D.sl>.6?D.top:SKIN);
           if(D.k==='mus'){wctx.fillStyle=SKIN;wctx.beginPath();wctx.arc(sx+(ex2-sx)*.5,shY+(ey2-shY)*.5,D.aw*.7,0,6.29);wctx.fill()}
-          wctx.fillStyle=SKIN;wctx.beginPath();wctx.arc(hx3,hy3,D.aw*.6,0,6.29);wctx.fill()}
+          const fl=s<0?(P.flapL||0):(P.flapR||0);wctx.fillStyle=SKIN;wctx.beginPath();if(fl)wctx.ellipse(hx3,hy3,D.aw*.95,D.aw*.5,Math.sin(now/45+s)*1.1*fl+s*.6,0,6.29);else wctx.arc(hx3,hy3,D.aw*.6,0,6.29);wctx.fill()}
         continue}
       if(pose==='up'||pose==='cheer')a=2.6+Math.sin(now/110+s)*.18;
       else if(pose==='eat')a=s>0?2.55:.3;
@@ -1525,7 +1573,7 @@ const Grow=(()=>{
     const hx=x+(o.hdx||0),hy=hy0;
     if(o.dp){wctx.save();wctx.translate(hx,hy);wctx.rotate(o.dp.tilt||0);wctx.translate(-hx,-hy)}
     drawHead(hx,hy,R,faceFor(o.st,o.form,o.panic),{tint:o.tint,dirt:o.dirt,band:o.band,sweat:o.sweat,baby:D.k==='baby'});
-    if(o.dp){wctx.restore();for(const h of hands)if(h[1]<shY+4||Math.abs(h[0]-x)<R){wctx.fillStyle=SKIN;wctx.beginPath();wctx.arc(h[0],h[1],D.aw*.6,0,6.29);wctx.fill()}}
+    if(o.dp){wctx.restore();hands.forEach((h,hi)=>{if(h[1]<shY+4||Math.abs(h[0]-x)<R){const fl=hi?(o.dp.flapR||0):(o.dp.flapL||0),s2=hi?1:-1;wctx.fillStyle=SKIN;wctx.beginPath();if(fl)wctx.ellipse(h[0],h[1],D.aw*.95,D.aw*.5,Math.sin(now/45+s2)*1.1*fl+s2*.6,0,6.29);else wctx.arc(h[0],h[1],D.aw*.6,0,6.29);wctx.fill()}})}
     if(pose==='eat'){const h=hands[1];wctx.fillStyle=SKIN;wctx.beginPath();wctx.arc(h[0],h[1],D.aw*.6,0,6.29);wctx.fill()}
     if(o.dp)wctx.restore();
     wctx.restore();
@@ -1736,7 +1784,8 @@ const Grow=(()=>{
           L=p=>((ka[p]||0)+((kb[p]||0)-(ka[p]||0))*e),kick=side=>kb.kick===side?Math.sin(Math.min(1,bp/.35)*Math.PI/2)*(bp>.6?1-(bp-.6)/.4:1):0;
         o.dp={a:[ka.L,ka.R],b:[kb.L,kb.R],t:e,dx:L('dx')*amp,dy:L('dy')*amp+(1-Math.cos(bp*6.283))*2.5,lean:L('lean')*amp,tilt:L('tilt')+Math.sin(bp*6.283)*.05,spread:L('spread'),kickL:kick('L'),kickR:kick('R')};
         o.pose='idle';o.rot=0;tx=bx=CX;fy=kb.jump?FLOOR-Math.sin(bp*Math.PI)*28:FLOOR;o.sq=bp<.1?(.1-bp)*.8:0;
-        if(kb.pop){const pp=bp<.12?1:Math.max(0,1-(bp-.12)/.3);o.sq=-.09*pp;o.dp.dy-=7*pp;o.dp.lean-=.12*pp;if(pp>.9&&bp<.05)texts.push({x:CX+40,y:FLOOR-180,txt:'팍!',t:now,c:'#ffe066',s:16,dur:350})}
+        if(a.song&&CHOREO[a.song]){const P=CHOREO[a.song](beat);o.dp=Object.assign({a:['down','down'],b:['down','down'],t:1,kickL:0,kickR:0,dx:0,dy:0,lean:0,tilt:0,spread:10},P);o.bob=P.bob||0;fy=P.jump?FLOOR-Math.sin(bp*Math.PI)*26:FLOOR;o.sq=0}
+        else if(kb.pop){const pp=bp<.12?1:Math.max(0,1-(bp-.12)/.3);o.sq=-.09*pp;o.dp.dy-=7*pp;o.dp.lean-=.12*pp;if(pp>.9&&bp<.05)texts.push({x:CX+40,y:FLOOR-180,txt:'팍!',t:now,c:'#ffe066',s:16,dur:350})}
         // floor rings + hand trails
         (a.rings=a.rings||[]).forEach((r,ri)=>{const k=(now-r)/650;if(k<1){wctx.strokeStyle=['#ff8fab','#ffe066','#7fd0ff','#b27bff'][ri%4];wctx.globalAlpha=(1-k)*.6;wctx.lineWidth=3;wctx.beginPath();wctx.ellipse(CX,FLOOR+2,40+k*110,8+k*20,0,0,6.29);wctx.stroke();wctx.globalAlpha=1}});a.rings=a.rings.filter(r=>now-r<650);
         if(a.tr&&a.tr.length>1)for(let sd=0;sd<2;sd++){for(let q=1;q<a.tr.length;q++){const p0=a.tr[q-1][sd],p1=a.tr[q][sd];wctx.strokeStyle='rgba(255,240,250,'+(q/a.tr.length*.45)+')';wctx.lineWidth=2+q*1.2;wctx.lineCap='round';wctx.beginPath();wctx.moveTo(p0[0],p0[1]);wctx.lineTo(p1[0],p1[1]);wctx.stroke()}}

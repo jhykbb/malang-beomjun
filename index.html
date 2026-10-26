@@ -1065,7 +1065,7 @@ const Grow=(()=>{
   const now_=()=>performance.now(),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
   const need=L=>20+L*15,stageOf=L=>L>=20?3:L>=12?2:L>=5?1:0,SN=['아가','어린이','학생','어른'],FN={hun:'훈남',mus:'근육',fat:'통통',gen:'천재'};
   const rollLim=()=>({eat:2+((Math.random()*4)|0),wash:2+((Math.random()*4)|0),poop:2+((Math.random()*4)|0),gym:2+((Math.random()*4)|0),sleep:20+Math.random()*20});   // 몇 번째에 죽을지 매번 랜덤
-  const fresh=()=>({v:1,lv:1,exp:0,full:70,bowel:20,clean:85,fit:50,energy:80,study:0,poops:[],t:Date.now(),cnt:{eat:0,cake:0,poop:0,wash:0,jumps:0,gym:0,pat:0,sleep:0,study:0},form:null,sick:false,sickT:0,best:1,
+  const fresh=()=>({v:1,lv:1,exp:0,full:50,bowel:50,clean:50,fit:50,energy:50,study:0,poops:[],t:Date.now(),cnt:{eat:0,cake:0,poop:0,wash:0,jumps:0,gym:0,pat:0,sleep:0,study:0},form:null,sick:false,sickT:0,best:1,
     sleeping:false,sE0:0,over:{eat:0,wash:0,poop:0,gym:0},dead:null,deaths:0,born:Date.now(),lim:rollLim(),ovs:0,kv:2});
   let S=fresh();try{const d=JSON.parse(LS(KEY)||'null');if(d&&d.v===1){const f=fresh(),c=Object.assign(f.cnt,d.cnt||{}),ov=Object.assign(f.over,d.over||{});S=Object.assign(f,d);S.cnt=c;S.over=ov;if(!d.lim)S.lim=rollLim();if(!d.kv){S.study=Math.floor((d.study||0)/20);S.kv=2}if(d.school===undefined&&S.lv>=8)S.school='pass';if(S.friend&&!S.friendT)S.friendT=Date.now();if(S.school==='pass'&&S.ticket===undefined)S.ticket=1}}catch(e){}
   const save=()=>{S.t=Date.now();LS(KEY,JSON.stringify(S))};

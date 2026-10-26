@@ -1250,29 +1250,55 @@ const Grow=(()=>{
   function ytPlace(){if(!yt)return;const [l,t]=scr(YT_BOX.x,YT_BOX.y),w=YT_BOX.w*u,h=YT_BOX.h*u;
     if(yt.native){if(yt.l!==l||yt.t!==t){yt.l=l;yt.t=t;try{AndroidApp.ytMove(l,t,w,h)}catch(e){}}}
     else Object.assign(yt.el.style,{left:l+'px',top:t+'px',width:w+'px',height:h+'px'})}
-  function ytStart(id,st,en){ytStop();const src='https://www.youtube.com/embed/'+id+'?autoplay=1&playsinline=1&rel=0&modestbranding=1'+(st?'&start='+st:'')+(en?'&end='+en:'');
+  // 유튜브 재생 상태: 광고 중엔 기다렸다가 진짜 노래가 시작되면 춤 시작
+  let ytS={t:-1,play:false,ad:false,at:0},ytApiQ=null;
+  window.__ytState=(t,p,ad)=>{ytS={t:+t,play:!!+p,ad:!!+ad,at:now_()}};
+  function loadYTApi(cb){if(window.YT&&YT.Player){cb();return}if(!ytApiQ){ytApiQ=[];const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';sc.onerror=()=>{const q=ytApiQ;ytApiQ=null;q.forEach(f=>f(false))};document.head.appendChild(sc);
+      const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{if(prev)try{prev()}catch(e){}const q=ytApiQ||[];ytApiQ=null;q.forEach(f=>f(true))}}ytApiQ.push(cb)}
+  function ytStart(id,st,en){ytStop();ytS={t:-1,play:false,ad:false,at:0};const src='https://www.youtube.com/embed/'+id+'?autoplay=1&playsinline=1&rel=0&modestbranding=1'+(st?'&start='+st:'')+(en?'&end='+en:'');
     if(window.AndroidApp&&AndroidApp.ytPlay){const [l,t]=scr(YT_BOX.x,YT_BOX.y);try{if(AndroidApp.ytPlayAt)AndroidApp.ytPlayAt(id,st|0,en|0,l,t,YT_BOX.w*u,YT_BOX.h*u);else AndroidApp.ytPlay(id,l,t,YT_BOX.w*u,YT_BOX.h*u);yt={native:true,l,t};return}catch(e){}}
-    const f=document.createElement('iframe');f.src=src;f.allow='autoplay; encrypted-media';f.referrerPolicy='strict-origin-when-cross-origin';f.style.cssText='position:fixed;z-index:60;border:0;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000';document.body.appendChild(f);yt={el:f};ytPlace()}
-  function ytStop(){if(!yt)return;if(yt.native){try{AndroidApp.ytStop()}catch(e){}}else yt.el.remove();yt=null}
+    const box=document.createElement('div');box.style.cssText='position:fixed;z-index:60;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000';const inner=document.createElement('div');box.appendChild(inner);document.body.appendChild(box);yt={el:box};ytPlace();
+    loadYTApi(ok=>{if(!yt||yt.el!==box)return;
+      if(ok){yt.p=new YT.Player(inner,{width:'100%',height:'100%',videoId:id,playerVars:{autoplay:1,playsinline:1,rel:0,modestbranding:1,start:st||0,end:en||undefined},events:{onReady:e=>{try{e.target.playVideo()}catch(x){}}}})}
+      else{const f=document.createElement('iframe');f.src=src;f.allow='autoplay; encrypted-media';f.style.cssText='border:0;width:100%;height:100%';box.appendChild(f);yt.noState=true}})}
+  function ytPoll(){if(yt&&yt.p&&yt.p.getCurrentTime){try{const st=yt.p.getPlayerState();ytS={t:yt.p.getCurrentTime()||0,play:st===1,ad:false,at:now_()}}catch(e){}}}
+  function ytStop(){if(!yt)return;if(yt.native){try{AndroidApp.ytStop()}catch(e){}}else{try{yt.p&&yt.p.destroy()}catch(e){}yt.el.remove()}yt=null}
+  // 폰에 있는 음악 파일 (챌린지 곡마다 한 번 골라두면 폰 안에만 저장)
+  function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('mb_music',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+  async function putSong(k,blob){try{const d=await idb();return await new Promise(r=>{const tx=d.transaction('f','readwrite');tx.objectStore('f').put(blob,k);tx.oncomplete=()=>r(true);tx.onerror=()=>r(false)})}catch(e){return false}}
+  async function getSong(k){try{const d=await idb();return await new Promise(r=>{const q=d.transaction('f').objectStore('f').get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)})}catch(e){return null}}
+  let aud=null;
+  function audStart(blob,st,en){audStop();const el=new Audio(),url=URL.createObjectURL(blob);el.src=url;el.preload='auto';aud={el,url,en};
+    try{const ctx=new (window.AudioContext||window.webkitAudioContext)(),src=ctx.createMediaElementSource(el),an=ctx.createAnalyser();an.fftSize=1024;an.smoothingTimeConstant=0;src.connect(an);an.connect(ctx.destination);
+      mic={st:null,ctx,an,buf:new Uint8Array(an.frequencyBinCount),prev:0,hist:[],last:0,ints:[],level:0,local:true};if(act)act.mic=true}catch(e){}
+    el.addEventListener('loadedmetadata',()=>{let s0=st||0;if(el.duration&&s0>=el.duration-3){s0=0;if(act&&act.localEnd)act.localEnd=HL_LEN}try{el.currentTime=s0}catch(e){}el.play().catch(()=>{})},{once:true});el.addEventListener('ended',()=>{if(act&&act.k==='dance'){stopDance(true);say('노래 끝! 🎶','#9a4bff')}})}
+  function audStop(){if(!aud)return;try{aud.el.pause();URL.revokeObjectURL(aud.url)}catch(e){}aud=null}
+  function pickFile(cb){const inp=document.createElement('input');inp.type='file';inp.accept='audio/*';inp.style.display='none';document.body.appendChild(inp);inp.onchange=()=>{const f=inp.files&&inp.files[0];inp.remove();if(f)cb(f)};inp.click()}
   function uiClose(){if(dui){dui.remove();dui=null}}
   function startDance(){act={k:'dance',phase:'pick',t0:now_(),bpm:110,taps:[],xpT:0};Sfx.tick();
     uiClose();dui=document.createElement('div');dui.style.cssText='position:fixed;z-index:61;display:flex;flex-direction:column;gap:8px;padding:12px;background:#fff;border:2px solid #ff8fab;border-radius:16px;box-shadow:0 6px 20px rgba(74,39,48,.25);font-family:Jua,system-ui,sans-serif';
     dui.innerHTML='<div style="color:#c93d63;font-size:16px">💃 유튜브 음악 틀고 춤추기</div><input id="ytIn" type="url" placeholder="유튜브 링크 붙여넣기" style="font:inherit;font-size:15px;padding:9px 10px;border:2px solid #f4b3c2;border-radius:10px;outline:none;min-width:0">'+
-      '<div style="display:flex;gap:6px"><button id="ytGo" style="flex:2;font:inherit;font-size:15px;padding:9px;border:0;border-radius:10px;background:#ff5d7e;color:#fff">▶ 틀고 춤추기</button><button id="ytNo" style="flex:1.4;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#fff0f4;color:#c93d63">음악 없이</button><button id="ytX" style="flex:.8;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#eee;color:#666">취소</button></div><div id="ytMsg" style="font-size:12px;color:#e0485f;min-height:14px"></div>';
+      '<div style="display:flex;gap:6px"><button id="ytGo" style="flex:2;font:inherit;font-size:15px;padding:9px;border:0;border-radius:10px;background:#ff5d7e;color:#fff">▶ 틀고 춤추기</button><button id="ytFile" style="flex:1.2;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#fff6e0;color:#7a4a00">📁 내 파일</button><button id="ytNo" style="flex:1.1;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#fff0f4;color:#c93d63">음악 없이</button><button id="ytX" style="flex:.8;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#eee;color:#666">취소</button></div><div id="ytMsg" style="font-size:12px;color:#e0485f;min-height:14px"></div>';
     document.body.appendChild(dui);try{const last=localStorage.getItem('mb_yt');if(last)dui.querySelector('#ytIn').value=last}catch(e){}
     const pk=document.createElement('div');pk.style.cssText='display:flex;gap:5px;align-items:center;font-size:12px;color:#9a8090;flex-wrap:wrap';pk.innerHTML='<span style="width:100%">챌린지 노래 (1번: 하이라이트 · 2번: 전체 · 3번: 취소)</span>';
     for(const k in SONGS){const b=document.createElement('button');b.textContent=SONGS[k].name.split(' ').slice(1).join(' ');b.style.cssText='font:inherit;font-size:12px;padding:6px 8px;border:0;border-radius:8px;background:#f3ecff;color:#6a3fb0;flex:1';
+      const fb=document.createElement('button');fb.textContent='📁';fb.title='폰에 있는 노래 파일 고르기';fb.style.cssText='font:inherit;font-size:12px;padding:6px 6px;border:0;border-radius:8px;background:#fff6e0;color:#7a4a00';
+      getSong(k).then(bl=>{if(bl){fb.textContent='📁✓';fb.style.background='#d9f7e5'}});
+      fb.onclick=()=>pickFile(async f=>{const ok=await putSong(k,f);fb.textContent=ok?'📁✓':'📁';fb.style.background=ok?'#d9f7e5':'#fff6e0';const m=dui&&dui.querySelector('#ytMsg');if(m)m.textContent=ok?SONGS[k].name+' 파일 저장 완료! 이제 광고 없이 틀어요':'파일을 저장하지 못했어요'});
       const base=b.textContent;let n=0,tm=0;
       b.onclick=()=>{n++;clearTimeout(tm);b.textContent=n===1?base+' ▶ 하이라이트':n===2?base+' ▶ 전체':base+' ✕ 취소';b.style.background=n>=3?'#eee':'#ffd6e3';Sfx.tick();
-        tm=setTimeout(()=>{const m=n;n=0;b.textContent=base;b.style.background='#f3ecff';if(m>=3)return;const y=SONGS[k].yt;uiClose();
-          if(m===1){ytStart(y.id,y.hl,y.hl+HL_LEN);beginDance(k);if(act)act.endAt=now_()+HL_LEN*1000+2500}else{ytStart(y.id);beginDance(k)}},650)};pk.appendChild(b)}
+        tm=setTimeout(async()=>{const m=n;n=0;b.textContent=base;b.style.background='#f3ecff';if(m>=3)return;const y=SONGS[k].yt,hl=m===1,bl=await getSong(k);uiClose();
+          if(bl){beginDance(k,{local:true});audStart(bl,hl?y.hl:0,hl?y.hl+HL_LEN:0);if(act&&hl)act.localEnd=y.hl+HL_LEN}
+          else{ytStart(y.id,hl?y.hl:0,hl?y.hl+HL_LEN:0);beginDance(k,{yt:hl?y.hl:0,hl})}},650)};pk.appendChild(b);pk.appendChild(fb)}
     dui.insertBefore(pk,dui.querySelector('#ytMsg'));
-    dui.querySelector('#ytGo').onclick=()=>{const v=dui.querySelector('#ytIn').value,id=ytId(v);if(!id){dui.querySelector('#ytMsg').textContent='유튜브 링크를 확인해 주세요';return}try{localStorage.setItem('mb_yt',v)}catch(e){}uiClose();ytStart(id);beginDance();
+    dui.querySelector('#ytGo').onclick=()=>{const v=dui.querySelector('#ytIn').value,id=ytId(v);if(!id){dui.querySelector('#ytMsg').textContent='유튜브 링크를 확인해 주세요';return}try{localStorage.setItem('mb_yt',v)}catch(e){}uiClose();ytStart(id);beginDance(null,{yt:0});
       ytTitle(id).then(t=>{const k=songOf(t);if(act&&act.k==='dance'){act.title=t;if(k)setSong(k)}})};
-    dui.querySelector('#ytNo').onclick=()=>{uiClose();beginDance()};dui.querySelector('#ytX').onclick=()=>stopDance(true)}
+    dui.querySelector('#ytNo').onclick=()=>{uiClose();beginDance()};
+    dui.querySelector('#ytFile').onclick=()=>pickFile(f=>{uiClose();const k=songOf(f.name);beginDance(k,{local:true});audStart(f,0,0)});dui.querySelector('#ytX').onclick=()=>stopDance(true)}
   function setSong(k){if(!act)return;act.song=k;texts.push({x:CX,y:RT+108,txt:'🎶 '+SONGS[k].name+' 챌린지!',t:now_(),c:'#ff3d7f',s:17,dur:2200,box:true});jingle(1);talk(['이 노래 안다!','챌린지 간다!'],true)}
-  function beginDance(k){if(!act||act.k!=='dance')return;act.phase='dance';if(k)setTimeout(()=>setSong(k),200);act.t0=now_();act.beatN=0;startMic();jingle(0);talk(['신난다!','춤추자!','둠칫둠칫'],true)}
-  function stopDance(quiet,tired){uiClose();ytStop();stopMic();if(act&&act.k==='dance'){act=null;if(!quiet)say(tired?'지쳐서 춤 끝! 😵':'춤 끝! 🕺','#9a4bff')}}
+  function beginDance(k,op){op=op||{};if(!act||act.k!=='dance')return;act.phase='dance';if(k)setTimeout(()=>setSong(k),200);act.t0=now_();act.beatN=0;
+    if(op.yt!==undefined){act.waitYT=true;act.ytFrom=op.yt||0;act.ytAt=now_();act.hl=!!op.hl}if(op.local)act.local=true;else startMic();jingle(0);talk(['신난다!','춤추자!','둠칫둠칫'],true)}
+  function stopDance(quiet,tired){uiClose();ytStop();audStop();stopMic();if(act&&act.k==='dance'){act=null;if(!quiet)say(tired?'지쳐서 춤 끝! 😵':'춤 끝! 🕺','#9a4bff')}}
   function tapBeat(){const a=act,t=now_();a.taps=a.taps.filter(x=>t-x<2500);a.taps.push(t);if(a.taps.length>=3){const d=(a.taps[a.taps.length-1]-a.taps[0])/(a.taps.length-1);a.bpm=Math.max(60,Math.min(200,Math.round(60000/d)))}onBeat(a,t);Sfx.tick();if(a.taps.length>5)a.taps.shift()}
   // 마이크로 노래를 듣고 쿵(저음) 박자를 찾아요
   let mic=null;
@@ -1283,7 +1309,7 @@ const Grow=(()=>{
       const ctx=new (window.AudioContext||window.webkitAudioContext)(),src=ctx.createMediaStreamSource(st),an=ctx.createAnalyser();an.fftSize=1024;an.smoothingTimeConstant=0;src.connect(an);
       mic={st,ctx,an,buf:new Uint8Array(an.frequencyBinCount),prev:0,hist:[],last:0,ints:[],level:0};a.mic=true}
     catch(e){a.micErr='마이크 허락이 없어서 톡톡으로 박자를 맞춰요'}}
-  function stopMic(){if(!mic)return;try{mic.st.getTracks().forEach(t=>t.stop());mic.ctx.close()}catch(e){}mic=null}
+  function stopMic(){if(!mic)return;try{if(mic.st)mic.st.getTracks().forEach(t=>t.stop())}catch(e){}try{mic.ctx.close()}catch(e){}mic=null}
   function micStep(a,now){if(!mic)return;const an=mic.an,b=mic.buf;an.getByteFrequencyData(b);const hz=mic.ctx.sampleRate/an.fftSize,lo=Math.max(1,Math.floor(40/hz)),hi=Math.ceil(170/hz);
     let e=0;for(let i=lo;i<=hi;i++)e+=b[i];e/=(hi-lo+1);let all=0;for(let i=1;i<b.length/4;i++)all+=b[i];mic.level=mic.level*.8+(all/(b.length/4)/255)*.2;
     const fl=Math.max(0,e-mic.prev);mic.prev=e;mic.hist.push(fl);if(mic.hist.length>50)mic.hist.shift();
@@ -1702,12 +1728,16 @@ const Grow=(()=>{
     if(o.melt>0&&kind==='room'){wctx.fillStyle='rgba(150,210,255,.55)';wctx.beginPath();wctx.ellipse(bx,FLOOR+3,30+o.melt*120,5+o.melt*20,0,0,6.29);wctx.fill();
       if(Math.random()<o.melt*.4)parts.push({x:bx+(Math.random()-.5)*60,y:FLOOR-80-Math.random()*60,vx:0,vy:30,r:2.5,c:'#9fd8ff',t:now,life:600,g:300,k:'drop'})}
     if(act&&act.k==='poop')potty(false);
-    if(act&&act.k==='dance'){const a=act;if(a.phase==='dance'){micStep(a,now);const m0=60000/a.bpm;while(now-a.t0>=m0){a.t0+=m0;a.beatN++}}
+    if(act&&act.k==='dance'){const a=act;if(a.phase==='dance'&&a.waitYT){ytPoll();const got=ytS.at>a.ytAt,go=got?ytS.play&&!ytS.ad&&ytS.t>=a.ytFrom+.2:(yt&&yt.noState&&now-a.ytAt>4000)||(!got&&now-a.ytAt>15000);
+        if(go){a.waitYT=false;a.t0=now;a.beatN=0;if(mic){mic.hist=[];mic.ints=[];mic.last=0}if(a.hl)a.endAt=now_()+HL_LEN*1000}else{a.t0=now;a.adWait=got&&ytS.ad}}
+      if(aud&&a.localEnd&&aud.el.currentTime>=a.localEnd){stopDance(true);say('하이라이트 끝! 🎶','#9a4bff')}
+      if(act===a&&a.phase==='dance'&&!a.waitYT){micStep(a,now);const m0=60000/a.bpm;while(now-a.t0>=m0){a.t0+=m0;a.beatN++}}
       const ms=60000/a.bpm,silent=a.mic&&mic&&now-mic.last>3500&&now-a.t0>0&&mic.last>0?true:a.mic&&mic&&!mic.last,beat=a.phase==='dance'?Math.max(0,a.beatN+Math.max(0,Math.min(.999,(now-a.t0)/ms))):0,bp=beat%1,pat=Math.floor(beat/8)%4;
       wctx.fillStyle='rgba(30,15,60,.55)';wctx.fillRect(0,RT,PW,RB-RT);
       for(let j=0;j<4;j++){const ang=Math.sin(now/700+j*1.7)*.5,col=['#ff5d7e','#ffe066','#7fd0ff','#7be495'][j];wctx.save();wctx.translate(40+j*87,RT);wctx.rotate(ang);const g2=wctx.createLinearGradient(0,0,0,320);g2.addColorStop(0,col+'88');g2.addColorStop(1,col+'00');wctx.fillStyle=g2;wctx.beginPath();wctx.moveTo(-8,0);wctx.lineTo(8,0);wctx.lineTo(60,330);wctx.lineTo(-60,330);wctx.closePath();wctx.fill();wctx.restore()}
       wctx.fillStyle='#ccd';wctx.fillRect(CX-1,RT,2,22);const db2=wctx.createRadialGradient(CX-5,RT+30,2,CX,RT+34,14);db2.addColorStop(0,'#fff');db2.addColorStop(1,'#8890aa');wctx.fillStyle=db2;wctx.beginPath();wctx.arc(CX,RT+34,13,0,6.29);wctx.fill();
-      if(a.phase==='dance'&&silent){o.pose='idle';o.rot=Math.sin(now/600)*.04;if(Math.random()<.01)texts.push({x:CX,y:RT+110,txt:'🎵 노래를 틀어주세요',t:now,c:'#fff',s:15,dur:1200})}
+      if(a.phase==='dance'&&a.waitYT){o.pose='idle';o.rot=Math.sin(now/500)*.03;if(Math.random()<.02)texts.push({x:CX,y:RT+110,txt:a.adWait?'📺 광고 끝나길 기다리는 중…':'▶ 영상 시작을 기다리는 중…',t:now,c:'#fff',s:14,dur:900})}
+      else if(a.phase==='dance'&&silent){o.pose='idle';o.rot=Math.sin(now/600)*.04;if(Math.random()<.01)texts.push({x:CX,y:RT+110,txt:'🎵 노래를 틀어주세요',t:now,c:'#fff',s:15,dur:1200})}
       else if(a.phase==='dance'){const seq=a.song?SONGS[a.song].seq:GEN[((pat%4)+4)%4],bi=Math.max(0,Math.floor(beat)),ka=seq[(bi+7)%8]||seq[0],kb=seq[bi%8]||seq[0],e=easeOB(Math.min(1,bp/.24)),amp=a.mic&&mic?Math.max(.75,Math.min(1.25,.6+mic.level*2.5)):1,
           L=p=>((ka[p]||0)+((kb[p]||0)-(ka[p]||0))*e),kick=side=>kb.kick===side?Math.sin(Math.min(1,bp/.35)*Math.PI/2)*(bp>.6?1-(bp-.6)/.4:1):0;
         o.dp={a:[ka.L,ka.R],b:[kb.L,kb.R],t:e,dx:L('dx')*amp,dy:L('dy')*amp+(1-Math.cos(bp*6.283))*2.5,lean:L('lean')*amp,tilt:L('tilt')+Math.sin(bp*6.283)*.05,spread:L('spread'),kickL:kick('L'),kickR:kick('R')};
@@ -1835,7 +1865,7 @@ const Grow=(()=>{
         if(dui){const [l,t]=scr(20,by-56),w=(PW-40)*u;Object.assign(dui.style,{left:l+'px',top:t+'px',width:w+'px',boxSizing:'border-box'})}}
       else{const pw=PW-28-84;rr(14,by,pw,bh,16);wctx.fillStyle='#f6f0ff';wctx.fill();wctx.strokeStyle='#c9b6ff';wctx.lineWidth=2;wctx.stroke();
         const bpB={x:24,y:by+40,w:pw-20,h:42,fn:tapBeat},flashB=(now-a.t0)%(60000/a.bpm)<120;button(bpB,a.mic?'🥁 박자 직접 맞추기':'🥁 음악 박자에 맞춰 톡톡',null,flashB?'#e2d6ff':'#fff','#6a3fb0',false);
-        wctx.font=font(15);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle='#6a3fb0';wctx.fillText((a.song?'🎶 '+SONGS[a.song].name+' · ':a.mic?'🎤 노래 듣는 중 · ':'💃 춤추는 중 · ')+a.bpm+' BPM',14+pw/2,by+16);if(a.mic&&mic){rr(30,by+28,pw-32,6,3);wctx.fillStyle='rgba(106,63,176,.12)';wctx.fill();rr(30,by+28,Math.max(6,(pw-32)*Math.min(1,mic.level*2.5)),6,3);wctx.fillStyle=now-(a.hitT||0)<120?'#ff5d7e':'#b27bff';wctx.fill()}else if(a.micErr){wctx.font=font(10);wctx.fillStyle='#e0485f';wctx.fillText(a.micErr,14+pw/2,by+31)}
+        wctx.font=font(15);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle='#6a3fb0';wctx.fillText(a.waitYT?(a.adWait?'📺 광고 끝나길 기다리는 중…':'▶ 영상 시작 기다리는 중…'):(a.song?'🎶 '+SONGS[a.song].name+' · ':a.local?'🎵 내 파일 · ':a.mic?'🎤 노래 듣는 중 · ':'💃 춤추는 중 · ')+a.bpm+' BPM',14+pw/2,by+16);if(a.mic&&mic){rr(30,by+28,pw-32,6,3);wctx.fillStyle='rgba(106,63,176,.12)';wctx.fill();rr(30,by+28,Math.max(6,(pw-32)*Math.min(1,mic.level*2.5)),6,3);wctx.fillStyle=now-(a.hitT||0)<120?'#ff5d7e':'#b27bff';wctx.fill()}else if(a.micErr){wctx.font=font(10);wctx.fillStyle='#e0485f';wctx.fillText(a.micErr,14+pw/2,by+31)}
         button({x:PW-14-78,y:by,w:78,h:bh,fn:()=>stopDance(false)},'그만',null,'#fff','#c93d63',false)}}
     else if(act.k==='school'){const a=act;
       if(a.ch){wctx.font=font(15);wctx.textAlign='center';wctx.textBaseline='middle';const tw=wctx.measureText(a.ch.q).width+30;rr(CX-tw/2,RT+100,tw,36,18);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#ff7a8a';wctx.lineWidth=2.5;wctx.stroke();wctx.fillStyle='#c93d63';wctx.fillText('❓ '+a.ch.q,CX,RT+118.5);

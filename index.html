@@ -1225,14 +1225,15 @@ const Grow=(()=>{
   // REDRED는 기사 설명(양손을 귀 옆에서 흔들고 양팔로 X자)을 따랐고, BAD·캐치캐치는 노래 분위기에 맞춘 범준 버전
   const SONGS={
     bad:{name:'에이티즈 BAD',m:t=>/(ateez|에이티즈)/i.test(t)&&/\bbad\b|배드/i.test(t),seq:[
-      {L:'outUp',R:'outUp',spread:16,dy:6},{L:'chest',R:'chest',dy:16,lean:.14},{L:'punch',R:'hip',dx:-12,lean:-.1,spread:10},{L:'hip',R:'punch',dx:12,lean:.1,spread:10},
-      {L:'head',R:'head',tilt:.22,dy:4},{L:'head',R:'head',tilt:-.22,dy:4},{L:'up',R:'up',jump:1},{L:'low',R:'low',dy:20,lean:.22,tilt:.38}]},
+      {L:'outUp',R:'outUp',spread:16,dy:6},{L:'chest',R:'chest',dy:16,lean:.14},{L:'low',R:'low',pop:1,spread:8},{L:'low',R:'low',pop:1,spread:8,tilt:.1},
+      {L:'punch',R:'hip',dx:-12,lean:-.1,spread:10},{L:'hip',R:'punch',dx:12,lean:.1,spread:10},{L:'hip',R:'hip',pop:1,tilt:-.1},{L:'low',R:'low',dy:20,lean:.22,tilt:.38}],yt:{id:'-q_S27LbNKU',hl:50}},
     redred:{name:'코르티스 REDRED',m:t=>/red\s*red|레드레드|레드 레드/i.test(t),seq:[
       {L:'ears',R:'ears',dy:4,dx:-10,tilt:-.14},{L:'ears',R:'ears',dy:4,dx:10,tilt:.14},{L:'x',R:'x',dy:12},{L:'x',R:'x',jump:1},
-      {L:'down',R:'out',dx:-16,lean:-.1,spread:12},{L:'out',R:'down',dx:16,lean:.1,spread:12},{L:'ears',R:'ears',dy:10,spread:14},{L:'x',R:'point',tilt:-.1,kick:'L'}]},
+      {L:'down',R:'out',dx:-16,lean:-.1,spread:12},{L:'out',R:'down',dx:16,lean:.1,spread:12},{L:'ears',R:'ears',dy:10,spread:14},{L:'x',R:'point',tilt:-.1,kick:'L'}],yt:{id:'U6BDbXIah-Y',hl:45}},
     catch:{name:'최예나 캐치캐치',m:t=>/catch\s*catch|캐치\s*캐치/i.test(t),seq:[
       {L:'down',R:'grab',dx:14,lean:.12,kick:'R'},{L:'down',R:'chest',dx:-4,dy:6},{L:'grab',R:'down',dx:-14,lean:-.12,kick:'L'},{L:'chest',R:'down',dx:4,dy:6},
-      {L:'chest',R:'chest',dy:10,tilt:.16},{L:'outUp',R:'outUp',spread:8},{L:'hip',R:'point',tilt:-.12,spread:10},{L:'head',R:'head',jump:1}]}};
+      {L:'chest',R:'chest',dy:10,tilt:.16},{L:'outUp',R:'outUp',spread:8},{L:'hip',R:'point',tilt:-.12,spread:10},{L:'head',R:'head',jump:1}],yt:{id:'ItSKahBISg0',hl:42}}};
+  const HL_LEN=30;   // 하이라이트 길이(초)
   // 일반 춤 4가지 (8박마다 바뀜)
   const GEN=[
     [{L:'clap',R:'clap',dy:8},{L:'outUp',R:'outUp',spread:8},{L:'clap',R:'clap',dy:8},{L:'up',R:'up',kick:'R'},{L:'hip',R:'point',lean:-.1,dx:-10,spread:8},{L:'hip',R:'point',lean:-.1,dx:-10,dy:10,spread:8},{L:'point',R:'hip',lean:.1,dx:10,spread:8},{L:'point',R:'hip',lean:.1,dx:10,dy:10,spread:8}],
@@ -1249,8 +1250,8 @@ const Grow=(()=>{
   function ytPlace(){if(!yt)return;const [l,t]=scr(YT_BOX.x,YT_BOX.y),w=YT_BOX.w*u,h=YT_BOX.h*u;
     if(yt.native){if(yt.l!==l||yt.t!==t){yt.l=l;yt.t=t;try{AndroidApp.ytMove(l,t,w,h)}catch(e){}}}
     else Object.assign(yt.el.style,{left:l+'px',top:t+'px',width:w+'px',height:h+'px'})}
-  function ytStart(id){ytStop();const src='https://www.youtube.com/embed/'+id+'?autoplay=1&playsinline=1&rel=0&modestbranding=1';
-    if(window.AndroidApp&&AndroidApp.ytPlay){const [l,t]=scr(YT_BOX.x,YT_BOX.y);try{AndroidApp.ytPlay(id,l,t,YT_BOX.w*u,YT_BOX.h*u);yt={native:true,l,t};return}catch(e){}}
+  function ytStart(id,st,en){ytStop();const src='https://www.youtube.com/embed/'+id+'?autoplay=1&playsinline=1&rel=0&modestbranding=1'+(st?'&start='+st:'')+(en?'&end='+en:'');
+    if(window.AndroidApp&&AndroidApp.ytPlay){const [l,t]=scr(YT_BOX.x,YT_BOX.y);try{if(AndroidApp.ytPlayAt)AndroidApp.ytPlayAt(id,st|0,en|0,l,t,YT_BOX.w*u,YT_BOX.h*u);else AndroidApp.ytPlay(id,l,t,YT_BOX.w*u,YT_BOX.h*u);yt={native:true,l,t};return}catch(e){}}
     const f=document.createElement('iframe');f.src=src;f.allow='autoplay; encrypted-media';f.referrerPolicy='strict-origin-when-cross-origin';f.style.cssText='position:fixed;z-index:60;border:0;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000';document.body.appendChild(f);yt={el:f};ytPlace()}
   function ytStop(){if(!yt)return;if(yt.native){try{AndroidApp.ytStop()}catch(e){}}else yt.el.remove();yt=null}
   function uiClose(){if(dui){dui.remove();dui=null}}
@@ -1259,9 +1260,12 @@ const Grow=(()=>{
     dui.innerHTML='<div style="color:#c93d63;font-size:16px">💃 유튜브 음악 틀고 춤추기</div><input id="ytIn" type="url" placeholder="유튜브 링크 붙여넣기" style="font:inherit;font-size:15px;padding:9px 10px;border:2px solid #f4b3c2;border-radius:10px;outline:none;min-width:0">'+
       '<div style="display:flex;gap:6px"><button id="ytGo" style="flex:2;font:inherit;font-size:15px;padding:9px;border:0;border-radius:10px;background:#ff5d7e;color:#fff">▶ 틀고 춤추기</button><button id="ytNo" style="flex:1.4;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#fff0f4;color:#c93d63">음악 없이</button><button id="ytX" style="flex:.8;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#eee;color:#666">취소</button></div><div id="ytMsg" style="font-size:12px;color:#e0485f;min-height:14px"></div>';
     document.body.appendChild(dui);try{const last=localStorage.getItem('mb_yt');if(last)dui.querySelector('#ytIn').value=last}catch(e){}
-    const pk=document.createElement('div');pk.style.cssText='display:flex;gap:5px;align-items:center;font-size:12px;color:#9a8090';pk.innerHTML='챌린지 춤:';
+    const pk=document.createElement('div');pk.style.cssText='display:flex;gap:5px;align-items:center;font-size:12px;color:#9a8090;flex-wrap:wrap';pk.innerHTML='<span style="width:100%">챌린지 노래 (1번: 하이라이트 · 2번: 전체 · 3번: 취소)</span>';
     for(const k in SONGS){const b=document.createElement('button');b.textContent=SONGS[k].name.split(' ').slice(1).join(' ');b.style.cssText='font:inherit;font-size:12px;padding:6px 8px;border:0;border-radius:8px;background:#f3ecff;color:#6a3fb0;flex:1';
-      b.onclick=()=>{const v=dui.querySelector('#ytIn').value,id=ytId(v);uiClose();if(id)ytStart(id);beginDance(k)};pk.appendChild(b)}
+      const base=b.textContent;let n=0,tm=0;
+      b.onclick=()=>{n++;clearTimeout(tm);b.textContent=n===1?base+' ▶ 하이라이트':n===2?base+' ▶ 전체':base+' ✕ 취소';b.style.background=n>=3?'#eee':'#ffd6e3';Sfx.tick();
+        tm=setTimeout(()=>{const m=n;n=0;b.textContent=base;b.style.background='#f3ecff';if(m>=3)return;const y=SONGS[k].yt;uiClose();
+          if(m===1){ytStart(y.id,y.hl,y.hl+HL_LEN);beginDance(k);if(act)act.endAt=now_()+HL_LEN*1000+2500}else{ytStart(y.id);beginDance(k)}},650)};pk.appendChild(b)}
     dui.insertBefore(pk,dui.querySelector('#ytMsg'));
     dui.querySelector('#ytGo').onclick=()=>{const v=dui.querySelector('#ytIn').value,id=ytId(v);if(!id){dui.querySelector('#ytMsg').textContent='유튜브 링크를 확인해 주세요';return}try{localStorage.setItem('mb_yt',v)}catch(e){}uiClose();ytStart(id);beginDance();
       ytTitle(id).then(t=>{const k=songOf(t);if(act&&act.k==='dance'){act.title=t;if(k)setSong(k)}})};
@@ -1643,6 +1647,7 @@ const Grow=(()=>{
   function draw(now){const dt=Math.min(.05,(now-lt)/1000);lt=now;if(mode!=='grow'){if(dui||yt)stopDance(true);return}
     geo();if(!started){started=true;sim();report();save()}
     sim();vitals();if(now-lastSave>5000){lastSave=now;save()}
+    if(act&&act.k==='dance'&&act.endAt&&now_()>act.endAt){stopDance(true);say('하이라이트 끝! 🎶','#9a4bff')}
     if(!S.danceOK&&!S.dead&&S.fit>=80){S.danceOK=true;save();setTimeout(()=>{say('💃 튼튼함 80 달성! 춤추기 해금!','#9a4bff');jingle(1)},300)}
     flash=Math.max(0,flash-dt*2);
     btns=[];foodR=[];
@@ -1707,6 +1712,7 @@ const Grow=(()=>{
           L=p=>((ka[p]||0)+((kb[p]||0)-(ka[p]||0))*e),kick=side=>kb.kick===side?Math.sin(Math.min(1,bp/.35)*Math.PI/2)*(bp>.6?1-(bp-.6)/.4:1):0;
         o.dp={a:[ka.L,ka.R],b:[kb.L,kb.R],t:e,dx:L('dx')*amp,dy:L('dy')*amp+(1-Math.cos(bp*6.283))*2.5,lean:L('lean')*amp,tilt:L('tilt')+Math.sin(bp*6.283)*.05,spread:L('spread'),kickL:kick('L'),kickR:kick('R')};
         o.pose='idle';o.rot=0;tx=bx=CX;fy=kb.jump?FLOOR-Math.sin(bp*Math.PI)*28:FLOOR;o.sq=bp<.1?(.1-bp)*.8:0;
+        if(kb.pop){const pp=bp<.12?1:Math.max(0,1-(bp-.12)/.3);o.sq=-.09*pp;o.dp.dy-=7*pp;o.dp.lean-=.12*pp;if(pp>.9&&bp<.05)texts.push({x:CX+40,y:FLOOR-180,txt:'팍!',t:now,c:'#ffe066',s:16,dur:350})}
         // floor rings + hand trails
         (a.rings=a.rings||[]).forEach((r,ri)=>{const k=(now-r)/650;if(k<1){wctx.strokeStyle=['#ff8fab','#ffe066','#7fd0ff','#b27bff'][ri%4];wctx.globalAlpha=(1-k)*.6;wctx.lineWidth=3;wctx.beginPath();wctx.ellipse(CX,FLOOR+2,40+k*110,8+k*20,0,0,6.29);wctx.stroke();wctx.globalAlpha=1}});a.rings=a.rings.filter(r=>now-r<650);
         if(a.tr&&a.tr.length>1)for(let sd=0;sd<2;sd++){for(let q=1;q<a.tr.length;q++){const p0=a.tr[q-1][sd],p1=a.tr[q][sd];wctx.strokeStyle='rgba(255,240,250,'+(q/a.tr.length*.45)+')';wctx.lineWidth=2+q*1.2;wctx.lineCap='round';wctx.beginPath();wctx.moveTo(p0[0],p0[1]);wctx.lineTo(p1[0],p1[1]);wctx.stroke()}}

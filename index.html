@@ -1278,23 +1278,17 @@ const Grow=(()=>{
   function startDance(){act={k:'dance',phase:'pick',t0:now_(),bpm:110,taps:[],xpT:0};Sfx.tick();
     uiClose();dui=document.createElement('div');dui.style.cssText='position:fixed;z-index:61;display:flex;flex-direction:column;gap:8px;padding:12px;background:#fff;border:2px solid #ff8fab;border-radius:16px;box-shadow:0 6px 20px rgba(74,39,48,.25);font-family:Jua,system-ui,sans-serif';
     dui.innerHTML='<div style="color:#c93d63;font-size:16px">💃 유튜브 음악 틀고 춤추기</div><input id="ytIn" type="url" placeholder="유튜브 링크 붙여넣기" style="font:inherit;font-size:15px;padding:9px 10px;border:2px solid #f4b3c2;border-radius:10px;outline:none;min-width:0">'+
-      '<div style="display:flex;gap:6px"><button id="ytGo" style="flex:2;font:inherit;font-size:15px;padding:9px;border:0;border-radius:10px;background:#ff5d7e;color:#fff">▶ 틀고 춤추기</button><button id="ytFile" style="flex:1.2;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#fff6e0;color:#7a4a00">📁 내 파일</button><button id="ytNo" style="flex:1.1;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#fff0f4;color:#c93d63">음악 없이</button><button id="ytX" style="flex:.8;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#eee;color:#666">취소</button></div><div id="ytMsg" style="font-size:12px;color:#e0485f;min-height:14px"></div>';
+      '<div style="display:flex;gap:6px"><button id="ytGo" style="flex:2;font:inherit;font-size:15px;padding:9px;border:0;border-radius:10px;background:#ff5d7e;color:#fff">▶ 틀고 춤추기</button><button id="ytNo" style="flex:1.1;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#fff0f4;color:#c93d63">음악 없이</button><button id="ytX" style="flex:.8;font:inherit;font-size:13px;padding:9px;border:0;border-radius:10px;background:#eee;color:#666">취소</button></div><div id="ytMsg" style="font-size:12px;color:#e0485f;min-height:14px"></div>';
     document.body.appendChild(dui);try{const last=localStorage.getItem('mb_yt');if(last)dui.querySelector('#ytIn').value=last}catch(e){}
     const pk=document.createElement('div');pk.style.cssText='display:flex;gap:5px;align-items:center;font-size:12px;color:#9a8090;flex-wrap:wrap';pk.innerHTML='<span style="width:100%">챌린지 노래 (1번: 하이라이트 · 2번: 전체 · 3번: 취소)</span>';
     for(const k in SONGS){const b=document.createElement('button');b.textContent=SONGS[k].name.split(' ').slice(1).join(' ');b.style.cssText='font:inherit;font-size:12px;padding:6px 8px;border:0;border-radius:8px;background:#f3ecff;color:#6a3fb0;flex:1';
-      const fb=document.createElement('button');fb.textContent='📁';fb.title='폰에 있는 노래 파일 고르기';fb.style.cssText='font:inherit;font-size:12px;padding:6px 6px;border:0;border-radius:8px;background:#fff6e0;color:#7a4a00';
-      getSong(k).then(bl=>{if(bl){fb.textContent='📁✓';fb.style.background='#d9f7e5'}});
-      fb.onclick=()=>pickFile(async f=>{const ok=await putSong(k,f);fb.textContent=ok?'📁✓':'📁';fb.style.background=ok?'#d9f7e5':'#fff6e0';const m=dui&&dui.querySelector('#ytMsg');if(m)m.textContent=ok?SONGS[k].name+' 파일 저장 완료! 이제 광고 없이 틀어요':'파일을 저장하지 못했어요'});
       const base=b.textContent;let n=0,tm=0;
       b.onclick=()=>{n++;clearTimeout(tm);b.textContent=n===1?base+' ▶ 하이라이트':n===2?base+' ▶ 전체':base+' ✕ 취소';b.style.background=n>=3?'#eee':'#ffd6e3';Sfx.tick();
-        tm=setTimeout(async()=>{const m=n;n=0;b.textContent=base;b.style.background='#f3ecff';if(m>=3)return;const y=SONGS[k].yt,hl=m===1,bl=await getSong(k);uiClose();
-          if(bl){beginDance(k,{local:true});audStart(bl,hl?y.hl:0,hl?y.hl+HL_LEN:0);if(act&&hl)act.localEnd=y.hl+HL_LEN}
-          else{ytStart(y.id,hl?y.hl:0,hl?y.hl+HL_LEN:0);beginDance(k,{yt:hl?y.hl:0,hl})}},650)};pk.appendChild(b);pk.appendChild(fb)}
+        tm=setTimeout(async()=>{const m=n;n=0;b.textContent=base;b.style.background='#f3ecff';if(m>=3)return;const y=SONGS[k].yt,hl=m===1;uiClose();ytStart(y.id,hl?y.hl:0,hl?y.hl+HL_LEN:0);beginDance(k,{yt:hl?y.hl:0,hl})},650)};pk.appendChild(b)}
     dui.insertBefore(pk,dui.querySelector('#ytMsg'));
     dui.querySelector('#ytGo').onclick=()=>{const v=dui.querySelector('#ytIn').value,id=ytId(v);if(!id){dui.querySelector('#ytMsg').textContent='유튜브 링크를 확인해 주세요';return}try{localStorage.setItem('mb_yt',v)}catch(e){}uiClose();ytStart(id);beginDance(null,{yt:0});
       ytTitle(id).then(t=>{const k=songOf(t);if(act&&act.k==='dance'){act.title=t;if(k)setSong(k)}})};
-    dui.querySelector('#ytNo').onclick=()=>{uiClose();beginDance()};
-    dui.querySelector('#ytFile').onclick=()=>pickFile(f=>{uiClose();const k=songOf(f.name);beginDance(k,{local:true});audStart(f,0,0)});dui.querySelector('#ytX').onclick=()=>stopDance(true)}
+    dui.querySelector('#ytNo').onclick=()=>{uiClose();beginDance()};dui.querySelector('#ytX').onclick=()=>stopDance(true)}
   function setSong(k){if(!act)return;act.song=k;texts.push({x:CX,y:RT+108,txt:'🎶 '+SONGS[k].name+' 챌린지!',t:now_(),c:'#ff3d7f',s:17,dur:2200,box:true});jingle(1);talk(['이 노래 안다!','챌린지 간다!'],true)}
   function beginDance(k,op){op=op||{};if(!act||act.k!=='dance')return;act.phase='dance';if(k)setTimeout(()=>setSong(k),200);act.t0=now_();act.beatN=0;
     if(op.yt!==undefined){act.waitYT=true;act.ytFrom=op.yt||0;act.ytAt=now_();act.hl=!!op.hl}if(op.local)act.local=true;else startMic();jingle(0);talk(['신난다!','춤추자!','둠칫둠칫'],true)}

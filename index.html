@@ -1212,12 +1212,21 @@ const Grow=(()=>{
   // 챌린지 춤: 유튜브 제목으로 노래를 알아보고 그 노래 전용 8박 안무를 춰요
   // REDRED는 기사 설명(양손을 귀 옆에서 흔들고 양팔로 X자)을 따랐고, BAD·캐치캐치는 노래 분위기에 맞춘 범준 버전
   const SONGS={
-    bad:{name:'에이티즈 BAD',m:t=>/(ateez|에이티즈)/i.test(t)&&/\bbad\b|배드/i.test(t),
-      seq:[{mv:[1.57,1.57],rot:-.08},{mv:['wave','wave'],jump:1},{mv:['chest','chest'],sq:.14},{mv:['hips',2.4],rot:.1},{mv:['hips','hips'],rot:.14},{mv:['hips','hips'],rot:-.14},{mv:['wave','wave'],dx:-14},{mv:[.05,.05],rot:.22,sq:.1}]},
-    redred:{name:'코르티스 REDRED',m:t=>/red\s*red|레드레드|레드 레드/i.test(t),
-      seq:[{mv:['ears','ears'],dx:-10},{mv:['ears','ears'],dx:10},{mv:['x','x']},{mv:['x','x'],sq:.12},{mv:[.15,1.57],dx:-18},{mv:[1.57,.15],dx:18},{mv:['ears','ears'],jump:1},{mv:['x','point'],rot:-.06}]},
-    catch:{name:'최예나 캐치캐치',m:t=>/catch\s*catch|캐치\s*캐치/i.test(t),
-      seq:[{mv:[.2,'grab'],dx:12},{mv:[.2,'chest'],dx:-4},{mv:['grab',.2],dx:-12},{mv:['chest',.2],dx:4},{mv:['chest','chest'],sq:.12},{mv:['wave','wave']},{mv:[.2,'point'],rot:-.1},{mv:['head','head'],jump:1}]}};
+    bad:{name:'에이티즈 BAD',m:t=>/(ateez|에이티즈)/i.test(t)&&/\bbad\b|배드/i.test(t),seq:[
+      {L:'outUp',R:'outUp',spread:16,dy:6},{L:'chest',R:'chest',dy:16,lean:.14},{L:'punch',R:'hip',dx:-12,lean:-.1,spread:10},{L:'hip',R:'punch',dx:12,lean:.1,spread:10},
+      {L:'head',R:'head',tilt:.22,dy:4},{L:'head',R:'head',tilt:-.22,dy:4},{L:'up',R:'up',jump:1},{L:'low',R:'low',dy:20,lean:.22,tilt:.38}]},
+    redred:{name:'코르티스 REDRED',m:t=>/red\s*red|레드레드|레드 레드/i.test(t),seq:[
+      {L:'ears',R:'ears',dy:4,dx:-10,tilt:-.14},{L:'ears',R:'ears',dy:4,dx:10,tilt:.14},{L:'x',R:'x',dy:12},{L:'x',R:'x',jump:1},
+      {L:'down',R:'out',dx:-16,lean:-.1,spread:12},{L:'out',R:'down',dx:16,lean:.1,spread:12},{L:'ears',R:'ears',dy:10,spread:14},{L:'x',R:'point',tilt:-.1,kick:'L'}]},
+    catch:{name:'최예나 캐치캐치',m:t=>/catch\s*catch|캐치\s*캐치/i.test(t),seq:[
+      {L:'down',R:'grab',dx:14,lean:.12,kick:'R'},{L:'down',R:'chest',dx:-4,dy:6},{L:'grab',R:'down',dx:-14,lean:-.12,kick:'L'},{L:'chest',R:'down',dx:4,dy:6},
+      {L:'chest',R:'chest',dy:10,tilt:.16},{L:'outUp',R:'outUp',spread:8},{L:'hip',R:'point',tilt:-.12,spread:10},{L:'head',R:'head',jump:1}]}};
+  // 일반 춤 4가지 (8박마다 바뀜)
+  const GEN=[
+    [{L:'clap',R:'clap',dy:8},{L:'outUp',R:'outUp',spread:8},{L:'clap',R:'clap',dy:8},{L:'up',R:'up',kick:'R'},{L:'hip',R:'point',lean:-.1,dx:-10,spread:8},{L:'hip',R:'point',lean:-.1,dx:-10,dy:10,spread:8},{L:'point',R:'hip',lean:.1,dx:10,spread:8},{L:'point',R:'hip',lean:.1,dx:10,dy:10,spread:8}],
+    [{L:'out',R:'chest',dx:-14,lean:-.08,spread:12},{L:'chest',R:'out',dx:14,lean:.08,spread:12},{L:'out',R:'chest',dx:-14,lean:-.08,spread:12},{L:'chest',R:'out',dx:14,lean:.08,spread:12},{L:'low',R:'low',dy:14,spread:16},{L:'outUp',R:'outUp',jump:1},{L:'hip',R:'hip',tilt:.16,dy:6},{L:'hip',R:'hip',tilt:-.16,dy:6}],
+    [{L:'punch',R:'chest',dx:-8,lean:-.06},{L:'chest',R:'punch',dx:8,lean:.06},{L:'punch',R:'chest',dx:-8,lean:-.06},{L:'chest',R:'punch',dx:8,lean:.06},{L:'up',R:'down',dy:4,kick:'L'},{L:'down',R:'up',dy:4,kick:'R'},{L:'x',R:'x',dy:12},{L:'outUp',R:'outUp',jump:1}],
+    [{L:'head',R:'down',tilt:-.12,dx:-6},{L:'down',R:'head',tilt:.12,dx:6},{L:'head',R:'head',dy:10},{L:'out',R:'out',spread:10},{L:'hip',R:'outUp',lean:-.12,dx:-12},{L:'outUp',R:'hip',lean:.12,dx:12},{L:'clap',R:'clap',dy:8},{L:'point',R:'point',jump:1}]];
   const songOf=t=>{for(const k in SONGS)if(SONGS[k].m(t||''))return k;return null};
   async function ytTitle(id){const u='https://www.youtube.com/watch?v='+id;for(const ep of ['https://www.youtube.com/oembed?format=json&url=','https://noembed.com/embed?url=']){try{const r=await fetch(ep+encodeURIComponent(u));if(r.ok){const j=await r.json();if(j&&j.title)return j.title}}catch(e){}}return null}
   /* ---- 춤추기: 튼튼함 처음 80 달성 시 해금, 유튜브 음악 틀고 박자 맞춰 춤 ---- */
@@ -1357,6 +1366,13 @@ const Grow=(()=>{
     if(eyes){for(const s2 of [-1,1]){wctx.beginPath();wctx.arc(s2*5,-12,2.6,0,6.29);wctx.fillStyle='#fff';wctx.fill();wctx.beginPath();wctx.arc(s2*5+.6,-11.6,1.3,0,6.29);wctx.fillStyle='#222';wctx.fill()}}
     wctx.restore()}
   const SKIN='#f8d3b9',SKD='#e2a987';
+  // 2관절 IK: 어깨→손(팔꿈치), 엉덩이→발(무릎). 관절은 몸 바깥쪽으로 굽어요
+  function ik(ax,ay,bx2,by2,l1,l2,s){let dx=bx2-ax,dy=by2-ay,d=Math.hypot(dx,dy);const mx=(l1+l2)*.999;if(d>mx){dx*=mx/d;dy*=mx/d;d=mx}d=Math.max(d,1);
+    const a=Math.atan2(dy,dx),c=Math.acos(Math.min(1,Math.max(-1,(l1*l1+d*d-l2*l2)/(2*l1*d)))),e1=[ax+Math.cos(a+c)*l1,ay+Math.sin(a+c)*l1],e2=[ax+Math.cos(a-c)*l1,ay+Math.sin(a-c)*l1],e=s*(e1[0]-e2[0])>0?e1:e2;return[e[0],e[1],ax+dx,ay+dy]}
+  // 팔 동작: s=[바깥, 아래] (어깨 기준, 팔 길이 단위) / h=[바깥, 아래] (머리 기준, 머리 반지름 단위)
+  const ARMK={down:{s:[.15,.95]},hip:{s:[.08,.6]},out:{s:[1,.05]},outUp:{s:[.72,-.7]},up:{s:[.18,-.98]},chest:{s:[-.3,.42]},x:{s:[-.72,.6]},clap:{s:[-.44,.08]},
+    point:{s:[.5,-.86]},punch:{s:[.95,-.12]},grab:{s:[1,-.22]},ears:{h:[1.2,.12]},head:{h:[.55,-1.05]},low:{s:[.55,.75]}};
+  const easeOB=t=>{const c=1.9;t-=1;return 1+t*t*((c+1)*t+c)};
   const SC=[1.15,1.12,1.1,1.12];
   function dims(st,form){const d=dims0(st,form),k=SC[st]||1;for(const f of ['R','bw','bh','leg','lw','arm','aw'])d[f]*=k;return d}
   function dims0(st,form){
@@ -1395,9 +1411,14 @@ const Grow=(()=>{
     if(o.sq){wctx.translate(x,fy);wctx.scale(1+o.sq,1-o.sq);wctx.translate(-x,-fy)}
     if(o.melt){wctx.translate(x,fy);wctx.scale(1+o.melt*.5,1-o.melt*.45);wctx.translate(-x,-fy)}
     // legs
-    if(!o.tub&&!o.sit){for(const s of [-1,1]){const lx=x+s*bw*.21;
+    if(!o.tub&&!o.sit&&!o.dp){for(const s of [-1,1]){const lx=x+s*bw*.21;
       {const sw=o.walk?Math.sin(o.walk+(s>0?Math.PI:0))*3.5:0,lift=o.walk?Math.max(0,Math.sin(o.walk+(s>0?Math.PI:0)))*3:0;limb(lx,hip-6,lx+sw,fy-6-lift,D.lw,D.bot);
         wctx.fillStyle=D.shoe;wctx.beginPath();wctx.ellipse(lx+sw+s*2,fy-4-lift,D.lw*.82,5.5,0,0,6.29);wctx.fill()}}}
+    if(o.dp){const P=o.dp,lh=D.leg*.58;
+      for(const s of [-1,1]){const k=s<0?P.kickL:P.kickR,hx2=x+P.dx+s*bw*.2,hy2=hip+P.dy-6,fx=x+s*(bw*.21+P.spread)+s*k*14,fyy=fy-5-k*26,
+          [kx,ky,ffx,ffy]=ik(hx2,hy2,fx,fyy,lh,lh,s);limb(hx2,hy2,kx,ky,D.lw,D.bot);limb(kx,ky,ffx,ffy,D.lw*.92,D.bot);
+        wctx.fillStyle=D.shoe;wctx.beginPath();wctx.ellipse(ffx+s*2,ffy+1,D.lw*.82,5.5,s*k*.5,0,6.29);wctx.fill()}
+      wctx.save();wctx.translate(x+P.dx,hip+P.dy);wctx.rotate(P.lean);wctx.translate(-x,-hip)}
     // body
     const bodyPath=()=>{if(round){wctx.beginPath();wctx.ellipse(x,top+bh*.55,bw/2,bh*.58,0,0,6.29)}else rr(x-bw/2,top,bw,bh,Math.min(bw,bh)*.34)};
     bodyPath();wctx.fillStyle=D.k==='mus'?SKIN:D.top;wctx.fill();
@@ -1430,6 +1451,13 @@ const Grow=(()=>{
     // arms
     const hands=[],shY=top+D.aw*.75,shX=bw/2-D.aw*.4,hy0=top-R*.78+(o.bob||0);
     for(const s of [-1,1]){let a;
+      if(o.dp){const P=o.dp,sx=x+s*shX,A=D.arm*1.1,res=sp=>sp.h?[x+s*sp.h[0]*R,hy0+sp.h[1]*R]:[sx+s*sp.s[0]*A,shY+sp.s[1]*A],
+          pa=res(ARMK[P.a[s<0?0:1]]||ARMK.down),pb=res(ARMK[P.b[s<0?0:1]]||ARMK.down),t=P.t,
+          [ex2,ey2,hx3,hy3]=ik(sx,shY,pa[0]+(pb[0]-pa[0])*t,pa[1]+(pb[1]-pa[1])*t,D.arm*.56,D.arm*.56,s);hands.push([hx3,hy3]);
+        if(!o.tub){limb(sx,shY,ex2,ey2,D.aw,D.k==='mus'?SKIN:D.top);limb(ex2,ey2,hx3,hy3,D.aw*(D.k==='mus'?1:.85),D.sl>.6?D.top:SKIN);
+          if(D.k==='mus'){wctx.fillStyle=SKIN;wctx.beginPath();wctx.arc(sx+(ex2-sx)*.5,shY+(ey2-shY)*.5,D.aw*.7,0,6.29);wctx.fill()}
+          wctx.fillStyle=SKIN;wctx.beginPath();wctx.arc(hx3,hy3,D.aw*.6,0,6.29);wctx.fill()}
+        continue}
       if(pose==='up'||pose==='cheer')a=2.6+Math.sin(now/110+s)*.18;
       else if(pose==='eat')a=s>0?2.55:.3;
       else if(pose==='rope')a=1.1;
@@ -1459,8 +1487,11 @@ const Grow=(()=>{
     // neck + head
     wctx.fillStyle=SKIN;rr(x-8,top-10,16,14,5);wctx.fill();
     const hx=x+(o.hdx||0),hy=hy0;
+    if(o.dp){wctx.save();wctx.translate(hx,hy);wctx.rotate(o.dp.tilt||0);wctx.translate(-hx,-hy)}
     drawHead(hx,hy,R,faceFor(o.st,o.form,o.panic),{tint:o.tint,dirt:o.dirt,band:o.band,sweat:o.sweat,baby:D.k==='baby'});
+    if(o.dp){wctx.restore();for(const h of hands)if(h[1]<shY+4||Math.abs(h[0]-x)<R){wctx.fillStyle=SKIN;wctx.beginPath();wctx.arc(h[0],h[1],D.aw*.6,0,6.29);wctx.fill()}}
     if(pose==='eat'){const h=hands[1];wctx.fillStyle=SKIN;wctx.beginPath();wctx.arc(h[0],h[1],D.aw*.6,0,6.29);wctx.fill()}
+    if(o.dp)wctx.restore();
     wctx.restore();
     return{hx,hy,R,hands,top,fy}}
   function bubble(x,y,icon,now){const b=Math.sin(now/420)*2.5;wctx.save();wctx.translate(x,y+b);wctx.fillStyle='rgba(255,255,255,.96)';wctx.strokeStyle='#f4b3c2';wctx.lineWidth=2;
@@ -1660,10 +1691,14 @@ const Grow=(()=>{
       for(let j=0;j<4;j++){const ang=Math.sin(now/700+j*1.7)*.5,col=['#ff5d7e','#ffe066','#7fd0ff','#7be495'][j];wctx.save();wctx.translate(40+j*87,RT);wctx.rotate(ang);const g2=wctx.createLinearGradient(0,0,0,320);g2.addColorStop(0,col+'88');g2.addColorStop(1,col+'00');wctx.fillStyle=g2;wctx.beginPath();wctx.moveTo(-8,0);wctx.lineTo(8,0);wctx.lineTo(60,330);wctx.lineTo(-60,330);wctx.closePath();wctx.fill();wctx.restore()}
       wctx.fillStyle='#ccd';wctx.fillRect(CX-1,RT,2,22);const db2=wctx.createRadialGradient(CX-5,RT+30,2,CX,RT+34,14);db2.addColorStop(0,'#fff');db2.addColorStop(1,'#8890aa');wctx.fillStyle=db2;wctx.beginPath();wctx.arc(CX,RT+34,13,0,6.29);wctx.fill();
       if(a.phase==='dance'&&silent){o.pose='idle';o.rot=Math.sin(now/600)*.04;if(Math.random()<.01)texts.push({x:CX,y:RT+110,txt:'🎵 노래를 틀어주세요',t:now,c:'#fff',s:15,dur:1200})}
-      else if(a.phase==='dance'){const hit=1-bp;o.sq=Math.max(0,hit-.6)*.25;o.rot=Math.sin(beat*Math.PI)*(pat===1?.16:.08);tx=bx=CX+Math.sin(beat*Math.PI/2)*(pat===3?46:26);
-        o.pose=pat===0?(Math.floor(beat)%2?'cheer':'up'):pat===1?'up':pat===2?(Math.floor(beat)%2?'idle':'cheer'):'cheer';if(pat===2)fy=FLOOR-Math.sin(bp*Math.PI)*22;
-        if(a.song){const st=SONGS[a.song].seq[Math.floor(beat)%8];o.pose='idle';o.mv=st.mv;o.rot=(st.rot||0)+Math.sin(beat*Math.PI)*.03;tx=bx=CX+(st.dx||0);o.sq=Math.max(o.sq,st.sq?st.sq*(1-bp):0);fy=st.jump?FLOOR-Math.sin(bp*Math.PI)*24:FLOOR}
-        if(Math.floor(beat)!==a.lastBeat){a.lastBeat=Math.floor(beat);if(Math.random()<.5)texts.push({x:CX+(Math.random()-.5)*200,y:RT+120+Math.random()*80,txt:Math.random()<.5?'♪':'♫',t:now,c:['#ff8fab','#ffe066','#7fd0ff','#b27bff'][(Math.random()*4)|0],s:20,dur:900});
+      else if(a.phase==='dance'){const seq=a.song?SONGS[a.song].seq:GEN[pat],bi=Math.floor(beat),ka=seq[(bi+7)%8],kb=seq[bi%8],e=easeOB(Math.min(1,bp/.24)),amp=a.mic&&mic?Math.max(.75,Math.min(1.25,.6+mic.level*2.5)):1,
+          L=p=>((ka[p]||0)+((kb[p]||0)-(ka[p]||0))*e),kick=side=>kb.kick===side?Math.sin(Math.min(1,bp/.35)*Math.PI/2)*(bp>.6?1-(bp-.6)/.4:1):0;
+        o.dp={a:[ka.L,ka.R],b:[kb.L,kb.R],t:e,dx:L('dx')*amp,dy:L('dy')*amp+(1-Math.cos(bp*6.283))*2.5,lean:L('lean')*amp,tilt:L('tilt')+Math.sin(bp*6.283)*.05,spread:L('spread'),kickL:kick('L'),kickR:kick('R')};
+        o.pose='idle';o.rot=0;tx=bx=CX;fy=kb.jump?FLOOR-Math.sin(bp*Math.PI)*28:FLOOR;o.sq=bp<.1?(.1-bp)*.8:0;
+        // floor rings + hand trails
+        (a.rings=a.rings||[]).forEach((r,ri)=>{const k=(now-r)/650;if(k<1){wctx.strokeStyle=['#ff8fab','#ffe066','#7fd0ff','#b27bff'][ri%4];wctx.globalAlpha=(1-k)*.6;wctx.lineWidth=3;wctx.beginPath();wctx.ellipse(CX,FLOOR+2,40+k*110,8+k*20,0,0,6.29);wctx.stroke();wctx.globalAlpha=1}});a.rings=a.rings.filter(r=>now-r<650);
+        if(a.tr&&a.tr.length>1)for(let sd=0;sd<2;sd++){for(let q=1;q<a.tr.length;q++){const p0=a.tr[q-1][sd],p1=a.tr[q][sd];wctx.strokeStyle='rgba(255,240,250,'+(q/a.tr.length*.45)+')';wctx.lineWidth=2+q*1.2;wctx.lineCap='round';wctx.beginPath();wctx.moveTo(p0[0],p0[1]);wctx.lineTo(p1[0],p1[1]);wctx.stroke()}}
+        if(Math.floor(beat)!==a.lastBeat){a.lastBeat=Math.floor(beat);(a.rings=a.rings||[]).push(now);if(a.lastBeat%8===0&&a.lastBeat)burst(CX,FLOOR-150,['#ff8fab','#ffe066','#7fd0ff','#b27bff','#fff'],16);if(Math.random()<.5)texts.push({x:CX+(Math.random()-.5)*200,y:RT+120+Math.random()*80,txt:Math.random()<.5?'♪':'♫',t:now,c:['#ff8fab','#ffe066','#7fd0ff','#b27bff'][(Math.random()*4)|0],s:20,dur:900});
           if(a.lastBeat%8===0)gain(1,0,0,true)}
         S.energy=cl(S.energy-dt*.6,0,100);S.fit=cl(S.fit-dt*.4,0,100);if(S.fit<=30&&S.energy<=30){stopDance(false,true)}
         if(Math.random()<.004)talk(['둠칫둠칫','신난다!','춤 조아!','헥헥','범준이 댄스!'])}
@@ -1691,6 +1726,7 @@ const Grow=(()=>{
       wctx.strokeStyle=front?'#ff3d7f':'#d97796';wctx.lineWidth=front?3.5:2.5;wctx.beginPath();wctx.moveTo(l[0],l[1]);wctx.quadraticCurveTo(bx,2*ay-hy,r[0],r[1]);wctx.stroke()};
     rope(false);
     head=drawBJ(bx,fy,o,now);lastHands=head.hands;
+    if(act&&act.k==='dance'&&o.dp){(act.tr=act.tr||[]).push(head.hands.map(h=>h.slice()));if(act.tr.length>7)act.tr.shift()}else if(act&&act.k==='dance')act.tr=null;
     rope(true);
     if(act&&act.k==='gym'){for(const h of head.hands){wctx.fillStyle='#ffd35c';rr(h[0]-4,h[1]-9,8,16,3);wctx.fill()}}
     if(act&&(act.k==='study'||act.k==='school')){wctx.fillStyle='#c98f63';rr(CX-104,FLOOR-80,208,14,5);wctx.fill();wctx.fillStyle='#b07a50';rr(CX-96,FLOOR-68,192,70,6);wctx.fill();

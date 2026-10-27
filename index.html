@@ -1374,7 +1374,7 @@ const Grow=(()=>{
   function startEat(){act={k:'eat'};Sfx.tick()}
   function startPoop(){act={k:'poop',strain:0,done:0,fl:false,b0:S.bowel};bx=CX;Sfx.tick()}
   function startWash(){act={k:'wash',cells:new Set(),phase:'rub',rinse:0,foam:[],c0:S.clean,done:0};bx=CX;Sfx.tick()}
-  function startGym(){if(S.full<15){refuse('배고파서 힘이 없어요…');return}
+  function startGym(){
     act={k:'gym',T:1.25,ph:0,jumpT:-9e9,n:0,miss:0,start:now_()+1400,end:0,tripT:-9e9,over:S.fit>=85};bx=CX;Sfx.tick()}
   function startSleep(){S.sleeping=true;S.ovs=0;S.sE0=S.energy;S.cnt.sleep++;save();nextSnore=now_()+1200;Sfx.tick();say('잘 자 범준아 🌙','#5a5f9a');talk(['졸려…','잘 자~'],true)}
   function wake(q){if(!S.sleeping)return;S.sleeping=false;S.ovs=0;const got=S.energy-(S.sE0||0),full=S.energy>=99;
@@ -2143,11 +2143,11 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
         const k=a.run?a.el/a.dur:0;jt('🌙',30+k*(PW-60),RB-14,16,'#000')}},
     hold:{dur:15,holdG:1,ctrlTouch:1,init:a=>{a.v=0;a.vv=0;a.dg=0;a.hd=0;a.Z=NEEDV(a,[.72,.64,.56,.5,.44]);a.FT=NEEDV(a,[1.8,1.6,1.5,1.4,1.3])},ratio:a=>a.fail?0:1,est:a=>won(3000*a.mult),info:a=>['😣 끄응… 버텨!','◀ ▶ 꾹 누르고 있으면 바늘이 움직여요'],grade:a=>(a.dgT||0)<1?'S':(a.dgT||0)<3?'A':'B',
       onEnd:a=>{a.payFix=a.fail?0:3000;if(!a.fail)a.msg='끝까지 참았다! 🏆'},
-      down:(a,x,y,e)=>{if(!a.run)return;a.hd=x<CX?-1:1;a.hp=e?e.pointerId:1;Sfx.tick()},up:(a,e)=>{if(!e||e.pointerId===a.hp)a.hd=0},
+      down:(a,x,y,e)=>{if(!a.run)return;a.hd=x<CX?-1:1;a.hp=e?e.pointerId:1;Sfx.tick()},up:(a,e)=>{if(!e||e.pointerId===a.hp)a.hd=0},move:(a,x,y,e)=>{if(a.hd&&(!e||e.pointerId===a.hp)){const d=x<CX?-1:1;if(d!==a.hd){a.hd=d;Sfx.tick()}}},
       ctrl:(a,now,by,bh,pw)=>{const w=(pw-6)/2;[-1,1].forEach((d,i)=>{const x=14+i*(w+6),on=a.hd===d;wctx.save();if(on){wctx.shadowColor='#ff5d7e';wctx.shadowBlur=14}rr(x,by,w,bh,16);wctx.fillStyle=on?'#ffe1e8':'#fff';wctx.fill();wctx.restore();wctx.lineWidth=on?3:2;wctx.strokeStyle='#ff8fab';rr(x,by,w,bh,16);wctx.stroke();jt(d<0?'◀ 꾹':'꾹 ▶',x+w/2,by+bh/2-6,22,'#c93d63');jt(on?'누르는 중…':'꾹 누르고 있기',x+w/2,by+bh-16,10,'#9a8090')})},
       draw:(a,now,dt)=>{bgG('#3a2050','#24143a');const sp=wctx.createRadialGradient(CX,RT+60,10,CX,FLOOR,220);sp.addColorStop(0,'rgba(255,240,200,.35)');sp.addColorStop(1,'rgba(255,240,200,0)');wctx.fillStyle=sp;wctx.fillRect(0,RT,PW,RB-RT);
         rr(CX-96,RT+96,192,22,6);wctx.fillStyle='#ffcf3d';wctx.fill();jt('🏆 제1회 범준배 참기 대회',CX,RT+107.5,12,'#5a2a10');floorP(FLOOR-6,'#5a3a2a','#3a2418');
-        if(a.run){if(a.hd)a.vv+=a.hd*2.4*dt;a.vv+=(Math.random()-.5)*dt*(7+a.el/1000*.35)*a.df+Math.sign(a.v)*dt*.8*a.df;a.vv*=Math.pow(.35,dt);a.v=cl(a.v+a.vv*dt,-1.2,1.2);if(Math.abs(a.v)>a.Z){a.dg+=dt;a.dgT=(a.dgT||0)+dt;if(now-(a.hb||0)>420){a.hb=now;if(A())Sfx.tone(T(),.1,80,60,.2,'sine')}}else a.dg=Math.max(0,a.dg-dt*.6);
+        if(a.run){if(a.hd){if(a.vv*a.hd<0)a.vv*=Math.pow(.004,dt);a.vv+=a.hd*4.4*dt}a.vv=cl(a.vv,-2.3,2.3);a.vv+=(Math.random()-.5)*dt*(7+a.el/1000*.35)*a.df+Math.sign(a.v)*dt*.8*a.df;a.vv*=Math.pow(.35,dt);a.v=cl(a.v+a.vv*dt,-1.2,1.2);if(Math.abs(a.v)>a.Z){a.dg+=dt;a.dgT=(a.dgT||0)+dt;if(now-(a.hb||0)>420){a.hb=now;if(A())Sfx.tone(T(),.1,80,60,.2,'sine')}}else a.dg=Math.max(0,a.dg-dt*.6);
           if(a.dg>a.FT){a.fail=true;a.shk=now;accident(false);jobFinish(a,0,'참다가 그만… 바닥에 쌌어요 💦')}}
         if(a.dg>0){wctx.fillStyle='rgba(255,40,60,'+(Math.min(.35,a.dg/a.FT*.35)*(.6+.4*Math.sin(now/90)))+')';wctx.fillRect(0,RT,PW,RB-RT)}
         const gx=36,gw=PW-72,gy=RT+66,zw=a.Z/1.2*gw/2;rr(gx,gy,gw,22,11);wctx.fillStyle='#ff8fa6';wctx.fill();rr(CX-zw,gy,zw*2,22,8);wctx.fillStyle='#9ff0c0';wctx.fill();wctx.fillStyle='rgba(255,255,255,.35)';wctx.fillRect(CX-zw,gy+3,zw*2,4);rr(gx,gy,gw,22,11);wctx.strokeStyle='#fff';wctx.lineWidth=2;wctx.stroke();
@@ -2267,7 +2267,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     if(act.k==='dance'){return}
     if(act.k==='school'){if(act.end){if(now_()-act.end>600){act=null;say('학교 다녀왔어요! 🏠','#e07a00')}return}schoolTap();return}}
   function move(e,x,y){if(mode!=='grow')return;const [wx,wy]=toW(x,y);
-    if(act&&act.k==='job'&&!act.end&&act.g&&act.g.move&&now_()>=act.t0){act.g.move(act,wx,wy);return}
+    if(act&&act.k==='job'&&!act.end&&act.g&&act.g.move&&now_()>=act.t0){act.g.move(act,wx,wy,e);return}
     if(shopDrag&&shopDrag.id===e.pointerId&&act&&act.k==='shop'){const d=shopDrag,dx=wx-d.x0;if(Math.abs(dx)>7)d.moved=true;if(d.moved){let sx=d.sx0-dx;const mx=shopG?shopG.maxS:0;if(sx<0)sx/=3;else if(sx>mx)sx=mx+(sx-mx)/3;act.sx=sx;const t=now_(),ddt=Math.max(1,t-d.lt);d.v=d.v*.6+(-(wx-d.lx)/ddt*1000)*.4;d.lx=wx;d.lt=t}return}if(drag&&drag.id===e.pointerId){drag.x=wx;drag.y=wy;return}
     if(act&&act.k==='wash'&&act.phase==='rub'&&holds.has(e.pointerId))rub(wx,wy)}
   function up(e){holds.delete(e.pointerId);if(act&&act.k==='job'&&act.g&&act.g.up)act.g.up(act,e);if(shopDrag&&shopDrag.id===e.pointerId){const d=shopDrag;shopDrag=null;if(act&&act.k==='shop'){if(!d.moved){const it=shopHit(d.x0,d.y0);if(it)shopPick(SHOP[act.tab],it)}else act.vx=now_()-d.lt<120?d.v:0}return}if(!drag||drag.id!==e.pointerId)return;const d=drag;drag=null;if(!act||act.k!=='eat')return;const f=foods()[d.i];

@@ -1455,7 +1455,8 @@ const Grow=(()=>{
     {k:'fx',n:'이펙트',ic:'✨',it:[{id:'x_star',e:'⭐',n:'별',p:400},{id:'x_flower',e:'🌸',n:'꽃잎',p:500},{id:'x_bubble',e:'🫧',n:'비눗방울',p:500},{id:'x_note',e:'🎵',n:'음표',p:600},{id:'x_kiss',e:'💋',n:'뽀뽀',p:700},{id:'x_confetti',e:'🎊',n:'꽃가루',p:800},
       {id:'x_fire',e:'🔥',n:'불꽃',p:900},{id:'x_money',e:'💸',n:'돈벼락',p:1200},{id:'x_rain',e:'🌈',n:'무지개',p:1500},{id:'x_thunder',e:'⚡',n:'번개',p:1800},{id:'x_firework',e:'🎆',n:'불꽃놀이',p:3000}]}];
   const ITEM={};SHOP.forEach(c=>c.it.forEach(it=>{it.cat=c.k;ITEM[it.id]=it}));
-  const eqd=k=>{const id=G.eq[k];return id&&ITEM[id]&&G.own.includes(id)?id:null};
+  const prevId=()=>act&&act.k==='shop'&&act.prev&&ITEM[act.prev]?act.prev:null;   // 상점 미리보기 (아직 안 산 물건)
+  const eqd=k=>{const pv=prevId();if(pv&&ITEM[pv].cat===k&&k!=='furn')return pv;const id=G.eq[k];return id&&ITEM[id]&&G.own.includes(id)?id:null};
   const faceImg=it=>it.im?({KID,FIVE,TEN})[it.im]:xf(it.f),specialFace=()=>{const id=eqd('face');return id?faceImg(ITEM[id]):null};
   const faceFilt=now=>{const id=eqd('flt');if(!id)return null;const f=ITEM[id].f;return f==='anim'?'hue-rotate('+(((now/6)%360)|0)+'deg) saturate(1.6)':f};
   const BUBS={def:{f:'#fff',s:'#ff8fab',t:'#c93d63'},s_pink:{f:'#ffe3ee',s:'#ff5d7e',t:'#c93d63'},s_sky:{f:'#e6f5ff',s:'#5cb8ff',t:'#2b6fb8'},s_dark:{f:'#2b2838',s:'#8f8cff',t:'#fff'},
@@ -1659,7 +1660,7 @@ const Grow=(()=>{
       wctx.shadowColor='#ff3dd0';wctx.shadowBlur=14;wctx.font=font(28);wctx.fillStyle='#ff9bea';wctx.globalAlpha=Math.sin(now/90)>-.95?1:.4;wctx.fillText('GG',255,T+246);wctx.shadowColor='#3de0ff';wctx.fillStyle='#9ff0ff';wctx.font=font(13);wctx.fillText('범준 게이밍',255,T+270);wctx.shadowBlur=0;wctx.globalAlpha=1}
     wctx.restore()}
   // 가구
-  function drawFurn(now){const F=G.furn.filter(id=>G.own.includes(id));if(!F.length)return;const has=id=>F.includes(id);wctx.save();wctx.textAlign='center';wctx.textBaseline='middle';wctx.lineCap='round';
+  function drawFurn(now){const F=G.furn.filter(id=>G.own.includes(id)),pv=prevId();if(pv&&ITEM[pv].cat==='furn'&&!F.includes(pv))F.push(pv);if(!F.length)return;const has=id=>F.includes(id);wctx.save();wctx.textAlign='center';wctx.textBaseline='middle';wctx.lineCap='round';
     if(has('u_lights')){const wy=x=>RT+8+Math.pow(Math.sin((x-14)/(PW-28)*Math.PI*4),2)*10;wctx.strokeStyle='#5a6b4a';wctx.lineWidth=1.5;wctx.beginPath();for(let x=14;x<=PW-14;x+=4)wctx.lineTo(x,wy(x));wctx.stroke();
       const cs=['#ff5d7e','#ffe066','#7fd0ff','#7be495','#b27bff'];for(let j=0;j<14;j++){const x=22+j*(PW-44)/13,y=wy(x),on=Math.sin(now/300+j*1.3)>-.3;wctx.fillStyle=cs[j%5];wctx.globalAlpha=on?1:.35;wctx.beginPath();wctx.ellipse(x,y+5,3.2,4.5,0,0,6.29);wctx.fill();if(on){wctx.globalAlpha=.25;wctx.beginPath();wctx.arc(x,y+5,8,0,6.29);wctx.fill()}wctx.globalAlpha=1}}
     if(has('u_photo')){wctx.save();wctx.translate(160,RT+34);wctx.rotate(Math.sin(now/1400)*.03);rr(-21,0,42,50,4);wctx.fillStyle='#c98f63';wctx.fill();rr(-17,4,34,42,2);wctx.fillStyle='#fff';wctx.fill();
@@ -1700,8 +1701,10 @@ const Grow=(()=>{
     wctx.font=font(20);wctx.fillStyle='#e07a00';wctx.fillText('💰 내 돈 '+won(G.money),CX,RT+32);wctx.font=font(12);wctx.fillStyle='#9a8090';wctx.fillText('👛 범준이 지갑 '+won(S.pocket||0)+' · 알바 '+(G.jobs||0)+'번 · 번 돈 '+won(G.earned||0),CX,RT+57)}
   // 꾸미기 상점
   const shopItems=c=>(c.multi?[]:[{id:null,e:'🚫',n:c.k==='face'?'기본 얼굴':c.k==='bg'?'기본 방':'안 하기',p:0}]).concat(c.it);
-  function shopPick(c,it){if(it.id==null){G.eq[c.k]=null;bagSave();Sfx.tick();return}
+  function shopPick(c,it){const a=act;if(it.id==null){a.prev=null;G.eq[c.k]=null;bagSave();Sfx.tick();return}
     const own=G.own.includes(it.id);
+    if(!own&&a.prev!==it.id){a.prev=it.id;Sfx.tick();if(c.k==='fx'&&head)patFx(head.hx,head.hy-head.R*.3);if(c.k==='pet'){pet.x=bx+(bx<CX?80:-80);petJump(300)}texts=texts.filter(t=>!t.box);say('👀 미리보기! 한 번 더 누르면 '+won(it.p)+'에 사요','#9a4bff',RT+56);return}
+    a.prev=null;
     if(!own){if(G.money<it.p){refuse('돈이 부족해요 💸 알바하러 가요!');return}G.money-=it.p;G.own.push(it.id);jingle(0);burst(CX,RT+200,['#ffe066','#ff8fab','#7fd0ff','#fff'],22);say(it.n+' 샀어요! 🛍️','#ff3d7f',RT+56)}
     if(c.multi){const i=G.furn.indexOf(it.id);if(i>=0&&own)G.furn.splice(i,1);else if(i<0)G.furn.push(it.id)}
     else G.eq[c.k]=own&&G.eq[c.k]===it.id?null:it.id;
@@ -1712,18 +1715,18 @@ const Grow=(()=>{
     const cb={x:PW-86,y:RT+6,w:68,h:26,fn:()=>{act=null;Sfx.tick()}};btns.push(cb);rr(cb.x,cb.y,cb.w,cb.h,13);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#f4b3c2';wctx.stroke();wctx.fillStyle='#c93d63';wctx.font=font(12);wctx.fillText('닫기 ✕',cb.x+cb.w/2,cb.y+13.5);
     if(SHOP[a.tab].k==='bub'&&(!talkNow||now-talkNow.t>1750))talkNow={txt:pick(['말풍선 어때?','범준이 말풍선!','히히 예쁘다']),t:now}}
   function drawShopTabs(){const a=act;rr(12,68,PW-24,74,14);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#ffb3c8';wctx.lineWidth=1.5;wctx.stroke();
-    const tw=(PW-24-12-12)/5;SHOP.forEach((c,i)=>{const b={x:18+(i%5)*(tw+3),y:72+((i/5)|0)*23,w:tw,h:21,fn:()=>{a.tab=i;a.pg=0;Sfx.tick()}};btns.push(b);const on=a.tab===i;rr(b.x,b.y,b.w,b.h,10.5);wctx.fillStyle=on?'#ff5d7e':'#fff0f4';wctx.fill();
+    const tw=(PW-24-12-12)/5;SHOP.forEach((c,i)=>{const b={x:18+(i%5)*(tw+3),y:72+((i/5)|0)*23,w:tw,h:21,fn:()=>{a.tab=i;a.pg=0;a.prev=null;Sfx.tick()}};btns.push(b);const on=a.tab===i;rr(b.x,b.y,b.w,b.h,10.5);wctx.fillStyle=on?'#ff5d7e':'#fff0f4';wctx.fill();
       wctx.font=font(11);wctx.fillStyle=on?'#fff':'#c93d63';wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText(c.ic+' '+c.n,b.x+b.w/2,b.y+11.5)})}
   function drawShopItems(now,by,bh){drawShopTabs();const a=act,c=SHOP[a.tab],L=shopItems(c),per=4,pages=Math.ceil(L.length/per);a.pg=Math.min(a.pg,pages-1);const ax=pages>1?26:0,x0=14+ax,cw=(PW-28-ax*2-9)/4;
     if(pages>1){button({x:14,y:by,w:22,h:bh,fn:()=>{a.pg=(a.pg+pages-1)%pages;Sfx.tick()}},'‹',null,'#fff','#c93d63',false);button({x:PW-36,y:by,w:22,h:bh,fn:()=>{a.pg=(a.pg+1)%pages;Sfx.tick()}},'›',null,'#fff','#c93d63',false)}
     L.slice(a.pg*per,a.pg*per+per).forEach((it,j)=>{const b={x:x0+j*(cw+3),y:by,w:cw,h:bh,fn:()=>shopPick(c,it)};btns.push(b);
-      const own=it.id==null||G.own.includes(it.id),on=c.multi?G.furn.includes(it.id):(eqd(c.k)||null)===it.id,can=G.money>=it.p;
-      rr(b.x,b.y,b.w,b.h,14);wctx.fillStyle=on?'#fff0f4':'#fff';wctx.fill();wctx.lineWidth=on?2.5:1.5;wctx.strokeStyle=on?'#ff5d7e':'#f4b3c2';wctx.stroke();
+      const own=it.id==null||G.own.includes(it.id),pv=it.id!=null&&a.prev===it.id,on=!pv&&(c.multi?G.furn.includes(it.id):(eqd(c.k)||null)===it.id),can=G.money>=it.p;
+      rr(b.x,b.y,b.w,b.h,14);wctx.fillStyle=pv?'#f3ebff':on?'#fff0f4':'#fff';wctx.fill();wctx.lineWidth=pv||on?2.5:1.5;wctx.strokeStyle=pv?'#9a4bff':on?'#ff5d7e':'#f4b3c2';wctx.stroke();
       wctx.textAlign='center';wctx.textBaseline='middle';if(it.p>=5000&&!own){const sh=(now/700+j*.3)%1;wctx.save();rr(b.x,b.y,b.w,b.h,14);wctx.clip();const sg=wctx.createLinearGradient(b.x+b.w*(sh*2-1),b.y,b.x+b.w*(sh*2-1)+30,b.y+b.h);sg.addColorStop(0,'rgba(255,220,80,0)');sg.addColorStop(.5,'rgba(255,220,80,.35)');sg.addColorStop(1,'rgba(255,220,80,0)');wctx.fillStyle=sg;wctx.fillRect(b.x,b.y,b.w,b.h);wctx.restore();wctx.font=font(9);wctx.fillStyle='#e0a000';wctx.fillText('✨레전드',b.x+cw/2,b.y+9)}
       if(c.k==='face'&&it.id)drawFace(b.x+cw/2,b.y+30,20,faceImg(it));else{wctx.font=emo(26);wctx.fillText(it.e,b.x+cw/2,b.y+30)}
       let nm=it.n;wctx.font=font(11);while(wctx.measureText(nm).width>cw-6&&nm.length>2)nm=nm.slice(0,-1);wctx.fillStyle='#4a2730';wctx.fillText(nm,b.x+cw/2,b.y+60);
-      wctx.font=font(10);wctx.fillStyle=on?'#ff3d7f':own?'#2fa86a':can?'#e07a00':'#c0a0a8';wctx.fillText(on?(c.multi?'✔ 놓음':'✔ 착용중'):own?(it.id?'보유':''):won(it.p),b.x+cw/2,b.y+77)});
-    wctx.font=font(11);wctx.fillStyle='rgba(122,85,96,.8)';wctx.textAlign='center';wctx.fillText((c.multi?'가구는 여러 개 놓을 수 있어요':c.k==='fx'?'범준이를 쓰다듬으면 이펙트가 나와요':c.k==='pet'?'펫을 톡 누르면 점프해요':c.k==='flt'?'범준이 얼굴 사진에 필터를 씌워요':c.k==='sp'?'범준이 몸에 신기한 일이 생겨요':'누르면 바로 사서 '+(c.k==='bg'?'바꿔요':'입혀요'))+(pages>1?' · '+(a.pg+1)+'/'+pages:''),CX,RB-12)}
+      wctx.font=font(10);wctx.fillStyle=pv?'#9a4bff':on?'#ff3d7f':own?'#2fa86a':can?'#e07a00':'#c0a0a8';wctx.fillText(pv?(can?'👆 한 번 더':'돈 부족'):on?(c.multi?'✔ 놓음':'✔ 착용중'):own?(it.id?'보유':''):won(it.p),b.x+cw/2,b.y+77)});
+    wctx.font=font(11);wctx.fillStyle='rgba(122,85,96,.8)';wctx.textAlign='center';wctx.fillText((a.prev?'👀 미리보기 중 · 한 번 더 누르면 사요':'한 번 누르면 미리보기 · 두 번 누르면 구매')+(pages>1?' · '+(a.pg+1)+'/'+pages:''),CX,RB-12)}
   // 알바: 범준마트 계산대 (물건이 빨간 선에 오면 삑!)
   const JOBI=[['🥤',15],['🍙',12],['🍫',10],['🍜',20],['🧃',14],['🍞',18],['🥛',16],['🍦',22],['🍕',30],['🍪',11],['🧀',25],['🍓',24]],JOB_Y=FLOOR-40;
   function beep(){if(!A())return;const t=T();Sfx.tone(t,.07,2100,2100,.05,'square')}

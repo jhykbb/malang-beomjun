@@ -1494,7 +1494,10 @@ const Grow=(()=>{
         for(const s of [-1,1]){if(hrt)heartPath(hx+s*ex,ey+lr*.1,lr*1.15);else starPath(hx+s*ex,ey,lr*1.35);wctx.fill();wctx.stroke()}wctx.beginPath();wctx.moveTo(hx-ex+lr*.9,ey-lr*.3);wctx.lineTo(hx+ex-lr*.9,ey-lr*.3);wctx.stroke()}
       else if(g==='g_mono'){wctx.lineWidth=R*.05;wctx.strokeStyle='#d4a017';wctx.fillStyle='rgba(255,255,255,.22)';wctx.beginPath();wctx.arc(hx+ex,ey,lr*1.05,0,6.29);wctx.fill();wctx.stroke();
         wctx.lineWidth=R*.025;wctx.beginPath();wctx.moveTo(hx+ex+lr*.9,ey+lr*.5);wctx.quadraticCurveTo(hx+R*.95,hy+R*.5,hx+R*.72,hy+R*.98);wctx.stroke()}}wctx.restore()}
-    if(h){const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
+    if(h){const E=(im&&im.eyes)||[[-.37,-.14],[.37,-.14]],mx=hx+(E[0][0]+E[1][0])/2*R,my=hy+(E[0][1]+E[1][1])/2*R,ang=Math.atan2(E[1][1]-E[0][1],E[1][0]-E[0][0]),dd=Math.hypot(E[1][0]-E[0][0],E[1][1]-E[0][1]),ux=Math.sin(ang),uy=-Math.cos(ang),
+        px=mx-hx,py=my-hy,bq=px*ux+py*uy,cq=px*px+py*py-R*R*.81,tC=-bq+Math.sqrt(Math.max(0,bq*bq-cq)),tt=Math.min(1.75*dd*R,tC),ax=mx+ux*tt,ay=my+uy*tt,kk=cl(dd/.68,.72,1.12),R2=R*kk;
+      wctx.save();wctx.translate(ax,ay);wctx.rotate(ang);{const R=R2,hx=0,hy=R*.86;
+const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
       const t2=now_();
       if(h==='h_cat'){const tw2=Math.sin(t2/180)>.92?.25:0;for(const s2 of [-1,1]){wctx.save();wctx.translate(hx+s2*R*.55,hy-R*.72);wctx.rotate(s2*(.35+tw2));wctx.fillStyle='#4a4048';wctx.beginPath();wctx.moveTo(-R*.26,0);wctx.lineTo(0,-R*.58);wctx.lineTo(R*.26,0);wctx.closePath();wctx.fill();wctx.fillStyle='#ffb6cc';wctx.beginPath();wctx.moveTo(-R*.14,-R*.04);wctx.lineTo(0,-R*.4);wctx.lineTo(R*.14,-R*.04);wctx.closePath();wctx.fill();wctx.restore()}}
       else if(h==='h_devil'){for(const s2 of [-1,1]){wctx.fillStyle='#d81e3c';wctx.beginPath();wctx.moveTo(hx+s2*R*.32,hy-R*.86);wctx.quadraticCurveTo(hx+s2*R*.6,hy-R*1.05,hx+s2*R*.62,hy-R*1.5);wctx.quadraticCurveTo(hx+s2*R*.4,hy-R*1.15,hx+s2*R*.6,hy-R*.72);wctx.closePath();wctx.fill();wctx.fillStyle='rgba(255,255,255,.3)';wctx.beginPath();wctx.arc(hx+s2*R*.5,hy-R*1.1,R*.05,0,6.29);wctx.fill()}}
@@ -1520,7 +1523,7 @@ const Grow=(()=>{
       else if(h==='h_bun'){for(const s of [-1,1]){wctx.save();wctx.translate(hx+s*R*.36,hy-R*1.28);wctx.rotate(s*.18);wctx.fillStyle='#fff';wctx.strokeStyle='#f0d0dc';wctx.lineWidth=2;wctx.beginPath();wctx.ellipse(0,0,R*.2,R*.5,0,0,6.29);wctx.fill();wctx.stroke();wctx.fillStyle='#ffb6cc';wctx.beginPath();wctx.ellipse(0,R*.04,R*.1,R*.36,0,0,6.29);wctx.fill();wctx.restore()}
         wctx.strokeStyle='#ff8fab';wctx.lineWidth=R*.1;wctx.beginPath();wctx.arc(hx,hy,R*.98,Math.PI*1.18,Math.PI*1.82);wctx.stroke()}
       else if(h==='h_rib'){const rx=hx+R*.6,ry=hy-R*.74;wctx.save();wctx.translate(rx,ry);wctx.rotate(.35);wctx.fillStyle='#ff5d7e';for(const s of [-1,1]){wctx.beginPath();wctx.moveTo(0,0);wctx.lineTo(s*R*.42,-R*.24);wctx.lineTo(s*R*.42,R*.24);wctx.closePath();wctx.fill()}
-        wctx.fillStyle='#e0365f';wctx.beginPath();wctx.arc(0,0,R*.1,0,6.29);wctx.fill();wctx.restore()}}
+        wctx.fillStyle='#e0365f';wctx.beginPath();wctx.arc(0,0,R*.1,0,6.29);wctx.fill();wctx.restore()}}wctx.restore()}
     wctx.restore()}
   // 옷 (몸통 위에 덮어 그려요)
   function drawOutfit(id,x,top,bw,bh,D){const L=x-bw/2,c=ITEM[id].c;wctx.fillStyle=c;wctx.fillRect(L,top-2,bw,bh+4);

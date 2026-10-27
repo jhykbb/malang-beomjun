@@ -4233,19 +4233,19 @@ window.MB=(()=>{
   const eggKeys=()=>EGGS.filter(e=>me.eggs[e.k]).map(e=>e.k).join(',');
   async function allPlayers(){const r=await fetch(FB_URL+'/players.json',{cache:'no-store'});if(!r.ok)throw new Error(r.status);return (await r.json())||{}}
 
-  let draftPhoto='',obMode='new';
+  let draftPhoto='',obMode='new',obBase='new';
   function setAva(el,name,photo){el.textContent='';const p=safePhoto(photo);
     if(p){const im=document.createElement('img');im.src=p;im.alt='';el.append(im)}else el.textContent=(name||'?').trim().charAt(0)||'?'}
-  function setMode(m,msg){obMode=m;$('obErr').textContent='';$('obPin').value='';
+  function setMode(m,msg){if(m!=='login')obBase=m;obMode=m;$('obErr').textContent='';$('obPin').value='';
     $('obNewBox').style.display=m==='login'?'none':'contents';
     $('obMsg').textContent=msg||({new:'랭킹에 올라갈 이름, 프로필 사진, 비밀번호 4자리를 정해주세요. 비밀번호가 있으면 앱을 지우거나 폰을 바꿔도 이어서 할 수 있어요.',
       login:'전에 쓰던 이름이랑 비밀번호 4자리를 넣으면 기록을 그대로 불러와요.',edit:'이름이나 사진을 바꿀 수 있어요. 비밀번호는 바꿀 때만 적으면 돼요.'})[m];
     $('obPin').placeholder=m==='edit'&&me.pin?'새 비밀번호 (바꿀 때만)':'비밀번호 숫자 4자리';
     $('obGo').textContent=({new:'시작하기',login:'이어하기',edit:'저장'})[m];
-    $('obSwitch').hidden=m==='edit';$('obSwitch').textContent=m==='login'?'처음 하는 거예요':'전에 하던 계정이 있어요'}
+    $('obSwitch').hidden=false;$('obSwitch').textContent=m==='login'?(obBase==='edit'?'← 돌아가기':'처음 하는 거예요'):'전에 하던 계정이 있어요'}
   function openProfile(first,msg){draftPhoto=me.photo;$('obName').value=me.name;setAva($('obAva'),me.name,draftPhoto);
     setMode(first?'new':'edit',msg);$('obOv').hidden=false}
-  $('obSwitch').addEventListener('click',()=>setMode(obMode==='login'?'new':'login'));
+  $('obSwitch').addEventListener('click',()=>{if(obMode==='login'){$('obName').value=obBase==='edit'?me.name:$('obName').value;setMode(obBase)}else{if(obBase==='edit')$('obName').value='';setMode('login')}$('obName').focus()});
   $('obName').addEventListener('input',()=>{if(!draftPhoto)setAva($('obAva'),$('obName').value,'')});
   $('obPin').addEventListener('input',()=>{$('obPin').value=$('obPin').value.replace(/\D/g,'').slice(0,4)});
   $('obFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;

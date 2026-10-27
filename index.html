@@ -1369,7 +1369,7 @@ const Grow=(()=>{
   function startEat(){act={k:'eat'};Sfx.tick()}
   function startPoop(){act={k:'poop',strain:0,done:0,fl:false,b0:S.bowel};bx=CX;Sfx.tick()}
   function startWash(){act={k:'wash',cells:new Set(),phase:'rub',rinse:0,foam:[],c0:S.clean,done:0};bx=CX;Sfx.tick()}
-  function startGym(){if(S.full<15){refuse('배고파서 힘이 없어요…');return}if(S.energy<12){refuse('너무 피곤해요… 재워주세요 😪');return}
+  function startGym(){if(S.full<15){refuse('배고파서 힘이 없어요…');return}
     act={k:'gym',T:1.25,ph:0,jumpT:-9e9,n:0,miss:0,start:now_()+1400,end:0,tripT:-9e9,over:S.fit>=85};bx=CX;Sfx.tick()}
   function startSleep(){S.sleeping=true;S.ovs=0;S.sE0=S.energy;S.cnt.sleep++;save();nextSnore=now_()+1200;Sfx.tick();say('잘 자 범준아 🌙','#5a5f9a');talk(['졸려…','잘 자~'],true)}
   function wake(q){if(!S.sleeping)return;S.sleeping=false;S.ovs=0;const got=S.energy-(S.sE0||0),full=S.energy>=99;
@@ -1383,7 +1383,7 @@ const Grow=(()=>{
     else{if(Math.random()<.5){const a=12+r(38),b=3+r(7);ans=a*b;txt=a+' × '+b+' = ?'}else{const a=60+r(40),b=12+r(38);ans=a-b;txt=a+' − '+b+' = ?'}}
     const ch=new Set([ans]),sp=st===0?2:st===1?3:st===2?6:12;while(ch.size<3){const v=ans+(1+r(sp))*(Math.random()<.5?-1:1);if(v>=(st===0?1:0))ch.add(v)}
     return{txt,ans,emoji,ch:[...ch].sort(()=>Math.random()-.5)}}
-  function startStudy(){if(S.energy<12){refuse('너무 피곤해요… 재워주세요 😪');return}const st=stageOf(S.lv);act={k:'study',qs:Array.from({length:5},()=>genQ(st)),i:0,ok:0,res:null,end:0};bx=CX;Sfx.tick()}
+  function startStudy(){const st=stageOf(S.lv);act={k:'study',qs:Array.from({length:5},()=>genQ(st)),i:0,ok:0,res:null,end:0};bx=CX;Sfx.tick()}
   function answer(j){const a=act;if(!a||a.k!=='study'||a.res||a.end)return;const q=a.qs[a.i],ok=q.ch[j]===q.ans;a.res={t:now_(),ok,j};
     talk(ok?['알았다!','쉽다 히히','정답!']:['어려워…','몰라잉','헷갈려'],true);
     if(ok){a.ok++;ding();if(head)burst(head.hx,head.hy-head.R,['#ffe066','#fff','#7fd0ff'],10);texts.push({x:CX,y:RT+104,txt:'정답! ⭕',t:now_(),c:'#2fa86a',s:22,dur:800})}
@@ -1803,7 +1803,7 @@ const Grow=(()=>{
         wctx.font=font(11);wctx.fillStyle='#7a5560';wctx.fillText(S.friend,fx2,fy2-30)}
       o.pose=now-patT<300?'cheer':'idle'}
 
-    if(act&&act.k==='study'){const a=act,q=a.qs[Math.min(a.i,a.qs.length-1)];if(a.res&&now-a.res.t>850){a.res=null;a.i++;if(a.i%5===0){studyReward();if(act===a){a.qs.push(...Array.from({length:5},()=>genQ(stageOf(S.lv))));if(S.energy<5){a.end=now;texts.push({x:CX,y:RT+134,txt:'졸려서 공부 끝… 😪',t:now,c:'#5a5f9a',s:16,dur:1500})}}}}
+    if(act&&act.k==='study'){const a=act,q=a.qs[Math.min(a.i,a.qs.length-1)];if(a.res&&now-a.res.t>850){a.res=null;a.i++;if(a.i%5===0){studyReward();if(act===a){a.qs.push(...Array.from({length:5},()=>genQ(stageOf(S.lv))));}}}
       rr(124,RT+10,166,72,8);wctx.fillStyle='#b07a50';wctx.fill();rr(130,RT+16,154,60,5);wctx.fillStyle='#2f5d4a';wctx.fill();
       wctx.textAlign='center';wctx.textBaseline='middle';const bcx=207,bcy=RT+46;
       if(!a.end){if(q.emoji){wctx.font=emo(q.ans>4?17:20);const sp=q.ans>4?24:28;for(let j=0;j<q.ans;j++)wctx.fillText(q.emoji,bcx+(j-(q.ans-1)/2)*sp,bcy-7);wctx.font=font(12);wctx.fillStyle='#e8f5ee';wctx.fillText(q.txt,bcx,bcy+20)}

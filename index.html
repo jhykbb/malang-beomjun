@@ -1718,18 +1718,30 @@ const Grow=(()=>{
     const cb={x:PW-86,y:RT+6,w:68,h:26,fn:()=>{act=null;Sfx.tick()}};btns.push(cb);rr(cb.x,cb.y,cb.w,cb.h,13);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#f4b3c2';wctx.stroke();wctx.fillStyle='#c93d63';wctx.font=font(12);wctx.fillText('닫기 ✕',cb.x+cb.w/2,cb.y+13.5);
     if(SHOP[a.tab].k==='bub'&&(!talkNow||now-talkNow.t>1750))talkNow={txt:pick(['말풍선 어때?','범준이 말풍선!','히히 예쁘다']),t:now}}
   function drawShopTabs(){const a=act;rr(12,68,PW-24,74,14);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#ffb3c8';wctx.lineWidth=1.5;wctx.stroke();
-    const tw=(PW-24-12-12)/5;SHOP.forEach((c,i)=>{const b={x:18+(i%5)*(tw+3),y:72+((i/5)|0)*23,w:tw,h:21,fn:()=>{a.tab=i;a.pg=0;a.prev=null;Sfx.tick()}};btns.push(b);const on=a.tab===i;rr(b.x,b.y,b.w,b.h,10.5);wctx.fillStyle=on?'#ff5d7e':'#fff0f4';wctx.fill();
+    const tw=(PW-24-12-12)/5;SHOP.forEach((c,i)=>{const b={x:18+(i%5)*(tw+3),y:72+((i/5)|0)*23,w:tw,h:21,fn:()=>{a.tab=i;a.sx=0;a.vx=0;a.prev=null;Sfx.tick()}};btns.push(b);const on=a.tab===i;rr(b.x,b.y,b.w,b.h,10.5);wctx.fillStyle=on?'#ff5d7e':'#fff0f4';wctx.fill();
       wctx.font=font(11);wctx.fillStyle=on?'#fff':'#c93d63';wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText(c.ic+' '+c.n,b.x+b.w/2,b.y+11.5)})}
-  function drawShopItems(now,by,bh){drawShopTabs();const a=act,c=SHOP[a.tab],L=shopItems(c),per=4,pages=Math.ceil(L.length/per);a.pg=Math.min(a.pg,pages-1);const ax=pages>1?26:0,x0=14+ax,cw=(PW-28-ax*2-9)/4;
-    if(pages>1){button({x:14,y:by,w:22,h:bh,fn:()=>{a.pg=(a.pg+pages-1)%pages;Sfx.tick()}},'‹',null,'#fff','#c93d63',false);button({x:PW-36,y:by,w:22,h:bh,fn:()=>{a.pg=(a.pg+1)%pages;Sfx.tick()}},'›',null,'#fff','#c93d63',false)}
-    L.slice(a.pg*per,a.pg*per+per).forEach((it,j)=>{const b={x:x0+j*(cw+3),y:by,w:cw,h:bh,fn:()=>shopPick(c,it)};btns.push(b);
+  // 상점 목록: 옆으로 드래그해서 넘기고, ▲ 버튼으로 두 줄까지 펼쳐요
+  let shopDrag=null;
+  function shopGeo(by,bh){const a=act,c=SHOP[a.tab],L=shopItems(c),big=!!G.big,rows=big?2:1,gap=4,cw=74,ch=big?84:bh,top=big?TOTAL-12-ch*2-gap:by,vw=PW-28,cols=Math.ceil(L.length/rows),cont=cols*(cw+gap)-gap,maxS=Math.max(0,cont-vw);
+    return{a,c,L,big,rows,gap,cw,ch,top,x0:14,vw,h:rows*ch+(rows-1)*gap,maxS}}
+  let shopG=null;
+  function shopHit(wx,wy){const g=shopG;if(!g||wy<g.top||wy>g.top+g.h||wx<g.x0||wx>g.x0+g.vw)return null;const col=Math.floor((wx-g.x0+g.a.sx)/(g.cw+g.gap)),row=Math.floor((wy-g.top)/(g.ch+g.gap));
+    if((wx-g.x0+g.a.sx)-col*(g.cw+g.gap)>g.cw||(wy-g.top)-row*(g.ch+g.gap)>g.ch)return null;return g.L[col*g.rows+row]||null}
+  function drawShopItems(now,by,bh){drawShopTabs();const g=shopG=shopGeo(by,bh),a=g.a,c=g.c,dt=Math.min(.05,(now-(a.lt||now))/1000);a.lt=now;a.sx=a.sx||0;
+    if(!shopDrag){if(Math.abs(a.vx||0)>5){a.sx+=a.vx*dt;a.vx*=Math.pow(.04,dt)}else a.vx=0;const t2=cl(a.sx,0,g.maxS);if(t2!==a.sx){a.sx+=(t2-a.sx)*Math.min(1,dt*14);a.vx=0;if(Math.abs(t2-a.sx)<.5)a.sx=t2}}
+    if(g.big){wctx.save();wctx.shadowColor='rgba(74,39,48,.18)';wctx.shadowBlur=12;rr(8,g.top-30,PW-16,TOTAL-8-(g.top-30),18);wctx.fillStyle='#fff8f4';wctx.fill();wctx.restore();wctx.strokeStyle='#f6c9d4';wctx.lineWidth=1.5;rr(8,g.top-30,PW-16,TOTAL-8-(g.top-30),18);wctx.stroke()}
+    const hb={x:CX-62,y:g.big?g.top-26:RB-24,w:124,h:22,fn:()=>{G.big=!G.big;a.sx=0;a.vx=0;bagSave();Sfx.tick()}};btns.push(hb);rr(hb.x,hb.y,hb.w,hb.h,11);wctx.fillStyle='#ff5d7e';wctx.fill();wctx.font=font(12);wctx.fillStyle='#fff';wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText(g.big?'▼ 접기':'▲ 위로 당기기',CX,hb.y+11.5);
+    wctx.save();rr(g.x0-2,g.top-2,g.vw+4,g.h+4,16);wctx.clip();
+    g.L.forEach((it,i)=>{const col=Math.floor(i/g.rows),row=i%g.rows,bxx=g.x0+col*(g.cw+g.gap)-a.sx,byy=g.top+row*(g.ch+g.gap);if(bxx>g.x0+g.vw||bxx+g.cw<g.x0)return;const b={x:bxx,y:byy,w:g.cw,h:g.ch},cw=g.cw,ch=g.ch;
       const own=it.id==null||G.own.includes(it.id),pv=it.id!=null&&a.prev===it.id,on=!pv&&(c.multi?G.furn.includes(it.id):(eqd(c.k)||null)===it.id),can=G.money>=it.p;
       rr(b.x,b.y,b.w,b.h,14);wctx.fillStyle=pv?'#f3ebff':on?'#fff0f4':'#fff';wctx.fill();wctx.lineWidth=pv||on?2.5:1.5;wctx.strokeStyle=pv?'#9a4bff':on?'#ff5d7e':'#f4b3c2';wctx.stroke();
-      wctx.textAlign='center';wctx.textBaseline='middle';if(it.p>=5000&&!own){const sh=(now/700+j*.3)%1;wctx.save();rr(b.x,b.y,b.w,b.h,14);wctx.clip();const sg=wctx.createLinearGradient(b.x+b.w*(sh*2-1),b.y,b.x+b.w*(sh*2-1)+30,b.y+b.h);sg.addColorStop(0,'rgba(255,220,80,0)');sg.addColorStop(.5,'rgba(255,220,80,.35)');sg.addColorStop(1,'rgba(255,220,80,0)');wctx.fillStyle=sg;wctx.fillRect(b.x,b.y,b.w,b.h);wctx.restore();wctx.font=font(9);wctx.fillStyle='#e0a000';wctx.fillText('✨레전드',b.x+cw/2,b.y+9)}
-      if(c.k==='face'&&it.id)drawFace(b.x+cw/2,b.y+30,20,faceImg(it));else{wctx.font=emo(26);wctx.fillText(it.e,b.x+cw/2,b.y+30)}
-      let nm=it.n;wctx.font=font(11);while(wctx.measureText(nm).width>cw-6&&nm.length>2)nm=nm.slice(0,-1);wctx.fillStyle='#4a2730';wctx.fillText(nm,b.x+cw/2,b.y+60);
-      wctx.font=font(10);wctx.fillStyle=pv?'#9a4bff':on?'#ff3d7f':own?'#2fa86a':can?'#e07a00':'#c0a0a8';wctx.fillText(pv?(can?'👆 한 번 더':'돈 부족'):on?(c.multi?'✔ 놓음':'✔ 착용중'):own?(it.id?'보유':''):won(it.p),b.x+cw/2,b.y+77)});
-    wctx.font=font(11);wctx.fillStyle='rgba(122,85,96,.8)';wctx.textAlign='center';wctx.fillText((a.prev?'👀 미리보기 중 · 한 번 더 누르면 사요':'한 번 누르면 미리보기 · 두 번 누르면 구매')+(pages>1?' · '+(a.pg+1)+'/'+pages:''),CX,RB-12)}
+      wctx.textAlign='center';wctx.textBaseline='middle';
+      if(it.p>=5000&&!own){const sh=(now/700+i*.3)%1;wctx.save();rr(b.x,b.y,b.w,b.h,14);wctx.clip();const sg=wctx.createLinearGradient(b.x+b.w*(sh*2-1),b.y,b.x+b.w*(sh*2-1)+30,b.y+b.h);sg.addColorStop(0,'rgba(255,220,80,0)');sg.addColorStop(.5,'rgba(255,220,80,.35)');sg.addColorStop(1,'rgba(255,220,80,0)');wctx.fillStyle=sg;wctx.fillRect(b.x,b.y,b.w,b.h);wctx.restore();wctx.font=font(9);wctx.fillStyle='#e0a000';wctx.fillText('✨레전드',b.x+cw/2,b.y+9)}
+      wctx.fillStyle='#000';if(c.k==='face'&&it.id)drawFace(b.x+cw/2,b.y+ch*.34,ch*.22,faceImg(it));else{wctx.font=emo(ch>88?26:24);wctx.fillText(it.e,b.x+cw/2,b.y+ch*.34)}
+      let nm=it.n;wctx.font=font(11);while(wctx.measureText(nm).width>cw-6&&nm.length>2)nm=nm.slice(0,-1);wctx.fillStyle='#4a2730';wctx.fillText(nm,b.x+cw/2,b.y+ch*.66);
+      wctx.font=font(10);wctx.fillStyle=pv?'#9a4bff':on?'#ff3d7f':own?'#2fa86a':can?'#e07a00':'#c0a0a8';wctx.fillText(pv?(can?'👆 한 번 더':'돈 부족'):on?(c.multi?'✔ 놓음':'✔ 착용중'):own?(it.id?'보유':''):won(it.p),b.x+cw/2,b.y+ch*.84)});
+    wctx.restore();
+    if(g.maxS>0){const tw=g.vw*g.vw/(g.vw+g.maxS),tx=g.x0+(g.vw-tw)*cl(a.sx/g.maxS,0,1);rr(g.x0,TOTAL-8,g.vw,3,1.5);wctx.fillStyle='rgba(255,93,126,.12)';wctx.fill();rr(tx,TOTAL-8,tw,3,1.5);wctx.fillStyle='#ff8fab';wctx.fill()}}
   // 알바: 범준마트 계산대 (물건이 빨간 선에 오면 삑!)
   const JOBI=[['🥤',15],['🍙',12],['🍫',10],['🍜',20],['🧃',14],['🍞',18],['🥛',16],['🍦',22],['🍕',30],['🍪',11],['🧀',25],['🍓',24]],JOB_Y=FLOOR-40;
   function beep(){if(!A())return;const t=T();Sfx.tone(t,.07,2100,2100,.05,'square')}
@@ -1768,16 +1780,18 @@ const Grow=(()=>{
     if(S.sleeping){const t=now_();if(wy>RT&&wy<RB&&t-shushT>900){shushT=t;texts.push({x:wx,y:wy-20,txt:'쉿! 자고 있어요 🤫',t,c:'#5a5f9a',s:14,dur:900})}return}
     if(!act){idleTap(wx,wy);return}
     if(act.k==='job'){jobTap();return}
-    if(act.k==='wallet'||act.k==='shop')return;
+    if(act.k==='shop'){const g=shopG;if(g&&wy>=g.top&&wy<=g.top+g.h){shopDrag={id:e.pointerId,x0:wx,y0:wy,sx0:act.sx||0,moved:false,lx:wx,lt:now_(),v:0};act.vx=0}return}
+    if(act.k==='wallet')return;
     if(act.k==='eat'){if(act.fly||drag)return;for(let i=0;i<foodR.length;i++)if(inR(foodR[i],wx,wy)){drag={i,x:wx,y:wy,x0:wx,y0:wy,id:e.pointerId};return}return}
     if(act.k==='poop'){push();return}
     if(act.k==='wash'){holds.add(e.pointerId);if(act.phase==='rub')rub(wx,wy);return}
     if(act.k==='gym'){jump();return}
     if(act.k==='dance'){return}
     if(act.k==='school'){if(act.end){if(now_()-act.end>600){act=null;say('학교 다녀왔어요! 🏠','#e07a00')}return}schoolTap();return}}
-  function move(e,x,y){if(mode!=='grow')return;const [wx,wy]=toW(x,y);if(drag&&drag.id===e.pointerId){drag.x=wx;drag.y=wy;return}
+  function move(e,x,y){if(mode!=='grow')return;const [wx,wy]=toW(x,y);
+    if(shopDrag&&shopDrag.id===e.pointerId&&act&&act.k==='shop'){const d=shopDrag,dx=wx-d.x0;if(Math.abs(dx)>7)d.moved=true;if(d.moved){let sx=d.sx0-dx;const mx=shopG?shopG.maxS:0;if(sx<0)sx/=3;else if(sx>mx)sx=mx+(sx-mx)/3;act.sx=sx;const t=now_(),ddt=Math.max(1,t-d.lt);d.v=d.v*.6+(-(wx-d.lx)/ddt*1000)*.4;d.lx=wx;d.lt=t}return}if(drag&&drag.id===e.pointerId){drag.x=wx;drag.y=wy;return}
     if(act&&act.k==='wash'&&act.phase==='rub'&&holds.has(e.pointerId))rub(wx,wy)}
-  function up(e){holds.delete(e.pointerId);if(!drag||drag.id!==e.pointerId)return;const d=drag;drag=null;if(!act||act.k!=='eat')return;const f=foods()[d.i];
+  function up(e){holds.delete(e.pointerId);if(shopDrag&&shopDrag.id===e.pointerId){const d=shopDrag;shopDrag=null;if(act&&act.k==='shop'){if(!d.moved){const it=shopHit(d.x0,d.y0);if(it)shopPick(SHOP[act.tab],it)}else act.vx=now_()-d.lt<120?d.v:0}return}if(!drag||drag.id!==e.pointerId)return;const d=drag;drag=null;if(!act||act.k!=='eat')return;const f=foods()[d.i];
     if(Math.hypot(d.x-d.x0,d.y-d.y0)<10){act.fly={f,t:now_(),x0:d.x0,y0:d.y0};return}       // tap: food flies into the mouth
     if(head&&Math.hypot(d.x-head.hx,d.y-head.hy)<head.R+34)feed(f);else Sfx.tick()}
   /* ---- drawing helpers ---- */

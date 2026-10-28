@@ -1136,7 +1136,7 @@ const Grow=(()=>{
   function tick(sec,q,away){if(S.dead)return;const zz=S.sleeping,f0=S.full,e0=S.energy;
     S.full=cl(S.full-sec/(zz?180:90),0,100);S.bowel=cl(S.bowel+sec/(zz?480:240),0,100);S.clean=cl(S.clean-sec/(zz?300:150)-S.poops.length*sec/90,0,100);S.fit=cl(S.fit-sec/300,0,100);
     for(const k in S.over)S.over[k]=Math.max(0,S.over[k]-sec/OVER_DECAY*(zz?2:1));
-    if(zz){S.energy=cl(S.energy+sec*(S.sleepX||5),0,100);if(S.energy>=100){S.ovs=(S.ovs||0)+sec;if(S.ovs>=S.lim.sleep){die('sleep');return}}}
+    if(zz){S.energy=cl(S.energy+sec*(S.sleepX||5),0,100);if(S.energy>=100){S.ovs=(S.ovs||0)+sec;if(S.ovs>=S.lim.sleep){if(away){S.sleeping=false;S.ovs=0;S.selfWake=1}else{die('sleep');return}}}}   // 나가 있을 땐 너무 오래 자기 전에 스스로 일어나요
     else{S.energy=cl(S.energy-sec/120*(night()?1.8:1),0,100);}
     if(S.elock){if(S.elock>Date.now()){if(!zz)S.energy=100}else{if(S.eBack!=null&&!zz)S.energy=Math.min(S.energy,S.eBack);S.elock=0;S.eBack=null;if(!q)say('⚡ 기운 고정이 풀렸어요… 원래대로 돌아왔어요','#6a5fd0')}}   // 임상시험: 10분 동안 기운 100 고정, 끝나면 먹기 전 기운으로
     if(away){S.full=Math.max(S.full,Math.min(f0,5));S.energy=Math.max(S.energy,Math.min(e0,5))}
@@ -1144,10 +1144,11 @@ const Grow=(()=>{
     if(S.full<=0||S.clean<=0||S.poops.length>=3)S.sickT+=sec;else S.sickT=Math.max(0,S.sickT-sec*2);
     if(!S.sick&&S.sickT>=600){S.sick=true;if(!q){say('범준이가 아파요 🤒 밥 먹이고 씻겨줘요','#e0485f');thud()}}
     healCheck(q);vitals()}
-  function sim(){let sec=Math.min(4*86400,(Date.now()-simT)/1000);if(sec<1)return;const live=sec<5;simT=Date.now();const fl={f:0,e:0};
-    while(sec>0){const d=Math.min(60,sec);tick(d,!live,!live);if(!live&&!S.dead){if(S.full<=5)fl.f+=d;if(S.energy<=5&&!S.sleeping)fl.e+=d}sec-=d}
-    if(!live)awayRisk(fl)}
-  // 나가 있는 동안 배고픔·기운이 바닥(5)에 붙어 있던 시간만큼 죽을 확률이 올라가요: 하루 25% · 이틀 50% · 사흘 넘으면 75% (최대)
+  const SAFE_AWAY=3*3600;   // 나가 있어도 처음 3시간은 절대 안 죽어요
+  function sim(){let sec=Math.min(4*86400,(Date.now()-simT)/1000);if(sec<1)return;const live=sec<5;simT=Date.now();const fl={f:0,e:0};let el=0;
+    while(sec>0){const d=Math.min(60,sec);tick(d,!live,!live);el+=d;if(!live&&!S.dead&&el>SAFE_AWAY){if(S.full<=5)fl.f+=d;if(S.energy<=5&&!S.sleeping)fl.e+=d}sec-=d}
+    if(!live){awayRisk(fl);if(S.selfWake&&!S.dead){S.selfWake=0;setTimeout(()=>say('범준이가 혼자 일어났어요 ☀️','#e07a00'),900)}}}
+  // 나가 있는 동안(처음 3시간 뒤부터) 배고픔·기운이 바닥(5)에 붙어 있던 시간만큼 죽을 확률이 올라가요: 하루 25% · 이틀 50% · 사흘 넘으면 75% (최대)
   const AWAY_MAX=.75,AWAY_FULL=3*86400,awayP=T=>AWAY_MAX*Math.min(1,T/AWAY_FULL);
   function awayRisk(fl){if(S.dead||dying)return;const T=Math.max(fl.f,fl.e);if(T<60)return;const p=awayP(T),k=fl.f>=fl.e?'starve':'tired';
     if(Math.random()<p){die(k);if(S.dead)S.dead.away=1;save();return}

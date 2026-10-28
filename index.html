@@ -1459,8 +1459,8 @@ const Grow=(()=>{
       {id:'s_candy',e:'🍬',n:'캔디',p:1000},{id:'s_rain',e:'🌈',n:'무지개',p:1200},{id:'s_neon',e:'💠',n:'네온',p:1800},{id:'s_gold',e:'👑',n:'골드',p:2000}]},
     {k:'fx',n:'이펙트',ic:'✨',it:[{id:'x_star',e:'⭐',n:'별',p:400},{id:'x_flower',e:'🌸',n:'꽃잎',p:500},{id:'x_bubble',e:'🫧',n:'비눗방울',p:500},{id:'x_note',e:'🎵',n:'음표',p:600},{id:'x_kiss',e:'💋',n:'뽀뽀',p:700},{id:'x_confetti',e:'🎊',n:'꽃가루',p:800},
       {id:'x_fire',e:'🔥',n:'불꽃',p:900},{id:'x_money',e:'💸',n:'돈벼락',p:1200},{id:'x_rain',e:'🌈',n:'무지개',p:1500},{id:'x_thunder',e:'⚡',n:'번개',p:1800},{id:'x_firework',e:'🎆',n:'불꽃놀이',p:3000}]}];
-  // 가격: 제일 싼 게 1만 원, 비쌀수록 완만하게 오름 (원래 300원 → 1만, 1천 → 2.5만, 5천 → 8.2만, 1.2만 → 15.8만)
-  SHOP.forEach(c=>c.it.forEach(it=>{it.p0=it.p;it.p=Math.round(10000*Math.pow(it.p/300,.75)/1000)*1000}));
+  // 가격: 제일 싼 게 3만 원, 비쌀수록 완만하게 오름 (원래 300원 → 3만, 1천 → 7.4만, 5천 → 24.6만, 1.2만 → 47.7만)
+  SHOP.forEach(c=>c.it.forEach(it=>{it.p0=it.p;it.p=Math.round(30000*Math.pow(it.p/300,.75)/1000)*1000}));
   const ITEM={};SHOP.forEach(c=>c.it.forEach(it=>{it.cat=c.k;ITEM[it.id]=it}));
   const prevId=()=>act&&act.k==='shop'&&act.prev&&ITEM[act.prev]?act.prev:null;   // 상점 미리보기 (아직 안 산 물건)
   const eqd=k=>{const pv=prevId();if(pv&&ITEM[pv].cat===k&&k!=='furn')return pv;const id=G.eq[k];return id&&ITEM[id]&&G.own.includes(id)?id:null};

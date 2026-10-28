@@ -1155,7 +1155,8 @@ const Grow=(()=>{
     if(p>=.05)setTimeout(()=>{if(!S.dead)say((k==='starve'?'배고파서 쓰러질 뻔했어요… 😵':'너무 지쳐서 쓰러질 뻔했어요… 😵')+' (위험 '+Math.round(p*100)+'%)','#e0485f')},600)}
   /* ---- growth ---- */
   function pickForm(){const c=S.cnt;if(S.study>=20)return'gen';if(c.cake>=12&&c.cake*12>c.jumps)return'fat';if(c.jumps>=250)return'mus';return'hun'}
-  function gain(n,x,y,quiet,raw){n=raw?Math.round(n):Math.round(n*(S.lv<10?4:1.5));   // 10살까지는 경험치 4배, 그 뒤로는 1.5배 (알바 경험치는 따로 계산)
+  const xm=()=>S.lv<=19?2.5:1.9;   // 19살까지는 경험치 2.5배, 20살부터는 1.9배 (알바 경험치는 따로 계산)
+  function gain(n,x,y,quiet,raw){n=raw?Math.round(n):Math.round(n*xm());
    if(n<=0||S.dead)return;if(S.sick){texts.push({x:x||CX,y:y||300,txt:'아파서 못 자라요…',t:now_(),c:'#e0485f',s:14,dur:1100});return}
     S.exp+=n;if(!quiet)texts.push({x:x||CX,y:y||300,txt:'+'+n+' 경험치',t:now_(),c:'#9a4bff',s:16,dur:1100});
     const st0=stageOf(S.lv);let up=false;while(S.exp>=need(S.lv)){S.exp-=need(S.lv);S.lv++;up=true}
@@ -1223,7 +1224,7 @@ const Grow=(()=>{
   ].filter(e=>e.c===undefined||e.c)};
   function applyFx(fx){const parts2=[];for(const k in fx){let v=fx[k];if(!v||k==='exp')continue;   // 학교에선 경험치 변동 없음
 
-      if(k==='bond'){if(!S.friend)continue;S.bond=cl((S.bond||0)+v,0,100)}else if(k==='study')S.study=Math.max(0,(S.study||0)+v);else if(k==='exp'){v=Math.round(v*(S.lv<10?4:1));gain(v/(S.lv<10?4:1),0,0,true)}else if((k==='energy'||k==='full')&&v<0){const nv=Math.max(Math.min(S[k],5),S[k]+v);v=Math.round((nv-S[k])*10)/10;S[k]=nv;if(!v)continue}   // 학교에선 기운·배부름이 5 밑으로 안 내려감
+      if(k==='bond'){if(!S.friend)continue;S.bond=cl((S.bond||0)+v,0,100)}else if(k==='study')S.study=Math.max(0,(S.study||0)+v);else if(k==='exp'){v=Math.round(v*xm());gain(v/xm(),0,0,true)}else if((k==='energy'||k==='full')&&v<0){const nv=Math.max(Math.min(S[k],5),S[k]+v);v=Math.round((nv-S[k])*10)/10;S[k]=nv;if(!v)continue}   // 학교에선 기운·배부름이 5 밑으로 안 내려감
       else S[k]=cl(S[k]+v,0,100);
       act&&act.k==='school'&&(act.sum[k]=(act.sum[k]||0)+v);parts2.push(FXN[k]+(v>0?' +':' ')+Math.round(v))}
     return parts2.join(', ')}
@@ -2959,7 +2960,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     if(act&&act.k==='study'&&act.end&&now-act.end>1700)act=null;
     if(act&&act.k==='gym'){const a=act;
       if(!a.end&&now>=a.start){const p0=a.ph;a.ph+=dt/a.T;if(Math.floor(a.ph-.5)>Math.floor(p0-.5)){
-          if(jh(a,now)>16){a.n++;a.T=Math.max(.62,a.T*.975);swish();S.cnt.jumps++;S.fit=cl(S.fit+1.2,0,100);S.full=cl(S.full-.75,0,100);S.clean=cl(S.clean-1.5,0,100);S.energy=cl(S.energy-.9,0,100);gain(1,0,0,true);a.xp=(a.xp||0)+(S.lv<10?4:1);if(a.n%6===0)talk(a.n>=18?['힘드러…','헥헥','다리 아파']:['재미따!','신난다!','하나 더!']);if(act===a)texts.push({x:bx+46,y:head.hy-head.R,txt:a.n+'',t:now,c:'#2fa86a',s:18,dur:600})}
+          if(jh(a,now)>16){a.n++;a.T=Math.max(.62,a.T*.975);swish();S.cnt.jumps++;S.fit=cl(S.fit+1.2,0,100);S.full=cl(S.full-.75,0,100);S.clean=cl(S.clean-1.5,0,100);S.energy=cl(S.energy-.9,0,100);gain(1,0,0,true);a.xp=(a.xp||0)+Math.round(xm());if(a.n%6===0)talk(a.n>=18?['힘드러…','헥헥','다리 아파']:['재미따!','신난다!','하나 더!']);if(act===a)texts.push({x:bx+46,y:head.hy-head.R,txt:a.n+'',t:now,c:'#2fa86a',s:18,dur:600})}
           else{a.miss++;a.tripT=now;thud();if(window.MBV)MBV(50,200);texts.push({x:bx,y:head.hy-head.R-16,txt:'아야!',t:now,c:'#e0485f',s:18,dur:800});talk(['아야!!','줄 미워!'],true);a.ph=Math.ceil(a.ph);a.start=now+800}
           if(act===a&&(a.miss>=3||S.energy<=0||S.full<=0))finishGym()}}
       if(act&&!a.end&&now<a.start&&a.n===0&&a.miss===0){const k=Math.ceil((a.start-now)/450);wctx.font=font(40);wctx.textAlign='center';wctx.lineWidth=7;wctx.strokeStyle='#fff';const s=k>=1&&k<=3?k+'':'준비';wctx.strokeText(s,CX,RT+64);wctx.fillStyle='#ff5d7e';wctx.fillText(s,CX,RT+64)}

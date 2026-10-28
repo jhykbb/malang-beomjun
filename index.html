@@ -1142,11 +1142,11 @@ const Grow=(()=>{
     if(S.full<=0||S.clean<=0||S.poops.length>=3)S.sickT+=sec;else S.sickT=Math.max(0,S.sickT-sec*2);
     if(!S.sick&&S.sickT>=600){S.sick=true;if(!q){say('범준이가 아파요 🤒 밥 먹이고 씻겨줘요','#e0485f');thud()}}
     healCheck(q);vitals()}
-  function sim(){let sec=Math.min(86400,(Date.now()-simT)/1000);if(sec<1)return;const live=sec<5;simT=Date.now();const fl={f:0,e:0};
+  function sim(){let sec=Math.min(4*86400,(Date.now()-simT)/1000);if(sec<1)return;const live=sec<5;simT=Date.now();const fl={f:0,e:0};
     while(sec>0){const d=Math.min(60,sec);tick(d,!live,!live);if(!live&&!S.dead){if(S.full<=5)fl.f+=d;if(S.energy<=5&&!S.sleeping)fl.e+=d}sec-=d}
     if(!live)awayRisk(fl)}
-  // 나가 있는 동안 배고픔·기운이 바닥(5)에 붙어 있던 시간만큼 죽을 확률이 올라가요: 1시간 37% · 3시간 65% · 6시간 넘으면 75%까지
-  const AWAY_MAX=.75,AWAY_TAU=5400,awayP=T=>AWAY_MAX*(1-Math.exp(-T/AWAY_TAU));
+  // 나가 있는 동안 배고픔·기운이 바닥(5)에 붙어 있던 시간만큼 죽을 확률이 올라가요: 하루 25% · 이틀 50% · 사흘 넘으면 75% (최대)
+  const AWAY_MAX=.75,AWAY_FULL=3*86400,awayP=T=>AWAY_MAX*Math.min(1,T/AWAY_FULL);
   function awayRisk(fl){if(S.dead||dying)return;const T=Math.max(fl.f,fl.e);if(T<60)return;const p=awayP(T),k=fl.f>=fl.e?'starve':'tired';
     if(Math.random()<p){die(k);if(S.dead)S.dead.away=1;save();return}
     if(p>=.05)setTimeout(()=>{if(!S.dead)say((k==='starve'?'배고파서 쓰러질 뻔했어요… 😵':'너무 지쳐서 쓰러질 뻔했어요… 😵')+' (위험 '+Math.round(p*100)+'%)','#e0485f')},600)}

@@ -1104,7 +1104,8 @@ const Grow=(()=>{
     const bs=bubStyle();bubBox(x,y,tw,bs);
     const tx0=cl(hx-R*.35,x+12,x+tw-12);wctx.beginPath();wctx.moveTo(tx0-6,y+29);wctx.lineTo(tx0+4,y+42);wctx.lineTo(tx0+6,y+29);wctx.closePath();wctx.fillStyle=bs.f;wctx.fill();wctx.beginPath();wctx.moveTo(tx0-6,y+30);wctx.lineTo(tx0+4,y+42);wctx.lineTo(tx0+6,y+30);wctx.stroke();if(bs.cloud){wctx.fillStyle=bs.f;wctx.fillRect(tx0-5,y+24,10,6)}
     wctx.fillStyle=bs.t;wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText(talkNow.txt,x+tw/2,y+15.5);wctx.restore()}
-  function geo(){u=Math.min(W*.99/PW,(H-4)/TOTAL);ox=(W-PW*u)/2;oy=Math.max(0,(H-TOTAL*u)/2)}
+  // 대전 중(반반 화면)엔 내 알바 화면을 위쪽 절반에만 그려요 — 아래 절반엔 상대 화면이 떠요
+  function geo(){if(act&&act.duel&&window.MB_SPLIT){const t0=RT-6,h0=TOTAL-t0;u=Math.min(W*.99/PW,(H*.56-2)/h0);ox=(W-PW*u)/2;oy=-t0*u+1;return}u=Math.min(W*.99/PW,(H-4)/TOTAL);ox=(W-PW*u)/2;oy=Math.max(0,(H-TOTAL*u)/2)}
   function report(){if(window.MB&&MB.score)MB.score(S.best,'grow');else if(appKind==='grow')cntEl.textContent=S.best}
   /* ---- sound ---- */
   const A=()=>Sfx.ok&&Sfx.ok(),T=()=>Sfx.ctx.currentTime;
@@ -2001,7 +2002,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     if(res==='win'){jingle(1);coinParts(14);burst(CX,RT+120,['#ff5d7e','#ffe066','#5cc8ff','#7be495','#b27bff'],30)}else if(res==='lose')nope();else ding();
     try{d.onEnd&&d.onEnd({res,my:d.final,opp:d.opp.s,gain:d.gain,bet:d.bet,mode:d.mode})}catch(e){}save()}
   function duelStep(a,now){const d=a.duel,o=d.opp,my=duelMy(a);
-    if(now-d.lastTick>400){d.lastTick=now;try{d.onTick&&d.onTick({s:my,alive:!a.end,done:!!a.end})}catch(e){}}
+    if(now-d.lastTick>300){d.lastTick=now;try{d.onTick&&d.onTick({s:my,alive:!a.end,done:!!a.end})}catch(e){}}
     if(d.res)return;
     if(!a.end){if(now<a.t0)return;if(o.left){jobFinish(a,1,'상대가 나가 버렸어요…');return}
       if(d.mode==='survive'&&o.done&&a.el/1000>o.s+.05)jobFinish(a,1,'상대가 먼저 쓰러졌어요! 🎉');return}
@@ -2992,7 +2993,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     try{x.drawImage(wx,(ox+10*u)*dpr,(oy+RT*u)*dpr,320*u*dpr,(RB-RT)*u*dpr,0,0,w,h);return snapC.toDataURL('image/jpeg',.5)}catch(e){return null}}
   // 알바·미니게임 하는 중이면 대전 신청은 끝날 때까지 기다려요
   const busy=()=>!!(exam||(act&&((act.k==='job'&&!act.end)||['gym','wash','study','school','dance','poop','eat'].includes(act.k))));
-  const growApi={busy,snap,card,portrait,saveNow:()=>{save();bagSave()},freeze:()=>{frozen=true},money:()=>Math.floor(G.money||0),duelJobs,duelCan,duelStart,duelOpp,duelState:()=>act&&act.duel?{did:act.duel.did,res:act.duel.res,end:!!act.end}:null};
+  const growApi={busy,snap,card,portrait,saveNow:()=>{save();bagSave()},freeze:()=>{frozen=true},money:()=>Math.floor(G.money||0),duelJobs,duelCan,duelStart,duelOpp,duelState:()=>{if(!act||!act.duel)return null;const d=act.duel;return{did:d.did,res:d.res,end:!!act.end,mode:d.mode,my:duelMy(act),opp:d.opp.s,oppSeen:d.opp.seen,oppDone:d.opp.done,oppLeft:!!d.opp.left,oppName:d.oppName,started:now_()>=act.t0}}};
   return{...growApi,down,move,up,draw,best:()=>S.best,_s:()=>S,_G:()=>G,_job:(id,fast,st)=>{startJobAct(JOBS.find(x=>x.id===id),st);if(fast)act.t0=now_()+100},_board:()=>openBoard(),_set:o=>{Object.assign(S,o);save()},_act:()=>act,_g:()=>({u,ox,oy}),_away:ms=>{simT-=ms},_revive:()=>{S.dead=null;dying=null;act=null},_awayP:awayP}
 })();
 window.MBGrow={card:Grow.card,portrait:Grow.portrait,saveNow:Grow.saveNow,freeze:Grow.freeze,money:Grow.money,duelJobs:Grow.duelJobs,duelCan:Grow.duelCan,duelStart:Grow.duelStart,duelOpp:Grow.duelOpp,duelState:Grow.duelState,snap:Grow.snap,busy:Grow.busy};   // 앱 레이어(랭킹 프로필·로그아웃)에서 써요
@@ -4316,14 +4317,17 @@ header{align-items:center}
 .betrow{display:flex;gap:6px}
 .betrow input{flex:1;min-width:0;font:400 1rem var(--display);padding:9px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
 .betrow .btn{flex:none;padding:9px 16px}
-#duelPip{position:fixed;right:10px;top:50%;z-index:48;width:min(30vw,124px);border-radius:14px;overflow:hidden;background:#2b2236;border:2px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.35);touch-action:none;cursor:grab;user-select:none}
-#duelPip[hidden]{display:none}
-#duelPip img{display:block;width:100%;aspect-ratio:320/348;object-fit:cover;pointer-events:none}
-#duelPip img:not([src]){visibility:hidden}
-#duelPip:not(:has(img[src])){min-height:110px}
-#duelPip small{position:absolute;left:0;right:0;top:0;z-index:1;background:rgba(0,0,0,.55);color:#fff;font:400 .68rem var(--display);padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#pipWait{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:400 .72rem var(--display);text-align:center;white-space:pre-line;padding:18px 6px 6px}
-#pipWait[hidden]{display:none}
+#duelSplit{position:fixed;z-index:48;display:flex;flex-direction:column;background:#241a2e;border-top:3px solid #fff;box-shadow:0 -6px 18px rgba(0,0,0,.25)}
+#duelSplit[hidden]{display:none}
+.ds-bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 12px;background:linear-gradient(90deg,#ff5d7e,#5a6bff);color:#fff;font:400 .95rem var(--display)}
+.ds-bar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-bar span:last-child{text-align:right}
+.ds-bar b{flex:none;font-weight:400}
+.ds-view{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+.ds-view img{max-width:100%;max-height:100%;width:auto;height:100%;aspect-ratio:320/348;object-fit:contain;display:block}
+.ds-view img:not([src]){visibility:hidden}
+#dsWait{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:400 .9rem var(--display);text-align:center;white-space:pre-line}
+#dsWait[hidden]{display:none}
 </style>
 
 <div class="ov" id="rankOv" hidden>
@@ -4363,7 +4367,7 @@ header{align-items:center}
   </div>
 </div>
 
-<div id="duelPip" hidden><small id="pipName"></small><img id="pipImg" alt="상대 화면"><span id="pipWait">연결 중…</span></div>
+<div id="duelSplit" hidden><div class="ds-bar"><span id="dsMe"></span><b id="dsMid">⚔️</b><span id="dsOpp"></span></div><div class="ds-view"><img id="dsImg" alt="상대 화면"><span id="dsWait">상대 화면 받는 중…</span></div></div>
 
 <div class="ov" id="dexOv" hidden>
   <div class="sheet" role="dialog" aria-labelledby="dexTitle">
@@ -4530,16 +4534,22 @@ window.MB=(()=>{
     const b=document.createElement('button');b.className='btn';b.textContent='⚔️ 대전 신청';const ck=MBGrow.duelCan(),old=!((+p.dv||0)>=DUEL_V);b.disabled=!on||old||!ck.ok||!!duel||!!lob;r1.append(st,b);box.append(r1);
     const n=document.createElement('span');n.className='st';n.textContent=!on?'상대가 앱을 켜고 있을 때만 신청할 수 있어요':old?'상대가 옛날 버전이라 대전을 못 받아요. 최신 버전으로 업데이트해 달라고 해 주세요':!ck.ok?ck.why:'수락하면 대기실에서 알바·판돈을 같이 정해요';box.append(n);
     b.onclick=()=>sendDuel(id,p)}
-  async function sendDuel(oid,p){if(duel||lob)return;const ck=MBGrow.duelCan();if(!ck.ok){toast(ck.why,'','warn');return}
-    const did=me.id+'-'+Date.now().toString(36),ib='/players/'+enc(oid)+'/inbox';let n=0;
+  let dSess=0;
+  async function sendDuel(oid,p){if(duel||lob||dSess)return;const ck=MBGrow.duelCan();if(!ck.ok){toast(ck.why,'','warn');return}
+    const sess=dSess=Date.now(),alive=()=>dSess===sess,did=me.id+'-'+sess.toString(36),ib='/players/'+enc(oid)+'/inbox',nm=p.name||'상대';let n=0;
+    const end=()=>{if(alive())dSess=0;duelOvHide()};
     try{await fbJ(myDuel(),'PUT',{did,state:'invite',t:Date.now()});await fbJ(ib,'PUT',{did,from:me.id,fname:me.name,t:Date.now(),n})}
-    catch(e){toast('신청을 못 보냈어요. 인터넷을 확인해 주세요','','warn');return}
-    let left=30,tot=0,busyO=false;const nm=p.name||'상대';const cancel=async()=>{duelOvHide();try{await fbJ(ib,'DELETE');await fbJ(myDuel(),'PATCH',{state:'cancel'})}catch(e){}};
-    duelOvShow('⚔️ 대전 신청!',nm+'님이 받아 주길 기다리는 중…','수락하면 대기실에서 알바랑 판돈을 같이 정해요',[['취소',cancel,true]],avaEl(p.name,p.photo));$('duelCd').textContent=left;
-    dWait=setInterval(async()=>{tot++;if(!busyO)left--;$('duelCd').textContent=busyO?'⏳':Math.max(0,left);
-      if(left<=0||tot>180){cancel();toast(nm+'님이 대답이 없어요','','warn');return}
-      try{if(tot%2===0){n++;const iv=await fbJ(ib,'PATCH',{n,t:Date.now()}).then(()=>fbJ(ib));const bz=!!(iv&&iv.busy);if(bz!==busyO){busyO=bz;$('duelMsg').textContent=bz?nm+'님이 지금 알바하는 중이에요':nm+'님이 받아 주길 기다리는 중…';$('duelSub').textContent=bz?'알바가 끝나면 바로 신청이 떠요. 조금만 기다려요 ⏳':'수락하면 대기실에서 알바랑 판돈을 같이 정해요'}}
-        const r=await fbJ('/players/'+enc(oid)+'/duel');if(r&&r.did===did){if(r.state==='lobby'){duelOvHide();fbJ(ib,'DELETE').catch(()=>{});openLobby(did,oid,nm,p.photo,true,r)}else if(r.state==='decline'){duelOvHide();fbJ(ib,'DELETE').catch(()=>{});toast(nm+'님이 거절했어요 😢','','warn')}}}catch(e){}},1000)}
+    catch(e){dSess=0;toast('신청을 못 보냈어요. 인터넷을 확인해 주세요','','warn');return}
+    let left=30,tot=0,busyO=false,fly=false;
+    const cancel=async(msg)=>{if(!alive())return;end();if(msg)toast(msg,'','warn');try{await fbJ(ib,'DELETE');await fbJ(myDuel(),'PATCH',{state:'cancel'})}catch(e){}};
+    duelOvShow('⚔️ 대전 신청!',nm+'님이 받아 주길 기다리는 중…','수락하면 대기실에서 알바랑 판돈을 같이 정해요',[['취소',()=>cancel()]],avaEl(p.name,p.photo));$('duelCd').textContent=left;
+    const tick=async()=>{if(!alive())return;tot++;if(!busyO)left--;$('duelCd').textContent=busyO?'⏳':Math.max(0,left);
+      if(left<=0||tot>180){cancel(nm+'님이 대답이 없어요');return}if(fly)return;fly=true;
+      try{if(tot%2===0){n++;await fbJ(ib,'PATCH',{n,t:Date.now()});const iv=await fbJ(ib);if(!alive())return;const bz=!!(iv&&iv.busy);if(bz!==busyO){busyO=bz;$('duelMsg').textContent=bz?nm+'님이 지금 알바하는 중이에요':nm+'님이 받아 주길 기다리는 중…';$('duelSub').textContent=bz?'알바가 끝나면 바로 신청이 떠요. 조금만 기다려요 ⏳':'수락하면 대기실에서 알바랑 판돈을 같이 정해요'}}
+        const r=await fbJ('/players/'+enc(oid)+'/duel');if(!alive())return;
+        if(r&&r.did===did){if(r.state==='lobby'){end();fbJ(ib,'DELETE').catch(()=>{});openLobby(did,oid,nm,p.photo,true,r)}else if(r.state==='decline'){end();fbJ(ib,'DELETE').catch(()=>{});toast(nm+'님이 거절했어요 😢','','warn')}}}
+      catch(e){}finally{fly=false}};
+    clearInterval(dWait);dWait=setInterval(()=>{if(!alive()){clearInterval(this_);return}tick()},1000);const this_=dWait}
   const inbN={};
   async function checkInbox(){if(!FB_URL||!me.name||frozen||document.hidden||duel||lob||!$('duelOv').hidden||!hasGrow()||!MBGrow.duelStart)return;
     const ib='/players/'+enc(me.id)+'/inbox';let inv;try{inv=await fbJ(ib)}catch(e){return}if(!inv||!inv.did||dSeen[inv.did])return;
@@ -4556,7 +4566,7 @@ window.MB=(()=>{
     dWait=setInterval(()=>{left--;$('duelCd').textContent=Math.max(0,left);if(left<=0)no()},1000)}
   setInterval(checkInbox,2500);
   /* 대기실: 누가 바꾸든 마지막으로 바꾼 설정이 둘 다에게 보여요. 설정이 바뀌면 '준비'는 다시 눌러야 해요 */
-  function openLobby(did,oid,oname,ophoto,host,r0){const jobs=MBGrow.duelJobs(),dj=(jobs.find(j=>j.id==='burger')||jobs[0]).id;
+  function openLobby(did,oid,oname,ophoto,host,r0){if(lob&&lob.did===did)return;const jobs=MBGrow.duelJobs(),dj=(jobs.find(j=>j.id==='burger')||jobs[0]).id;
     lob={did,oid,oname,ophoto,host,cfg:{job:dj,st:1,bet:0,v:host?Date.now():1,by:me.id},ready:0,opp:null,seen:Date.now()};if(r0&&r0.cfg&&r0.cfg.v>lob.cfg.v)lob.cfg=r0.cfg;
     lobWrite();renderLobby();clearInterval(lobT);clearInterval(lobHB);lobT=setInterval(lobPoll,700);lobHB=setInterval(lobWrite,2000)}
   function lobWrite(){if(!lob)return;fbJ(myDuel(),'PUT',{did:lob.did,state:'lobby',cfg:lob.cfg,ready:lob.ready,m:MBGrow.money(),t:Date.now()}).catch(()=>{})}
@@ -4581,7 +4591,8 @@ window.MB=(()=>{
     const A=$('duelActs');A.textContent='';const lv=document.createElement('button');lv.className='btn ghost';lv.textContent='나가기';lv.onclick=lobLeave;
     const rd=document.createElement('button');rd.className='btn';const isR=L.ready>0&&L.ready===c.v;rd.textContent=isR?'준비 취소':'✅ 준비';rd.disabled=poor||!J;rd.onclick=()=>{if(!lob)return;lob.ready=isR?0:lob.cfg.v;lobWrite();renderLobby();lobGo()};A.append(lv,rd);$('duelOv').hidden=false}
   function lobGo(){const L=lob;if(!L)return;const c=L.cfg,o=L.opp;if(L.ready>0&&L.ready===c.v&&o&&o.cfg&&o.cfg.v===c.v&&o.ready===c.v){if(c.bet>MBGrow.money()){toast('판돈 낼 돈이 모자라요','','warn');return}lobClose();startDuel(L.did,L.oid,L.oname,c.job,c.st,c.bet)}}
-  async function lobPoll(){if(!lob)return;let r=null;try{r=await fbJ('/players/'+enc(lob.oid)+'/duel')}catch(e){}if(!lob)return;
+  let lobFly=false;
+  async function lobPoll(){if(!lob||lobFly)return;const did0=lob.did;let r=null;lobFly=true;try{r=await fbJ('/players/'+enc(lob.oid)+'/duel')}catch(e){}finally{lobFly=false}if(!lob||lob.did!==did0)return;
     if(r&&r.did===lob.did){lob.seen=Date.now();if(r.state==='cancel'){lobClose(lob.oname+'님이 대기실에서 나갔어요');return}if(r.state==='decline'){lobClose('거절했어요');return}
       const was=JSON.stringify([lob.opp&&lob.opp.cfg,lob.opp&&lob.opp.ready,lob.opp&&lob.opp.m]);
       if(r.cfg&&(r.cfg.v>lob.cfg.v||(r.cfg.v===lob.cfg.v&&String(r.cfg.by)>String(lob.cfg.by)))){lob.cfg=r.cfg;if(lob.ready&&lob.ready!==r.cfg.v)lob.ready=0;lob.opp=r;lobWrite();renderLobby()}
@@ -4590,24 +4601,26 @@ window.MB=(()=>{
       lobGo()}
     else if(lob&&Date.now()-lob.seen>12000)lobClose('상대 연결이 끊겼어요')}
   /* 게임: 점수는 0.4초마다, 작은 화면은 0.8초마다 올려요 */
-  function startDuel(did,oid,oname,job,st,bet){['pfOv','rankOv'].forEach(close);const gb=document.querySelector('[data-app=grow]');if(gb&&app!=='grow')gb.click();
-    let busyW=false,pic=null,picAt=0,picSent=0;
+  /* 게임: 화면 반반 — 위는 내 알바, 아래는 상대 화면(0.3초마다 새로 받아요) */
+  function startDuel(did,oid,oname,job,st,bet){['pfOv','rankOv'].forEach(close);clearInterval(pfOnT);const gb=document.querySelector('[data-app=grow]');if(gb&&app!=='grow')gb.click();
+    let busyW=false,pic=null,picAt=0,picSent=0;window.MB_SPLIT=true;
     const ok=MBGrow.duelStart({did,job,st,bet,oppName:oname,onTick:o=>{if(busyW)return;busyW=true;const body={did,state:'play',s:o.s,alive:o.alive,done:o.done,t:Date.now()};if(pic&&picAt>picSent){body.pic=pic;picSent=picAt}
         fbJ(myDuel(),'PATCH',body).catch(()=>{}).finally(()=>{busyW=false})},
-      onEnd:r=>{if(r.res==='win')me.dw=(me.dw||0)+1;else if(r.res==='lose')me.dl=(me.dl||0)+1;SS('dw',me.dw);SS('dl',me.dl);dirty=true;schedule(3000);setTimeout(stopDuel,12000)}});
-    if(!ok){toast('대전을 시작하지 못했어요','','warn');fbJ(myDuel(),'PUT',{did,state:'cancel',t:Date.now()}).catch(()=>{});return}
-    duel={did,oid,t0:Date.now(),gotPic:false};pipShow(oname);clearInterval(pipT);pipT=setInterval(()=>{const u2=MBGrow.snap&&MBGrow.snap(96);if(u2){pic=u2;picAt=Date.now()}},800);
-    let lastPic='';clearInterval(dPoll);dPoll=setInterval(async()=>{let r=null;try{r=await fbJ('/players/'+enc(oid)+'/duel')}catch(e){}if(!duel)return;
-      MBGrow.duelOpp(did,r&&r.did===did&&r.t&&r.s!=null?r:null);if(r&&r.did===did&&r.pic&&r.pic!==lastPic&&/^data:image\/jpeg;base64,/.test(r.pic)){lastPic=r.pic;$('pipImg').src=r.pic;$('pipWait').hidden=true;duel.gotPic=true}
-      else if(!duel.gotPic&&Date.now()-duel.t0>8000)$('pipWait').textContent=r&&r.did===did?'상대 화면이 안 와요\n(상대도 최신 버전이어야 해요)':'상대 연결 중…';
-      if(!MBGrow.duelState())pipHide()},700)}
-  function stopDuel(){clearInterval(dPoll);clearInterval(pipT);dPoll=pipT=0;duel=null;pipHide()}
-  /* 상대 화면 (작은 창 · 끌어서 옮길 수 있어요) */
-  function pipShow(nm){const P=$('duelPip');$('pipName').textContent='📺 '+nm+' 화면';$('pipImg').removeAttribute('src');const w=$('pipWait');w.textContent='상대 화면 받는 중…';w.hidden=false;P.hidden=false}
-  function pipHide(){$('duelPip').hidden=true}
-  {const P=$('duelPip');let dr=null;P.addEventListener('pointerdown',e=>{const r=P.getBoundingClientRect();dr={dx:e.clientX-r.left,dy:e.clientY-r.top,id:e.pointerId};P.setPointerCapture(e.pointerId);e.stopPropagation()});
-    P.addEventListener('pointermove',e=>{if(!dr||e.pointerId!==dr.id)return;const W2=innerWidth-P.offsetWidth,H2=innerHeight-P.offsetHeight;P.style.left=Math.max(0,Math.min(W2,e.clientX-dr.dx))+'px';P.style.top=Math.max(0,Math.min(H2,e.clientY-dr.dy))+'px';P.style.right='auto';e.stopPropagation()});
-    const up=e=>{dr=null;e.stopPropagation()};P.addEventListener('pointerup',up);P.addEventListener('pointercancel',up)}
+      onEnd:r=>{if(r.res==='win')me.dw=(me.dw||0)+1;else if(r.res==='lose')me.dl=(me.dl||0)+1;SS('dw',me.dw);SS('dl',me.dl);dirty=true;schedule(3000);setTimeout(()=>{if(duel&&duel.did===did)stopNet()},12000)}});
+    if(!ok){window.MB_SPLIT=false;toast('대전을 시작하지 못했어요','','warn');fbJ(myDuel(),'PUT',{did,state:'cancel',t:Date.now()}).catch(()=>{});return}
+    duel={did,oid,oname,t0:Date.now(),gotPic:false};splitShow(oname);clearInterval(pipT);pipT=setInterval(()=>{const u2=MBGrow.snap&&MBGrow.snap(176);if(u2){pic=u2;picAt=Date.now()}},300);
+    let lastPic='',fly=false;clearInterval(dPoll);dPoll=setInterval(async()=>{splitInfo();if(!MBGrow.duelState()){stopDuel();return}if(fly||!duel||duel.did!==did)return;fly=true;let r=null;try{r=await fbJ('/players/'+enc(oid)+'/duel')}catch(e){}finally{fly=false}if(!duel||duel.did!==did)return;
+      MBGrow.duelOpp(did,r&&r.did===did&&r.t&&r.s!=null?r:null);if(r&&r.did===did&&r.pic&&r.pic!==lastPic&&/^data:image\/jpeg;base64,/.test(r.pic)){lastPic=r.pic;$('dsImg').src=r.pic;$('dsWait').hidden=true;duel.gotPic=true}
+      else if(!duel.gotPic&&Date.now()-duel.t0>8000)$('dsWait').textContent=r&&r.did===did?'상대 화면이 안 와요\n(상대도 최신 버전이어야 해요)':'상대 연결 중…'},300)}
+  function stopNet(){clearInterval(pipT);pipT=0}
+  function stopDuel(){clearInterval(dPoll);clearInterval(pipT);dPoll=pipT=0;duel=null;window.MB_SPLIT=false;splitHide()}
+  function splitPlace(){const S2=$('duelSplit');if(S2.hidden)return;const w=document.getElementById('wx');if(!w)return;const r=w.getBoundingClientRect();S2.style.left=r.left+'px';S2.style.width=r.width+'px';S2.style.top=(r.top+r.height*.56)+'px';S2.style.height=(r.height*.44)+'px'}
+  function splitShow(nm){$('dsImg').removeAttribute('src');const w=$('dsWait');w.textContent='상대 화면 받는 중…';w.hidden=false;$('duelSplit').hidden=false;splitPlace();splitInfo()}
+  function splitHide(){$('duelSplit').hidden=true}
+  function splitInfo(){const d=MBGrow.duelState&&MBGrow.duelState();if(!d||$('duelSplit').hidden)return;const f=v=>d.mode==='survive'?(+v||0).toFixed(1)+'초':(v||0)+'점';
+    $('dsMe').textContent='나 '+f(d.my)+(d.end?' · 끝':'');$('dsOpp').textContent=(d.oppSeen?f(d.opp):'…')+' '+d.oppName+(d.oppLeft?' · 나감':d.oppDone?(d.mode==='survive'?' · 쓰러짐':' · 끝'):'');
+    $('dsMid').textContent=d.res?(d.res==='win'?'🏆':d.res==='lose'?'😭':'🤝'):d.my>d.opp?'👑 ⚔️':d.my<d.opp?'⚔️ 👑':'⚔️'}
+  addEventListener('resize',splitPlace);setInterval(splitPlace,1000);
   /* ---- 플레이어 프로필: 랭킹에서 누르면 그 사람 범준이 + 돈 + 기록 ---- */
   const FNM={hun:'훈남',mus:'근육',fat:'통통',gen:'천재'};
   const bjNm=c=>(+c.lv>=20?(FNM[c.form]||'훈남'):+c.lv>=12?'학생':+c.lv>=5?'어린이':'아가')+' 범준';

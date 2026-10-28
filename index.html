@@ -1847,18 +1847,18 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     {id:'taste',e:'🍜',n:'신제품 미식',c:[['full','<=',10]],min:800,max:3000,fx:{full:80,bowelSet:99},g:'eat',d:'연타해서 신제품 많이 먹기'},
     {id:'tutor',e:'📚',n:'과외 선생님',c:[['study','>=',30]],min:5000,max:10000,fx:{study:2},g:'tutor',d:'답안 O/X 채점 (절반 넘게 틀리면 잘려요)'},
     {id:'tester',e:'🎮',n:'게임 테스터',c:[['study','>=',20]],min:800,max:2200,fx:{fit:15,energy:-15},g:'bugs',d:'꼬불꼬불 도망다니는 버그를 3번씩 톡톡톡'},
-    {id:'model',e:'📸',n:'피팅 모델',c:[['wear','>=',3]],min:0,max:4000,fx:{},g:'pose',d:'뜨는 포즈 버튼 빨리 누르기 (많이 꾸밀수록 일당 ↑)'},
+    {id:'model',e:'📸',n:'피팅 모델',c:[['wear','>=',1]],min:0,max:4000,fx:{},g:'pose',d:'뜨는 포즈 버튼 빨리 누르기 (많이 꾸밀수록 일당 ↑)'},
     {id:'busk',e:'🎤',n:'길거리 버스킹',c:[['dance','=',1]],min:0,max:5000,fx:{energy:-20},g:'notes',d:'떨어지는 음표 박자 맞춰 톡 (팁은 랜덤)'},
     {id:'suit',e:'🧸',n:'인형탈 알바',c:[['energy','>=',60]],min:900,max:2000,fx:{clean:-15,energy:-25},g:'mole',d:'튀어나오는 아이들이랑 하이파이브'},
     {id:'deliv',e:'🛵',n:'배달',c:[['lv','>=',20],['fit','>=',50]],min:1500,max:4000,fx:{energy:-20},g:'road',d:'좌우로 장애물 피하면서 배달'},
     {id:'sleep',e:'😴',n:'수면 실험 참가',c:[['energy','<=',20]],min:1000,max:1000,fx:{energy:40},g:'still',d:'15초 동안 화면 절대 건드리지 않기'},
-    {id:'hold',e:'🫣',n:'참기 대회',c:[['bowel','>=',80]],min:0,max:3000,fx:{},g:'hold',d:'◀▶를 꾹 눌러서 바늘을 초록 칸 안에 유지하기'},
+    {id:'hold',e:'🫣',n:'참기 대회',c:[['bowel','>=',30]],min:0,max:3000,fx:{},g:'hold',d:'◀▶를 꾹 눌러서 바늘을 초록 칸 안에 유지하기'},
     {id:'trial',e:'🧪',n:'임상시험',rare:1,luck:1,c:[],min:25000,max:30000,fx:{},g:'pill',d:'알약 3개 중 하나… 무슨 일이 생길까?'},
     {id:'lotto',e:'🎰',n:'복권 판매',rare:1,luck:1,c:[],min:500,max:500000,fx:{},g:'scratch',d:'팔다가 하나 긁어봐요 (대박 가능?)'},
     {id:'artpoop',e:'💩',n:'아름다운 똥싸기',c:[['bowel','>=',80]],min:500,max:10000,fx:{},g:'artpoop',d:'연타로 힘주기! 똥 모양·등급에 따라 가격이 달라요'},
     {id:'nude',e:'🍃',n:'누드모델',c:[['fit','>=',80]],min:7000,max:10000,fx:{},g:'leaf',d:'움직이는 범준이를 나뭇잎으로 가려주기'}];
   const JSN={full:'배부름',bowel:'똥 마려움',clean:'깨끗함',fit:'튼튼함',energy:'기운',study:'지식',lv:'나이',wear:'꾸미기'};
-  const wearCount=()=>['hat','glass','top','back','face','flt','sp','aura','pet'].filter(k=>eqd(k)).length;
+  const wearCount=()=>['hat','glass','top','bot','back','face','flt','sp','aura','pet'].filter(k=>eqd(k)).length;
   const jStat=k=>k==='lv'?S.lv:k==='wear'?wearCount():k==='dance'?(S.danceOK?1:0):k==='study'?(S.study||0):(S[k]||0);
   const cOK=c=>{const v=jStat(c[0]);return c[1]==='>='?v>=c[2]:c[1]==='<='?v<=c[2]:v===c[2]};
   const cTxt=c=>c[0]==='dance'?'춤추기 해금':JSN[c[0]]+' '+c[2]+(c[0]==='lv'?'살':c[0]==='wear'?'개':'')+(c[1]==='>='?' 이상':' 이하');

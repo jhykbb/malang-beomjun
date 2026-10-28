@@ -1136,7 +1136,7 @@ const Grow=(()=>{
     for(const k in S.over)S.over[k]=Math.max(0,S.over[k]-sec/OVER_DECAY*(zz?2:1));
     if(zz){S.energy=cl(S.energy+sec*(S.sleepX||5),0,100);if(S.energy>=100){S.ovs=(S.ovs||0)+sec;if(S.ovs>=S.lim.sleep){die('sleep');return}}}
     else{S.energy=cl(S.energy-sec/120*(night()?1.8:1),0,100);}
-    if(S.elock&&S.elock>Date.now()&&!zz)S.energy=100;   // 임상시험: 10분 동안 기운 100 고정
+    if(S.elock){if(S.elock>Date.now()){if(!zz)S.energy=100}else{if(S.eBack!=null&&!zz)S.energy=Math.min(S.energy,S.eBack);S.elock=0;S.eBack=null;if(!q)say('⚡ 기운 고정이 풀렸어요… 원래대로 돌아왔어요','#6a5fd0')}}   // 임상시험: 10분 동안 기운 100 고정, 끝나면 먹기 전 기운으로
     if(away){S.full=Math.max(S.full,Math.min(f0,5));S.energy=Math.max(S.energy,Math.min(e0,5))}
     if(away||(act&&(act.k==='job'||act.k==='jobs'))){S.full=Math.max(S.full,Math.min(f0,5));S.energy=Math.max(S.energy,Math.min(e0,5))}   // 알바 중에도 기운·배부름은 5까지만   // 나가있는 동안엔 배부름·기운 5까지만
     if(S.full<=0||S.clean<=0||S.poops.length>=3)S.sickT+=sec;else S.sickT=Math.max(0,S.sickT-sec*2);
@@ -2256,7 +2256,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
         [0,1,2].forEach(i=>{const x=CX-100+i*100,y=RT+190,c=a.cols[i];if(a.pk>=0&&a.pk!==i)wctx.globalAlpha=.2;if(a.pk!==i||now-a.pt<300){wctx.fillStyle='#6a3fb0';wctx.beginPath();wctx.ellipse(x,y+22,40,14,0,0,6.29);wctx.fill();wctx.fillStyle='#8a5ad0';wctx.beginPath();wctx.ellipse(x,y+18,38,11,0,0,6.29);wctx.fill();glow(x,y,40,'rgba(255,255,255,.6)');
           wctx.save();wctx.translate(x,y+Math.sin(now/500+i)*3);wctx.rotate(-.5+Math.sin(now/600+i)*.08);rr(-26,-11,26,22,11);wctx.fillStyle=c[0];wctx.fill();rr(0,-11,26,22,11);wctx.fillStyle=c[1];wctx.fill();wctx.fillStyle='rgba(255,255,255,.5)';rr(-20,-8,36,5,2.5);wctx.fill();wctx.strokeStyle='rgba(0,0,0,.15)';wctx.lineWidth=1.5;rr(-26,-11,52,22,11);wctx.stroke();wctx.restore();if(Math.sin(now/300+i*2)>.85){wctx.fillStyle='#fff';starPath(x+20,y-14,5);wctx.fill()}jt('ABC'[i],x,y+46,14,'#4a6a6a')}wctx.globalAlpha=1});
         if(a.pk>=0){const k=(now-a.pt)/1400;if(k<1){wctx.fillStyle='rgba(20,30,40,'+(k*.5)+')';wctx.fillRect(0,RT,PW,RB-RT);glow(CX,RT+180,90,'rgba(255,255,255,.5)');drawFace(CX,RT+180,40+Math.sin(now/40)*2*k,myFace());jt(k<.5?'꿀꺽…':'두근두근…',CX,RT+240,16,'#fff')}
-          else if(!a.end){const o=a.out;let m='';if(o==='die'){m='💀 으악… 부작용이…!';flash=.9}else if(o==='elock'){S.elock=Date.now()+600000;m='⚡ 10분 동안 기운 100 고정!'}else if(o==='stats'){const d=Math.random()<.5?30:-10;for(const kk of ['full','bowel','clean','fit','energy']){let nv=cl((S[kk]||0)+d,0,100);if(d<0&&(kk==='energy'||kk==='full'))nv=Math.max(Math.min(S[kk],5),nv);S[kk]=nv}if(d>0)a.good2=1;else a.bad2=1;m=d>0?'💪 지식 빼고 모든 스탯 +30!':'😵 지식 빼고 모든 스탯 −10…'}else if(o==='dumb'){S.study=0;m='🤪 약 때문에 지식이 0이 됐어요…'}else{S.sleepX=10;m='😴 이제 잘 때 기운이 1초에 10씩 차요!'}
+          else if(!a.end){const o=a.out;let m='';if(o==='die'){m='💀 으악… 부작용이…!';flash=.9}else if(o==='elock'){if(!(S.elock>Date.now()))S.eBack=S.energy;S.elock=Date.now()+600000;m='⚡ 10분 동안 기운 100 고정!'}else if(o==='stats'){const d=Math.random()<.5?30:-10;for(const kk of ['full','bowel','clean','fit','energy']){let nv=cl((S[kk]||0)+d,0,100);if(d<0&&(kk==='energy'||kk==='full'))nv=Math.max(Math.min(S[kk],5),nv);S[kk]=nv}if(d>0)a.good2=1;else a.bad2=1;m=d>0?'💪 지식 빼고 모든 스탯 +30!':'😵 지식 빼고 모든 스탯 −10…'}else if(o==='dumb'){S.study=0;m='🤪 약 때문에 지식이 0이 됐어요…'}else{S.sleepX=10;m='😴 이제 잘 때 기운이 1초에 10씩 차요!'}
             save();a.rvd=1;jobFinish(a,Math.random(),m);if(o==='die')setTimeout(()=>{if(!S.dead)die('trial')},2400)}}}},
     scratch:{init:a=>{a.cells=new Set();a.prize=lotto();a.rv=0;a.sc=false},est:()=>'???',grade:a=>!a.rv?'F':a.prize>=100000?'S':a.prize>=10000?'A':a.prize>=3000?'B':'C',info:a=>a.rv?['🎉 결과는…!','']:['🪙 손가락으로 긁어요','은색 부분을 문질러요'],
       card:{x:50,y:RT+104,w:240,h:136,n:12,m:7},
@@ -2320,7 +2320,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     die:k=>{act=null;die(k);devClose()},
     revive:()=>{S.dead=null;dying=null;act=null;S.full=Math.max(S.full,50);S.energy=Math.max(S.energy,50);save();devClose()},
     time:m=>{simT-=m*60000},
-    clearFx:()=>{S.elock=0;S.sleepX=0},
+    clearFx:()=>{S.elock=0;S.eBack=null;S.sleepX=0},
     unban:()=>{S.ban=null},
     over:()=>{for(const k in S.over)S.over[k]=0},
     reset:()=>{resetAll();devClose()}};
@@ -2673,7 +2673,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     rr(12,68,PW-24,74,14);wctx.fillStyle='#fff';wctx.fill();wctx.strokeStyle='#f6d6de';wctx.lineWidth=1.5;wctx.stroke();
     const cw=96,cx3=[20,122,224];
     bar(cx3[0],76,cw,S.full,'#ffb21f','배부름',st?'🍚':'🍼',!dead&&S.full<30,now);bar(cx3[1],76,cw,S.bowel,'#b07a4a','똥 마려움','💩',!dead&&S.bowel>=75,now);bar(cx3[2],76,cw,S.clean,'#5cc8ff','깨끗함','🫧',!dead&&S.clean<30,now);
-    bar(cx3[0],108,cw,S.fit,'#4cd18a','튼튼함','💪',!dead&&S.fit<25,now);bar(cx3[1],108,cw,S.energy,'#8f8cff','기운','⚡',!dead&&S.energy<25,now);
+    bar(cx3[0],108,cw,S.fit,'#4cd18a','튼튼함','💪',!dead&&S.fit<25,now);bar(cx3[1],108,cw,S.energy,'#8f8cff','기운','⚡',!dead&&S.energy<25,now);if(!dead&&S.elock>Date.now()){const ls=Math.ceil((S.elock-Date.now())/1000),lt2=Math.floor(ls/60)+':'+String(ls%60).padStart(2,'0');rr(cx3[1]+38,117,44,13,6.5);wctx.fillStyle='#5a4fd0';wctx.fill();wctx.font=font(9);wctx.fillStyle='#fff';wctx.textAlign='center';wctx.fillText('🔒고정 '+lt2,cx3[1]+60,124)}
     wctx.font=emo(14);wctx.textAlign='left';wctx.textBaseline='middle';wctx.fillText('📚',cx3[2],118);wctx.font=font(12);wctx.fillStyle='#7a5560';wctx.fillText('지식',cx3[2]+20,111);wctx.font=font(16);wctx.fillStyle='#e07a00';wctx.fillText(String(S.study||0),cx3[2]+20,127);
     // room
     const kind0=0,kind=showDead?'grave':dying?(dying.c==='wash'?'bath':dying.c==='gym'?'gym':dying.c==='sleep'?'sleep':'room'):S.sleeping?'sleep':act&&act.k==='wash'?'bath':act&&act.k==='gym'?'gym':'room';

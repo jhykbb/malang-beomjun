@@ -2866,9 +2866,11 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
       if(now-evo.t>4600)evo=null}
     }
     // reset (two taps) + hint
-    if(!act&&!evo&&!dying&&!S.dead&&!S.sleeping&&!exam){const on=now-ask<2500,rb={x:PW-118,y:RT+6,w:104,h:24,fn:()=>{if(now-ask<2500)resetAll();else{ask=now;Sfx.tick()}}};btns.push(rb);
+    if(!act&&!evo&&!dying&&!S.dead&&!S.sleeping&&!exam&&!photoReq){const on=now-ask<2500,rb={x:PW-118,y:RT+6,w:104,h:24,fn:()=>{if(now-ask<2500)resetAll();else{ask=now;Sfx.tick()}}};btns.push(rb);
       rr(rb.x,rb.y,rb.w,rb.h,12);wctx.fillStyle=on?'#ff5d7e':'rgba(255,255,255,.75)';wctx.fill();wctx.font=font(11);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle=on?'#fff':'#c97a8e';wctx.fillText(on?'한 번 더 누르면 처음부터':'↺ 처음부터',rb.x+rb.w/2,rb.y+12.5);
       drawMoneyChip();
+      {const n2=albLoad().length,cb={x:PW-160,y:RT+36,w:50,h:26,fn:takePhoto},ab={x:PW-106,y:RT+36,w:56,h:26,fn:()=>{Sfx.tick();albOpen()}};btns.push(cb,ab);
+        for(const [b,t,f2,c2] of [[cb,'📸 찰칵','#ff5d7e','#fff'],[ab,'🖼️ '+n2,'rgba(255,255,255,.85)','#c93d63']]){rr(b.x,b.y,b.w,b.h,13);wctx.fillStyle=f2;wctx.fill();wctx.font=font(12);wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillStyle=c2;wctx.fillText(t,b.x+b.w/2,b.y+b.h/2+1)}}
       if(S.danceOK){const db={x:18,y:RB-62,w:100,h:32,fn:startDance};btns.push(db);rr(db.x,db.y,db.w,db.h,16);wctx.fillStyle='#b27bff';wctx.fill();wctx.font=font(14);wctx.fillStyle='#fff';wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText('💃 춤추기',db.x+db.w/2,db.y+db.h/2+1)}
       if(S.school==='pass'&&(S.ticket||0)>0&&!needFriend()){const sb={x:PW-128,y:RB-62,w:112,h:32,fn:startSchool};btns.push(sb);const pl=1+Math.sin(now/250)*.04;wctx.save();wctx.translate(sb.x+sb.w/2,sb.y+sb.h/2);wctx.scale(pl,pl);rr(-sb.w/2,-sb.h/2,sb.w,sb.h,16);wctx.fillStyle='#ffb21f';wctx.fill();wctx.font=font(14);wctx.fillStyle='#5a3300';wctx.textAlign='center';wctx.textBaseline='middle';wctx.fillText('🎒 학교 가기'+(S.ticket>1?' ×'+S.ticket:''),0,1);wctx.restore()}
       if(S.friend&&!fs){wctx.font=font(12);const ft='친구 '+S.friend+' ›',fw2=wctx.measureText(ft).width+44,tb={x:18,y:RT+98,w:fw2,h:28,fn:()=>{fs=true;Sfx.tick()}};btns.push(tb);rr(tb.x,tb.y,tb.w,tb.h,14);wctx.fillStyle='rgba(255,255,255,.9)';wctx.fill();wctx.strokeStyle='#ffb3c8';wctx.lineWidth=1.5;wctx.stroke();
@@ -2955,6 +2957,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
       wctx.font=font(30);wctx.fillStyle='#1f7a4a';wctx.fillText(a.n+'개',14+pw/2-30,by+54);wctx.font=font(11);wctx.fillStyle='#9a4bff';wctx.fillText('경험치 +'+(a.xp||0),14+pw/2-30,by+78);
       wctx.font=font(18);let hs='';for(let j=0;j<3;j++)hs+=j<3-a.miss?'♥':'♡';wctx.fillStyle='#ff5d7e';wctx.fillText(hs,14+pw-44,by+54);
       button({x:PW-14-78,y:by,w:78,h:bh,fn:stop},a.n?'끝내기':'그만',null,'#fff','#c93d63',!!a.end)}
+    if(photoReq){photoReq=0;try{photoCapture()}catch(e){}}
     // texts
     texts=texts.filter(t=>now-t.t<t.dur);for(const t of texts){if(now<t.t)continue;const k=(now-t.t)/t.dur;wctx.globalAlpha=k>.75?(1-k)/.25:1;wctx.textAlign='center';wctx.textBaseline='middle';wctx.font=font(t.s*(t.pop&&k<.16?1.7-k/.16*.7:1));
       const y=t.box?t.y:t.y-k*(t.z?40:24),x=t.z?t.x+Math.sin(k*6)*6+k*20:t.x;if(t.box){const tw=wctx.measureText(t.txt).width+26;rr(x-tw/2,y-16,tw,32,16);wctx.fillStyle='rgba(255,255,255,.95)';wctx.fill();wctx.strokeStyle=t.c;wctx.lineWidth=2;wctx.stroke();wctx.fillStyle=t.c;wctx.fillText(t.txt,x,y+1)}
@@ -2963,6 +2966,46 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     if(flash>0){wctx.fillStyle='rgba(255,255,255,'+flash*.8+')';rr(0,0,PW,TOTAL,22);wctx.fill()}
     wctx.restore()}
 
+
+  /* ---- 📸 범준 앨범: 지금 범준이 모습을 폴라로이드 사진으로 찍어서 모아 두고, 폰에 저장하거나 친구한테 보내요 ---- */
+  const ALB='mb_album',ALB_MAX=40;let photoReq=0,albEl=null;
+  const albLoad=()=>{try{const a=JSON.parse(localStorage.getItem(ALB)||'[]');return Array.isArray(a)?a.filter(p=>p&&typeof p.src==='string'):[]}catch(e){return[]}};
+  function albSave(a){while(a.length>ALB_MAX)a.shift();for(;;){try{localStorage.setItem(ALB,JSON.stringify(a));return true}catch(e){if(a.length<=1)return false;a.shift()}}}
+  const pad2=n=>String(n).padStart(2,'0'),dstr=t=>{const d=new Date(t);return d.getFullYear()+'.'+pad2(d.getMonth()+1)+'.'+pad2(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())};
+  function takePhoto(){if(photoReq)return;photoReq=1}
+  function photoCapture(){const g=gameRect();if(!g||!(g.sw>0))return;const PWc=520,PHc=650,c=document.createElement('canvas');c.width=PWc;c.height=PHc;const x=c.getContext('2d');
+    x.fillStyle='#fffdf8';x.fillRect(0,0,PWc,PHc);x.save();x.beginPath();x.rect(20,20,480,522);x.clip();x.drawImage(wx,g.sx,g.sy,g.sw,g.sh,20,20,480,522);x.restore();
+    x.strokeStyle='rgba(74,39,48,.12)';x.lineWidth=2;x.strokeRect(20,20,480,522);const t=Date.now(),cap=bjName(stageOf(S.lv),S.form)+' · '+S.lv+'살';
+    x.textAlign='center';x.textBaseline='middle';x.fillStyle='#4a2730';x.font=font(30);x.fillText(cap,PWc/2,583);x.font=font(17);x.fillStyle='#b08a96';x.fillText(dstr(t)+'  ·  📸 말랑 범준',PWc/2,622);
+    let src;try{src=c.toDataURL('image/jpeg',.86)}catch(e){say('사진을 못 찍었어요 😢','#e0485f');return}
+    const a=albLoad();a.push({t,src,cap});const ok=albSave(a);flash=1;shutter();if(window.MBV)MBV(30,160);
+    say(ok?'📸 찰칵! 앨범에 넣었어요 ('+Math.min(a.length,ALB_MAX)+'장)':'앨범이 꽉 찼어요. 사진을 좀 지워 주세요','#e07a00')}
+  function saveImg(src,name){if(window.AndroidApp&&AndroidApp.saveImage){let r='fail';try{r=AndroidApp.saveImage(src,name)}catch(e){}return r==='ok'?'saved':r==='perm'?'perm':'fail'}
+    try{const a=document.createElement('a');a.href=src;a.download=name;document.body.appendChild(a);a.click();a.remove();return 'dl'}catch(e){return 'fail'}}
+  async function shareImg(src,name,text){if(window.AndroidApp&&AndroidApp.shareImage){try{AndroidApp.shareImage(src,name,text);return true}catch(e){return false}}
+    try{const b=await (await fetch(src)).blob(),f=new File([b],name,{type:'image/jpeg'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text});return true}}catch(e){if(e&&e.name==='AbortError')return true}return false}
+  function albClose(){if(albEl){albEl.remove();albEl=null}}
+  function albOpen(idx){albClose();const a=albLoad().slice().reverse();const el=albEl=document.createElement('div');
+    Object.assign(el.style,{position:'fixed',inset:'0',zIndex:9990,background:'rgba(40,15,25,.55)',display:'flex',alignItems:'flex-end',justifyContent:'center',font:'15px "Jua",system-ui,sans-serif',color:'#4a2730'});
+    const box=document.createElement('div');Object.assign(box.style,{width:'100%',maxWidth:'520px',maxHeight:'90%',background:'#fff8f4',borderRadius:'24px 24px 0 0',padding:'14px 16px calc(16px + env(safe-area-inset-bottom,0px))',boxSizing:'border-box',display:'flex',flexDirection:'column',gap:'10px',overflowY:'auto'});
+    el.append(box);el.addEventListener('click',e=>{if(e.target===el)albClose()});
+    const head=(t,back)=>{const h=document.createElement('div');Object.assign(h.style,{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'});const b=document.createElement('b');b.textContent=t;b.style.fontSize='20px';
+      const x=document.createElement('button');x.textContent=back?'← 앨범':'✕';Object.assign(x.style,{border:'0',background:'#f6dfe5',borderRadius:'12px',padding:'8px 12px',font:'inherit',color:'#4a2730',cursor:'pointer'});x.onclick=()=>back?albOpen():albClose();h.append(b,x);return h};
+    const btn=(t,fn,bg,fg)=>{const b=document.createElement('button');b.textContent=t;Object.assign(b.style,{flex:'1',border:'0',borderRadius:'14px',padding:'12px 6px',font:'inherit',background:bg||'#ff5d7e',color:fg||'#fff',cursor:'pointer'});b.onclick=fn;return b};
+    if(idx==null){box.append(head('🖼️ 범준 앨범 · '+a.length+'장'));
+      if(!a.length){const p=document.createElement('p');p.textContent='아직 사진이 없어요. 방에서 📸를 눌러 꾸민 범준이를 찍어 보세요!';Object.assign(p.style,{color:'#9a8090',textAlign:'center',margin:'30px 8px'});box.append(p)}
+      const gr=document.createElement('div');Object.assign(gr.style,{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'8px'});
+      a.forEach((p,i)=>{const im=document.createElement('img');im.src=p.src;im.alt=p.cap||'범준 사진';Object.assign(im.style,{width:'100%',aspectRatio:'520/650',objectFit:'cover',borderRadius:'10px',boxShadow:'0 2px 8px rgba(0,0,0,.15)',cursor:'pointer',background:'#fff'});im.onclick=()=>albOpen(i);gr.append(im)});
+      box.append(gr)}
+    else{const p=a[idx];if(!p){albOpen();return}box.append(head(p.cap||'범준 사진',true));
+      const im=document.createElement('img');im.src=p.src;im.alt=p.cap||'범준 사진';Object.assign(im.style,{width:'100%',maxWidth:'380px',alignSelf:'center',borderRadius:'8px',boxShadow:'0 6px 20px rgba(0,0,0,.2)'});box.append(im);
+      const tip=document.createElement('p');tip.textContent=dstr(p.t)+' · 사진을 길게 눌러도 저장할 수 있어요';Object.assign(tip.style,{margin:'0',color:'#9a8090',fontSize:'12px',textAlign:'center'});box.append(tip);
+      const row=document.createElement('div');Object.assign(row.style,{display:'flex',gap:'8px'});const name='beomjun_'+p.t+'.jpg';let delArm=0;
+      const del=btn('🗑️ 지우기',()=>{if(!delArm){delArm=1;del.textContent='한 번 더 누르면 지워요';setTimeout(()=>{delArm=0;del.textContent='🗑️ 지우기'},2500);return}const all=albLoad();const k=all.findIndex(q=>q.t===p.t);if(k>=0){all.splice(k,1);albSave(all)}albOpen()},'#f6dfe5','#c93d63');
+      row.append(btn('💾 폰에 저장',()=>{const r=saveImg(p.src,name);say(r==='saved'?'📁 사진첩에 저장했어요!':r==='dl'?'💾 저장했어요 (다운로드 폴더)':r==='perm'?'저장 권한을 허용하고 다시 눌러 주세요':'저장을 못 했어요. 사진을 길게 눌러 저장해 보세요','#e07a00')}),
+        btn('📤 보내기',async()=>{const ok=await shareImg(p.src,name,'우리 '+(p.cap||'범준')+' 좀 봐! 📸');if(!ok)say('여기선 바로 보낼 수 없어요. 사진을 길게 눌러 저장해서 보내 주세요','#e0485f')},'#5a6bff'),del);
+      box.append(row)}
+    document.body.append(el)}
   /* ---- 랭킹 프로필: 내 범준 요약(card) + 다른 사람 범준 그리기(portrait) ---- */
   function card(){const eq={};for(const k in G.eq){const id=G.eq[k];if(id&&ITEM[id]&&G.own.includes(id))eq[k]=id}
     return {lv:S.lv,best:S.best,form:S.form||'',eq,furn:G.furn.filter(id=>ITEM[id]&&G.own.includes(id)).slice(0,40),money:Math.floor(G.money||0),earned:Math.floor(G.earned||0),jobs:G.jobs||0,items:G.own.length,

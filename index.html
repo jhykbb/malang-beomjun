@@ -2981,6 +2981,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     const a=albLoad();a.push({t,src,cap});const ok=albSave(a);flash=1;shutter();if(window.MBV)MBV(30,160);
     say(ok?'📸 찰칵! 앨범에 넣었어요 ('+Math.min(a.length,ALB_MAX)+'장)':'앨범이 꽉 찼어요. 사진을 좀 지워 주세요','#e07a00')}
   function saveImg(src,name){if(window.AndroidApp&&AndroidApp.saveImage){let r='fail';try{r=AndroidApp.saveImage(src,name)}catch(e){}return r==='ok'?'saved':r==='perm'?'perm':'fail'}
+    if(DEV)return 'nodl';   // claude.ai 아티팩트 안에선 다운로드가 막혀 있어요
     try{const a=document.createElement('a');a.href=src;a.download=name;document.body.appendChild(a);a.click();a.remove();return 'dl'}catch(e){return 'fail'}}
   async function shareImg(src,name,text){if(window.AndroidApp&&AndroidApp.shareImage){try{AndroidApp.shareImage(src,name,text);return true}catch(e){return false}}
     try{const b=await (await fetch(src)).blob(),f=new File([b],name,{type:'image/jpeg'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text});return true}}catch(e){if(e&&e.name==='AbortError')return true}return false}
@@ -3002,7 +3003,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
       const tip=document.createElement('p');tip.textContent=dstr(p.t)+' · 사진을 길게 눌러도 저장할 수 있어요';Object.assign(tip.style,{margin:'0',color:'#9a8090',fontSize:'12px',textAlign:'center'});box.append(tip);
       const row=document.createElement('div');Object.assign(row.style,{display:'flex',gap:'8px'});const name='beomjun_'+p.t+'.jpg';let delArm=0;
       const del=btn('🗑️ 지우기',()=>{if(!delArm){delArm=1;del.textContent='한 번 더 누르면 지워요';setTimeout(()=>{delArm=0;del.textContent='🗑️ 지우기'},2500);return}const all=albLoad();const k=all.findIndex(q=>q.t===p.t);if(k>=0){all.splice(k,1);albSave(all)}albOpen()},'#f6dfe5','#c93d63');
-      row.append(btn('💾 폰에 저장',()=>{const r=saveImg(p.src,name);say(r==='saved'?'📁 사진첩에 저장했어요!':r==='dl'?'💾 저장했어요 (다운로드 폴더)':r==='perm'?'저장 권한을 허용하고 다시 눌러 주세요':'저장을 못 했어요. 사진을 길게 눌러 저장해 보세요','#e07a00')}),
+      row.append(btn('💾 폰에 저장',()=>{const r=saveImg(p.src,name);say(r==='saved'?'📁 사진첩에 저장했어요!':r==='dl'?'💾 저장했어요 (다운로드 폴더)':r==='perm'?'저장 권한을 허용하고 다시 눌러 주세요':r==='nodl'?'여기선 바로 저장이 안 돼요. 사진을 길게 눌러 저장해 주세요':'저장을 못 했어요. 사진을 길게 눌러 저장해 보세요','#e07a00')}),
         btn('📤 보내기',async()=>{const ok=await shareImg(p.src,name,'우리 '+(p.cap||'범준')+' 좀 봐! 📸');if(!ok)say('여기선 바로 보낼 수 없어요. 사진을 길게 눌러 저장해서 보내 주세요','#e0485f')},'#5a6bff'),del);
       box.append(row)}
     document.body.append(el)}

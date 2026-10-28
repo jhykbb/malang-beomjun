@@ -1800,9 +1800,12 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
   const banned=j=>!!(S.ban&&S.ban[j.id]),jobOK=j=>!banned(j)&&j.c.every(cOK);
   const fxTxt=j=>Object.keys(j.fx).map(k=>{const v=j.fx[k];if(k==='bowelSet')return'똥 '+v+' 고정';return FXN[k]+(Array.isArray(v)?' '+v[0]+'~'+v[1]:(v>0?' +':' ')+v)}).join(' · ');
   const mul32=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
-  let jobOff=0;
+  // 알바 새로고침: 목록이 바뀔 때(5분)마다 1개씩 생겨요 (최대 RR_MAX개). 쓰면 지금 목록을 새로 뽑아요
+  const RR_MAX=3,nSlot=()=>Math.floor(Date.now()/300000),jOff=()=>G.jo&&G.jo.s===nSlot()?G.jo.off|0:0;
+  function rrSync(){const ns=nSlot();if(G.rrS==null){G.rrS=ns;G.rr=1;bagSave();return}if(ns>G.rrS){G.rr=Math.min(RR_MAX,(G.rr|0)+(ns-G.rrS));G.rrS=ns;bagSave()}else if(ns<G.rrS)G.rrS=ns}
+  function useRR(){rrSync();if(!(G.rr>0)){refuse('새로고침이 없어요! 5분마다 1개씩 생겨요 ⏳');return}G.rr--;G.jo={s:nSlot(),off:jOff()+1};bagSave();if(act&&act.k==='jobs')act.bt=now_();Sfx.tick();say('🔄 새 알바가 떴어요!','#e07a00')}
   const DF=[1,1.2,1.45,1.75,2.1],PM=[1,1.4,1.9,2.6,3.5],starTxt=st=>'★'.repeat(st)+'☆'.repeat(5-st),NEEDV=(a,t)=>t[(a.st||1)-1];
-  function jobSlot(){const slot=Math.floor(Date.now()/300000)+jobOff*7777,r=mul32(slot*7919+13),nor=JOBS.filter(j=>!j.rare),rar=JOBS.filter(j=>j.rare),out=[];let g=0;
+  function jobSlot(){const slot=nSlot()+jOff()*7777,r=mul32(slot*7919+13),nor=JOBS.filter(j=>!j.rare),rar=JOBS.filter(j=>j.rare),out=[];let g=0;
     while(out.length<3&&g++<60){const pool=r()<.1?rar:nor,j=pool[Math.floor(r()*pool.length)];if(!out.includes(j))out.push(j)}
     const m=1+Math.min(3.3,(S.lv-1)/8),W=[1,2,3,4,5].map(k=>Math.exp(-Math.pow(k-m,2)/(2*1.15*1.15))),Wt=W.reduce((p,c)=>p+c,0);   // 나이가 많을수록 높은 별이 자주
     return{slot,list:out.map(j=>{let q=r()*Wt,st=1;for(;st<5;st++){if((q-=W[st-1])<0)break}return{j,st:j.luck?0:st}}),left:300000-(Date.now()%300000)}}
@@ -1841,9 +1844,9 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
   function drum(){if(!A())return;const t=T();for(let i=0;i<10;i++)Sfx.nz(t+i*.11,.06,'lowpass',400,200,1,.12+i*.01)}
   // ---- 알바 시작 · 목록 ----
   function startJobAct(j,st){st=j.luck?0:cl(st||1,1,5);const g=GM[j.g];act={k:'job',j,g,st,df:st?DF[st-1]:1,mult:st?PM[st-1]:1,t0:now_()+2600,dur:(g.dur||0)*1000,end:0,pay:0,el:0,run:false};g.init(act);drag=null;Sfx.tick()}
-  function drawBoard(now){const B=jobSlot();bgG('#fff6ea','#ffe2c4');for(let j=0;j<8;j++)glow(hsh(j)*PW,RT+hsh(j+9)*(RB-RT),40,'rgba(255,255,255,.35)');
+  function drawBoard(now){rrSync();const B=jobSlot();bgG('#fff6ea','#ffe2c4');for(let j=0;j<8;j++)glow(hsh(j)*PW,RT+hsh(j+9)*(RB-RT),40,'rgba(255,255,255,.35)');
     wctx.save();wctx.shadowColor='rgba(0,0,0,.2)';wctx.shadowBlur=8;wctx.shadowOffsetY=2;rr(CX-84,RT+8,168,30,15);wctx.fillStyle='#ff9b3d';wctx.fill();wctx.restore();jt('💼 오늘의 알바',CX,RT+23.5,16,'#fff');
-    const lt=Math.ceil(B.left/1000);rr(CX-74,RT+42,148,18,9);wctx.fillStyle='rgba(255,255,255,.75)';wctx.fill();jt('🔄 다음 교체까지 '+Math.floor(lt/60)+':'+String(lt%60).padStart(2,'0'),CX,RT+51.5,11,'#a0705a');
+    const lt=Math.ceil(B.left/1000);rr(CX-100,RT+42,200,18,9);wctx.fillStyle='rgba(255,255,255,.75)';wctx.fill();jt('⏳ 다음 교체까지 '+Math.floor(lt/60)+':'+String(lt%60).padStart(2,'0')+((G.rr|0)<RR_MAX?' · 새로고침 +1':''),CX,RT+51.5,11,'#a0705a');
     B.list.forEach((it,i)=>{const j=it.j,st=it.st,mu=st?PM[st-1]:1,y=RT+66+i*92,b={x:16,y,w:PW-32,h:86,fn:()=>tryJob(j,st,B.slot)},dn=jobDone(B.slot,j.id),ok=jobOK(j)&&!dn,ap=easeOB(Math.min(1,Math.max(0,(now-(act.bt||(act.bt=now))-i*90)/280)));btns.push(b);
       wctx.save();wctx.translate(0,(1-ap)*30);wctx.globalAlpha=ap;wctx.shadowColor='rgba(120,60,30,.18)';wctx.shadowBlur=10;wctx.shadowOffsetY=3;rr(b.x,b.y,b.w,b.h,16);wctx.fillStyle=ok?(j.rare?'#fff8dc':'#fff'):'#f4eef0';wctx.fill();wctx.shadowColor='transparent';wctx.lineWidth=j.rare?2.5:1.5;wctx.strokeStyle=j.rare?'#e0a000':ok?'#ffc94d':'#e2cdd3';wctx.stroke();
       if(j.rare){const sh=(now/900+i*.3)%1;wctx.save();rr(b.x,b.y,b.w,b.h,16);wctx.clip();const sg=wctx.createLinearGradient(b.x+b.w*(sh*2-1),0,b.x+b.w*(sh*2-1)+60,0);sg.addColorStop(0,'rgba(255,220,80,0)');sg.addColorStop(.5,'rgba(255,220,80,.32)');sg.addColorStop(1,'rgba(255,220,80,0)');wctx.fillStyle=sg;wctx.fillRect(b.x,b.y,b.w,b.h);wctx.restore()}
@@ -1897,8 +1900,11 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
   function jobDown(e,wx,wy){const a=act;if(a.k==='jobs')return;const t=now_();if(a.end){if(t-a.end>900&&wy<RB)jobHome();return}
     const g=a.g;if(t<a.t0||(wy>RB&&!g.ctrlTouch))return;if(g.down)g.down(a,wx,wy,e);else if(g.tap)g.tap(a,wx,wy)}
   function jobCtrl(now,by,bh){const a=act,pw=PW-28;
-    if(a.k==='jobs'){const w2=(PW-28-6)/2;button({x:14,y:by,w:w2,h:bh,fn:openWallet},'← 지갑',null,'#fff','#c93d63',false);rr(14+w2+6,by,w2,bh,16);wctx.fillStyle='#fff7da';wctx.fill();wctx.strokeStyle='#ffc94d';wctx.lineWidth=1.5;wctx.stroke();
-      jt('💰 '+won(G.money),14+w2+6+w2/2,by+bh/2-10,15,'#9a6a00');jt('알바를 눌러서 시작!',14+w2+6+w2/2,by+bh/2+14,11,'#b0909a');return}
+    if(a.k==='jobs'){const w1=86,w3=104,w2=PW-28-12-w1-w3,x2=14+w1+6,x3=x2+w2+6,n=G.rr|0;button({x:14,y:by,w:w1,h:bh,fn:openWallet},'← 지갑',null,'#fff','#c93d63',false);
+      const rb={x:x2,y:by,w:w2,h:bh,fn:useRR};button(rb,'🔄 새로고침',n?n+'개 있어요'+(n>=RR_MAX?' (최대)':''):'5분마다 +1개','#fff','#e07a00',!n);if(!n)btns.push(rb);
+      if(n){wctx.beginPath();wctx.arc(x2+w2-12,by+12,10,0,6.29);wctx.fillStyle='#ff9b3d';wctx.fill();jt(String(n),x2+w2-12,by+12.5,12,'#fff')}
+      rr(x3,by,w3,bh,16);wctx.fillStyle='#fff7da';wctx.fill();wctx.strokeStyle='#ffc94d';wctx.lineWidth=1.5;wctx.stroke();
+      const mt=G.money>=1e7?Math.floor(G.money/1e4).toLocaleString('ko-KR')+'만원':won(G.money);jt('💰',x3+w3/2,by+bh/2-12,16,'#9a6a00');jt(mt,x3+w3/2,by+bh/2+10,mt.length>9?12:13,'#9a6a00');return}
     if(a.end){if(now-a.end<900){rr(14,by,PW-28,bh,16);wctx.fillStyle='#fff7da';wctx.fill();jt('정산 중… 💰',CX,by+bh/2,16,'#9a6a00');return}const w1=(PW-28-6)*.6,w2=PW-28-6-w1;
       button({x:14,y:by,w:w1,h:bh,fn:jobHome},'🏠 집으로',a.pay?'+'+won(a.pay):null,'#ff5d7e','#fff',false);button({x:14+w1+6,y:by,w:w2,h:bh,fn:openBoard},'🔁 다른 알바',null,'#fff','#c93d63',false);return}
     const g=a.g;if(g.ctrl)g.ctrl(a,now,by,bh,pw);
@@ -2240,7 +2246,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     strip:()=>{G.eq={};G.furn=[];bagSave()},
     job:id=>{startJobAct(JOBS.find(x=>x.id===id),devSt);devClose()},dst:v=>{devSt=v},
     board:()=>{openBoard();devClose()},
-    reroll:()=>{jobOff++;openBoard();devClose()},
+    reroll:()=>{G.jo={s:nSlot(),off:jOff()+1};bagSave();openBoard();devClose()},
     dance:()=>{S.danceOK=!S.danceOK},
     pass:()=>{S.school='pass';S.ticket=(S.ticket||0)+1},
     school:()=>{if(S.school!=='pass')S.school='pass';S.ticket=Math.max(1,S.ticket||0);if(!S.friend){S.friend='용화';S.bond=0;S.friendT=Date.now()}act=null;startSchool();devClose()},

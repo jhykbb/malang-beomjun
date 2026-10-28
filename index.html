@@ -2987,16 +2987,18 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     wctx.save();wctx.setTransform(1,0,0,1,0,0);wctx.globalCompositeOperation='copy';wctx.drawImage(pvBak,0,0);wctx.restore();
     return ok}
   // 대전 중 내 화면을 작게 찍어서 상대에게 보내요 (알바 화면 부분만)
+  // 알바 화면이 캔버스 어디에 있는지 (실제 픽셀) — 실시간 영상으로 보낼 때 써요
+  const gameRect=()=>{if(mode!=='grow')return null;const r=wx.getBoundingClientRect(),dpr=wx.width/Math.max(1,r.width);return{sx:(ox+10*u)*dpr,sy:(oy+RT*u)*dpr,sw:320*u*dpr,sh:(RB-RT)*u*dpr}};
   let snapC=null;
   function snap(w){if(mode!=='grow'||!act||!act.duel)return null;w=Math.round(w||96);const r=wx.getBoundingClientRect(),dpr=wx.width/Math.max(1,r.width),h=Math.round(w*(RB-RT)/320);
     if(!snapC)snapC=document.createElement('canvas');if(snapC.width!==w||snapC.height!==h){snapC.width=w;snapC.height=h}const x=snapC.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);
     try{x.drawImage(wx,(ox+10*u)*dpr,(oy+RT*u)*dpr,320*u*dpr,(RB-RT)*u*dpr,0,0,w,h);return snapC.toDataURL('image/jpeg',.5)}catch(e){return null}}
   // 알바·미니게임 하는 중이면 대전 신청은 끝날 때까지 기다려요
   const busy=()=>!!(exam||(act&&((act.k==='job'&&!act.end)||['gym','wash','study','school','dance','poop','eat'].includes(act.k))));
-  const growApi={busy,snap,card,portrait,saveNow:()=>{save();bagSave()},freeze:()=>{frozen=true},money:()=>Math.floor(G.money||0),duelJobs,duelCan,duelStart,duelOpp,duelState:()=>{if(!act||!act.duel)return null;const d=act.duel;return{did:d.did,res:d.res,end:!!act.end,mode:d.mode,my:duelMy(act),opp:d.opp.s,oppSeen:d.opp.seen,oppDone:d.opp.done,oppLeft:!!d.opp.left,oppName:d.oppName,started:now_()>=act.t0}}};
+  const growApi={gameRect,busy,snap,card,portrait,saveNow:()=>{save();bagSave()},freeze:()=>{frozen=true},money:()=>Math.floor(G.money||0),duelJobs,duelCan,duelStart,duelOpp,duelState:()=>{if(!act||!act.duel)return null;const d=act.duel;return{did:d.did,res:d.res,end:!!act.end,mode:d.mode,my:duelMy(act),opp:d.opp.s,oppSeen:d.opp.seen,oppDone:d.opp.done,oppLeft:!!d.opp.left,oppName:d.oppName,started:now_()>=act.t0}}};
   return{...growApi,down,move,up,draw,best:()=>S.best,_s:()=>S,_G:()=>G,_job:(id,fast,st)=>{startJobAct(JOBS.find(x=>x.id===id),st);if(fast)act.t0=now_()+100},_board:()=>openBoard(),_set:o=>{Object.assign(S,o);save()},_act:()=>act,_g:()=>({u,ox,oy}),_away:ms=>{simT-=ms},_revive:()=>{S.dead=null;dying=null;act=null},_awayP:awayP}
 })();
-window.MBGrow={card:Grow.card,portrait:Grow.portrait,saveNow:Grow.saveNow,freeze:Grow.freeze,money:Grow.money,duelJobs:Grow.duelJobs,duelCan:Grow.duelCan,duelStart:Grow.duelStart,duelOpp:Grow.duelOpp,duelState:Grow.duelState,snap:Grow.snap,busy:Grow.busy};   // 앱 레이어(랭킹 프로필·로그아웃)에서 써요
+window.MBGrow={card:Grow.card,portrait:Grow.portrait,saveNow:Grow.saveNow,freeze:Grow.freeze,money:Grow.money,duelJobs:Grow.duelJobs,duelCan:Grow.duelCan,duelStart:Grow.duelStart,duelOpp:Grow.duelOpp,duelState:Grow.duelState,snap:Grow.snap,busy:Grow.busy,gameRect:Grow.gameRect};   // 앱 레이어(랭킹 프로필·로그아웃)에서 써요
 /* ---------- 인형뽑기 범준: claw machine full of 범준 plushies (Matter.js pile, swinging claw on a cable, slips, prize chute, 도감) ---------- */
 const Claw=(()=>{
   const MT=window.Matter;
@@ -4317,17 +4319,17 @@ header{align-items:center}
 .betrow{display:flex;gap:6px}
 .betrow input{flex:1;min-width:0;font:400 1rem var(--display);padding:9px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
 .betrow .btn{flex:none;padding:9px 16px}
-#duelSplit{position:fixed;z-index:48;display:flex;flex-direction:column;background:#241a2e;border-top:3px solid #fff;box-shadow:0 -6px 18px rgba(0,0,0,.25)}
-#duelSplit[hidden]{display:none}
-.ds-bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 12px;background:linear-gradient(90deg,#ff5d7e,#5a6bff);color:#fff;font:400 .95rem var(--display)}
-.ds-bar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ds-bar span:last-child{text-align:right}
-.ds-bar b{flex:none;font-weight:400}
-.ds-view{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
-.ds-view img{max-width:100%;max-height:100%;width:auto;height:100%;aspect-ratio:320/348;object-fit:contain;display:block}
-.ds-view img:not([src]){visibility:hidden}
-#dsWait{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:400 .9rem var(--display);text-align:center;white-space:pre-line}
-#dsWait[hidden]{display:none}
+#duelPip{position:fixed;right:8px;top:30%;z-index:48;width:min(50vw,230px);border-radius:16px;overflow:hidden;background:#241a2e;border:3px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.4);touch-action:none;cursor:grab;user-select:none;transition:width .2s}
+#duelPip.small{width:min(30vw,130px)}
+#duelPip[hidden]{display:none}
+#duelPip small{display:block;background:linear-gradient(90deg,#5a6bff,#ff5d7e);color:#fff;font:400 .72rem var(--display);padding:3px 30px 3px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#duelPip .pv{position:relative;aspect-ratio:320/348}
+#duelPip video,#duelPip img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+#duelPip video[hidden]{display:none}
+#duelPip img:not([src]){visibility:hidden}
+#pipWait{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:400 .78rem var(--display);text-align:center;white-space:pre-line;padding:6px}
+#pipWait[hidden]{display:none}
+#pipSize{position:absolute;right:3px;top:2px;width:24px;height:20px;border:0;border-radius:6px;background:rgba(255,255,255,.25);color:#fff;font-size:.8rem;line-height:1;padding:0;cursor:pointer}
 </style>
 
 <div class="ov" id="rankOv" hidden>
@@ -4367,7 +4369,7 @@ header{align-items:center}
   </div>
 </div>
 
-<div id="duelSplit" hidden><div class="ds-bar"><span id="dsMe"></span><b id="dsMid">⚔️</b><span id="dsOpp"></span></div><div class="ds-view"><img id="dsImg" alt="상대 화면"><span id="dsWait">상대 화면 받는 중…</span></div></div>
+<div id="duelPip" hidden><small id="pipName"></small><div class="pv"><video id="pipVid" autoplay playsinline muted hidden></video><img id="pipImg" alt="상대 화면"><span id="pipWait">상대 화면 받는 중…</span></div><button id="pipSize" aria-label="크기 바꾸기">⤢</button></div>
 
 <div class="ov" id="dexOv" hidden>
   <div class="sheet" role="dialog" aria-labelledby="dexTitle">
@@ -4590,7 +4592,7 @@ window.MB=(()=>{
     const hadF=document.activeElement&&document.activeElement.id==='betIn';B.append(lj,sel,ls,cs,lb,cb,br,bnow,nt);if(hadF){bi.focus();try{bi.setSelectionRange(bi.value.length,bi.value.length)}catch(e){}}
     const A=$('duelActs');A.textContent='';const lv=document.createElement('button');lv.className='btn ghost';lv.textContent='나가기';lv.onclick=lobLeave;
     const rd=document.createElement('button');rd.className='btn';const isR=L.ready>0&&L.ready===c.v;rd.textContent=isR?'준비 취소':'✅ 준비';rd.disabled=poor||!J;rd.onclick=()=>{if(!lob)return;lob.ready=isR?0:lob.cfg.v;lobWrite();renderLobby();lobGo()};A.append(lv,rd);$('duelOv').hidden=false}
-  function lobGo(){const L=lob;if(!L)return;const c=L.cfg,o=L.opp;if(L.ready>0&&L.ready===c.v&&o&&o.cfg&&o.cfg.v===c.v&&o.ready===c.v){if(c.bet>MBGrow.money()){toast('판돈 낼 돈이 모자라요','','warn');return}lobClose();startDuel(L.did,L.oid,L.oname,c.job,c.st,c.bet)}}
+  function lobGo(){const L=lob;if(!L)return;const c=L.cfg,o=L.opp;if(L.ready>0&&L.ready===c.v&&o&&o.cfg&&o.cfg.v===c.v&&o.ready===c.v){if(c.bet>MBGrow.money()){toast('판돈 낼 돈이 모자라요','','warn');return}lobClose();startDuel(L.did,L.oid,L.oname,c.job,c.st,c.bet,L.host)}}
   let lobFly=false;
   async function lobPoll(){if(!lob||lobFly)return;const did0=lob.did;let r=null;lobFly=true;try{r=await fbJ('/players/'+enc(lob.oid)+'/duel')}catch(e){}finally{lobFly=false}if(!lob||lob.did!==did0)return;
     if(r&&r.did===lob.did){lob.seen=Date.now();if(r.state==='cancel'){lobClose(lob.oname+'님이 대기실에서 나갔어요');return}if(r.state==='decline'){lobClose('거절했어요');return}
@@ -4601,26 +4603,44 @@ window.MB=(()=>{
       lobGo()}
     else if(lob&&Date.now()-lob.seen>12000)lobClose('상대 연결이 끊겼어요')}
   /* 게임: 점수는 0.4초마다, 작은 화면은 0.8초마다 올려요 */
-  /* 게임: 화면 반반 — 위는 내 알바, 아래는 상대 화면(0.3초마다 새로 받아요) */
-  function startDuel(did,oid,oname,job,st,bet){['pfOv','rankOv'].forEach(close);clearInterval(pfOnT);const gb=document.querySelector('[data-app=grow]');if(gb&&app!=='grow')gb.click();
-    let busyW=false,pic=null,picAt=0,picSent=0;window.MB_SPLIT=true;
-    const ok=MBGrow.duelStart({did,job,st,bet,oppName:oname,onTick:o=>{if(busyW)return;busyW=true;const body={did,state:'play',s:o.s,alive:o.alive,done:o.done,t:Date.now()};if(pic&&picAt>picSent){body.pic=pic;picSent=picAt}
+  /* 게임: 상대 화면은 큰 팝업으로 — 실시간 영상(WebRTC, 서로 폰끼리 바로 연결)으로 보고, 연결이 안 되면 0.3초마다 사진으로 대신 보여줘요 */
+  function startDuel(did,oid,oname,job,st,bet,host){['pfOv','rankOv'].forEach(close);clearInterval(pfOnT);const gb=document.querySelector('[data-app=grow]');if(gb&&app!=='grow')gb.click();
+    let busyW=false,pic=null,picAt=0,picSent=0;window.MB_SPLIT=false;
+    const ok=MBGrow.duelStart({did,job,st,bet,oppName:oname,onTick:o=>{if(busyW)return;busyW=true;const body={did,state:'play',s:o.s,alive:o.alive,done:o.done,t:Date.now(),rv:!!(duel&&duel.vid)};if(pic&&picAt>picSent&&!(duel&&duel.oppRv)){body.pic=pic;picSent=picAt}
         fbJ(myDuel(),'PATCH',body).catch(()=>{}).finally(()=>{busyW=false})},
-      onEnd:r=>{if(r.res==='win')me.dw=(me.dw||0)+1;else if(r.res==='lose')me.dl=(me.dl||0)+1;SS('dw',me.dw);SS('dl',me.dl);dirty=true;schedule(3000);setTimeout(()=>{if(duel&&duel.did===did)stopNet()},12000)}});
-    if(!ok){window.MB_SPLIT=false;toast('대전을 시작하지 못했어요','','warn');fbJ(myDuel(),'PUT',{did,state:'cancel',t:Date.now()}).catch(()=>{});return}
-    duel={did,oid,oname,t0:Date.now(),gotPic:false};splitShow(oname);clearInterval(pipT);pipT=setInterval(()=>{const u2=MBGrow.snap&&MBGrow.snap(176);if(u2){pic=u2;picAt=Date.now()}},300);
-    let lastPic='',fly=false;clearInterval(dPoll);dPoll=setInterval(async()=>{splitInfo();if(!MBGrow.duelState()){stopDuel();return}if(fly||!duel||duel.did!==did)return;fly=true;let r=null;try{r=await fbJ('/players/'+enc(oid)+'/duel')}catch(e){}finally{fly=false}if(!duel||duel.did!==did)return;
-      MBGrow.duelOpp(did,r&&r.did===did&&r.t&&r.s!=null?r:null);if(r&&r.did===did&&r.pic&&r.pic!==lastPic&&/^data:image\/jpeg;base64,/.test(r.pic)){lastPic=r.pic;$('dsImg').src=r.pic;$('dsWait').hidden=true;duel.gotPic=true}
-      else if(!duel.gotPic&&Date.now()-duel.t0>8000)$('dsWait').textContent=r&&r.did===did?'상대 화면이 안 와요\n(상대도 최신 버전이어야 해요)':'상대 연결 중…'},300)}
-  function stopNet(){clearInterval(pipT);pipT=0}
-  function stopDuel(){clearInterval(dPoll);clearInterval(pipT);dPoll=pipT=0;duel=null;window.MB_SPLIT=false;splitHide()}
-  function splitPlace(){const S2=$('duelSplit');if(S2.hidden)return;const w=document.getElementById('wx');if(!w)return;const r=w.getBoundingClientRect();S2.style.left=r.left+'px';S2.style.width=r.width+'px';S2.style.top=(r.top+r.height*.56)+'px';S2.style.height=(r.height*.44)+'px'}
-  function splitShow(nm){$('dsImg').removeAttribute('src');const w=$('dsWait');w.textContent='상대 화면 받는 중…';w.hidden=false;$('duelSplit').hidden=false;splitPlace();splitInfo()}
-  function splitHide(){$('duelSplit').hidden=true}
-  function splitInfo(){const d=MBGrow.duelState&&MBGrow.duelState();if(!d||$('duelSplit').hidden)return;const f=v=>d.mode==='survive'?(+v||0).toFixed(1)+'초':(v||0)+'점';
-    $('dsMe').textContent='나 '+f(d.my)+(d.end?' · 끝':'');$('dsOpp').textContent=(d.oppSeen?f(d.opp):'…')+' '+d.oppName+(d.oppLeft?' · 나감':d.oppDone?(d.mode==='survive'?' · 쓰러짐':' · 끝'):'');
-    $('dsMid').textContent=d.res?(d.res==='win'?'🏆':d.res==='lose'?'😭':'🤝'):d.my>d.opp?'👑 ⚔️':d.my<d.opp?'⚔️ 👑':'⚔️'}
-  addEventListener('resize',splitPlace);setInterval(splitPlace,1000);
+      onEnd:r=>{if(r.res==='win')me.dw=(me.dw||0)+1;else if(r.res==='lose')me.dl=(me.dl||0)+1;SS('dw',me.dw);SS('dl',me.dl);dirty=true;schedule(3000)}});
+    if(!ok){toast('대전을 시작하지 못했어요','','warn');fbJ(myDuel(),'PUT',{did,state:'cancel',t:Date.now()}).catch(()=>{});return}
+    duel={did,oid,oname,t0:Date.now(),gotPic:false,vid:false,oppRv:false};pipShow(oname);rtcStart(did,oid,!!host);
+    clearInterval(pipT);pipT=setInterval(()=>{if(duel&&duel.oppRv)return;const u2=MBGrow.snap&&MBGrow.snap(200);if(u2){pic=u2;picAt=Date.now()}},300);
+    let lastPic='',fly=false;clearInterval(dPoll);dPoll=setInterval(async()=>{pipInfo();if(!MBGrow.duelState()){stopDuel();return}if(fly||!duel||duel.did!==did)return;fly=true;let r=null;try{r=await fbJ('/players/'+enc(oid)+'/duel')}catch(e){}finally{fly=false}if(!duel||duel.did!==did)return;
+      MBGrow.duelOpp(did,r&&r.did===did&&r.t&&r.s!=null?r:null);if(r&&r.did===did)duel.oppRv=!!r.rv;
+      if(!duel.vid&&r&&r.did===did&&r.pic&&r.pic!==lastPic&&/^data:image\/jpeg;base64,/.test(r.pic)){lastPic=r.pic;$('pipImg').src=r.pic;$('pipWait').hidden=true;duel.gotPic=true}
+      else if(!duel.gotPic&&!duel.vid&&Date.now()-duel.t0>8000)$('pipWait').textContent=r&&r.did===did?'상대 화면이 안 와요\n(상대도 최신 버전이어야 해요)':'상대 연결 중…'},300)}
+  function stopDuel(){clearInterval(dPoll);clearInterval(pipT);dPoll=pipT=0;duel=null;rtcStop();pipHide()}
+  /* 실시간 영상: 내 알바 화면을 작은 캔버스에 계속 복사해서 영상으로 보내요 (구글 STUN으로 서로 찾아요) */
+  let rtc=null;
+  function rtcStart(did,oid,offer){rtcStop();if(!window.RTCPeerConnection||!HTMLCanvasElement.prototype.captureStream)return;let pc;
+    try{pc=new RTCPeerConnection({iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']}]})}catch(e){return}
+    const cv=document.createElement('canvas');cv.width=360;cv.height=392;const cx=cv.getContext('2d');cx.fillStyle='#241a2e';cx.fillRect(0,0,360,392);const ms=cv.captureStream(30);ms.getTracks().forEach(t=>pc.addTrack(t,ms));
+    const R={pc,did,oid,cv,cx,ms,raf:0,poll:0,set:false};rtc=R;const W2=document.getElementById('wx');
+    const loop=()=>{if(rtc!==R)return;const g=MBGrow.gameRect&&MBGrow.gameRect();if(g&&W2&&g.sw>0){try{cx.drawImage(W2,g.sx,g.sy,g.sw,g.sh,0,0,360,392)}catch(e){}}R.raf=requestAnimationFrame(loop)};loop();
+    pc.ontrack=e=>{const v=$('pipVid'),s2=e.streams&&e.streams[0]?e.streams[0]:new MediaStream([e.track]);if(v.srcObject!==s2){v.srcObject=s2;v.muted=true;v.play().catch(()=>{})}};
+    const gather=()=>new Promise(res=>{if(pc.iceGatheringState==='complete')return res();const t=setTimeout(res,2500);pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete'){clearTimeout(t);res()}})});
+    const P=id=>'/players/'+enc(id)+'/rtc';
+    if(offer)(async()=>{const o=await pc.createOffer();await pc.setLocalDescription(o);await gather();if(rtc!==R)return;await fbJ(P(me.id),'PUT',{did,type:'offer',sdp:pc.localDescription.sdp,t:Date.now()});
+        R.poll=setInterval(async()=>{if(R.set||rtc!==R)return;try{const r=await fbJ(P(oid));if(r&&r.did===did&&r.type==='answer'&&!R.set){R.set=true;clearInterval(R.poll);await pc.setRemoteDescription({type:'answer',sdp:r.sdp})}}catch(e){}},500)})().catch(()=>{});
+    else R.poll=setInterval(async()=>{if(R.set||rtc!==R)return;try{const r=await fbJ(P(oid));if(r&&r.did===did&&r.type==='offer'&&!R.set){R.set=true;clearInterval(R.poll);await pc.setRemoteDescription({type:'offer',sdp:r.sdp});const a=await pc.createAnswer();await pc.setLocalDescription(a);await gather();if(rtc!==R)return;await fbJ(P(me.id),'PUT',{did,type:'answer',sdp:pc.localDescription.sdp,t:Date.now()})}}catch(e){}},500)}
+  function rtcStop(){const R=rtc;if(!R)return;rtc=null;cancelAnimationFrame(R.raf);clearInterval(R.poll);try{R.ms.getTracks().forEach(t=>t.stop())}catch(e){}try{R.pc.close()}catch(e){}const v=$('pipVid');try{v.pause()}catch(e){}v.srcObject=null;v.hidden=true}
+  /* 상대 화면 팝업 (끌어서 옮기고, ⤢로 크기 바꾸기) */
+  function pipShow(nm){const P=$('duelPip');$('pipImg').removeAttribute('src');const v=$('pipVid');v.hidden=true;const w=$('pipWait');w.textContent='상대 화면 받는 중…';w.hidden=false;P.hidden=false;P.dataset.nm=nm;pipInfo()}
+  function pipHide(){$('duelPip').hidden=true}
+  function pipInfo(){const d=MBGrow.duelState&&MBGrow.duelState(),P=$('duelPip');if(!d||P.hidden)return;const f=v=>d.mode==='survive'?(+v||0).toFixed(1)+'초':(v||0)+'점';
+    $('pipName').textContent='📺 '+d.oppName+' · '+(d.oppSeen?f(d.opp):'…')+(d.oppLeft?' · 나감':d.oppDone?(d.mode==='survive'?' · 쓰러짐':' · 끝'):'')+(duel&&duel.vid?' · 🔴실시간':'')}
+  {const v=$('pipVid');v.addEventListener('playing',()=>{if(!duel)return;duel.vid=true;v.hidden=false;$('pipWait').hidden=true;$('pipImg').removeAttribute('src');pipInfo()})}
+  {const P=$('duelPip');let dr=null;P.addEventListener('pointerdown',e=>{if(e.target.id==='pipSize')return;const r=P.getBoundingClientRect();dr={dx:e.clientX-r.left,dy:e.clientY-r.top,id:e.pointerId,moved:false};P.setPointerCapture(e.pointerId);e.stopPropagation()});
+    P.addEventListener('pointermove',e=>{if(!dr||e.pointerId!==dr.id)return;dr.moved=true;const W2=innerWidth-P.offsetWidth,H2=innerHeight-P.offsetHeight;P.style.left=Math.max(0,Math.min(W2,e.clientX-dr.dx))+'px';P.style.top=Math.max(0,Math.min(H2,e.clientY-dr.dy))+'px';P.style.right='auto';e.stopPropagation()});
+    const up=e=>{dr=null;e.stopPropagation()};P.addEventListener('pointerup',up);P.addEventListener('pointercancel',up);
+    $('pipSize').addEventListener('click',e=>{e.stopPropagation();P.classList.toggle('small')})}
   /* ---- 플레이어 프로필: 랭킹에서 누르면 그 사람 범준이 + 돈 + 기록 ---- */
   const FNM={hun:'훈남',mus:'근육',fat:'통통',gen:'천재'};
   const bjNm=c=>(+c.lv>=20?(FNM[c.form]||'훈남'):+c.lv>=12?'학생':+c.lv>=5?'어린이':'아가')+' 범준';

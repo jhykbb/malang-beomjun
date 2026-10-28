@@ -1450,6 +1450,9 @@ const Grow=(()=>{
     {k:'top',n:'옷',ic:'👕',it:[{id:'t_tank',e:'🎽',n:'나시티',p:300,fp:10000,c:'#ffffff',tank:1},{id:'t_blue',e:'💙',n:'파란 티',p:300,c:'#5a9bff'},{id:'t_hood',e:'🖤',n:'검정 후드',p:600,c:'#33313b'},{id:'t_stripe',e:'🦓',n:'줄무늬',p:700,c:'#ffffff'},{id:'t_heart',e:'💗',n:'하트 티',p:800,c:'#ffd1e1'},
       {id:'t_straw',e:'🍓',n:'딸기 옷',p:900,c:'#ff5d6e'},{id:'t_bee',e:'🐝',n:'꿀벌 옷',p:1000,c:'#ffd23d'},{id:'t_overall',e:'👖',n:'멜빵바지',p:1000,c:'#ffe066'},{id:'t_hawaii',e:'🌺',n:'하와이안 셔츠',p:1100,c:'#2fb5a8'},{id:'t_rain',e:'🌈',n:'무지개',p:1200,c:'#ff8fab'},{id:'t_tiger',e:'🐯',n:'호피',p:1300,c:'#f2a33a'},{id:'t_soccer',e:'⚽',n:'축구 유니폼',p:1400,c:'#e0364a'},{id:'t_puffer',e:'🧥',n:'롱패딩',p:1600,c:'#5a6bff'},{id:'t_suit',e:'👔',n:'정장',p:1800,c:'#2b2f45'},
       {id:'t_hanbok',e:'🎎',n:'색동 한복',p:2000,c:'#ff7fa6'},{id:'t_dino',e:'🦖',n:'공룡 옷',p:2000,c:'#6cc46a'},{id:'t_armor',e:'🛡️',n:'기사 갑옷',p:3000,c:'#b9c2d0'},{id:'t_galaxy',e:'🌌',n:'은하수 옷',p:4000,c:'#2a2266'},{id:'t_neon',e:'💜',n:'네온 옷',p:4500,c:'#1c1430'},{id:'t_gold',e:'✨',n:'황금 옷',p:5000,c:'#ffcf3d'}]},
+    {k:'bot',n:'바지',ic:'👖',it:[{id:'j_jeans',e:'👖',n:'청바지',p:300,c:'#3d6bb3',jean:1},{id:'j_slacks',e:'🖤',n:'검정 슬랙스',p:350,c:'#24222c'},{id:'j_white',e:'🤍',n:'흰 바지',p:400,c:'#ecebf2'},{id:'j_pink',e:'🩷',n:'핑크 바지',p:450,c:'#ff8fab'},
+      {id:'j_short',e:'🩳',n:'반바지',p:500,c:'#4a8fe0',short:1},{id:'j_cargo',e:'🪖',n:'카고 바지',p:700,c:'#7a7f4a',cargo:1},{id:'j_track',e:'🏃',n:'츄리닝',p:800,c:'#2f3a7a',stripe:'#ffffff'},{id:'j_red',e:'❤️',n:'빨간 츄리닝',p:900,c:'#d8344a',stripe:'#ffe066'},
+      {id:'j_camo',e:'🌿',n:'군복 바지',p:1000,c:'#6b7f4f',camo:1},{id:'j_rainbow',e:'🌈',n:'무지개 바지',p:2500,c:'rainbow'},{id:'j_gold',e:'✨',n:'황금 바지',p:4000,c:'#ffcf3d',shine:1}]},
     {k:'back',n:'날개',ic:'🪽',it:[{id:'k_bag',e:'🎒',n:'책가방',p:1500},{id:'k_cape',e:'🦸',n:'영웅 망토',p:2000},{id:'k_balloon',e:'🎈',n:'풍선 다발',p:2500},{id:'k_butter',e:'🦋',n:'나비 날개',p:3000},{id:'k_angel',e:'🕊️',n:'천사 날개',p:4000},{id:'k_devil',e:'🦇',n:'악마 날개',p:4000},{id:'k_fairy',e:'🧚',n:'요정 날개',p:4500},{id:'k_jet',e:'🚀',n:'제트팩',p:5000}]},
     {k:'face',n:'얼굴',ic:'🤪',it:[{id:'f0',e:'🥤',n:'꿀꺽 범준',p:2000,f:0},{id:'f1',e:'😐',n:'멍 범준',p:2000,f:1},{id:'f4',e:'🤔',n:'고민 범준',p:2500,f:4},{id:'f2',e:'🤳',n:'셀카 범준',p:2500,f:2},{id:'f6',e:'😗',n:'클로즈업 범준',p:2500,f:6},
       {id:'f3',e:'😁',n:'활짝 범준',p:3000,f:3},{id:'f9',e:'🤓',n:'안경 범준',p:3000,f:9},{id:'f_kid',e:'👶',n:'영원한 아가',p:3000,im:'KID'},{id:'f_five',e:'🧒',n:'5살 얼굴',p:3000,im:'FIVE'},{id:'f_ten',e:'👦',n:'10살 얼굴',p:3000,im:'TEN'},
@@ -2372,6 +2375,16 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
   const font=px=>'400 '+px+'px "Jua",system-ui,sans-serif',emo=px=>px+'px system-ui,"Noto Color Emoji",sans-serif';
   function rr(x,y,w,h,r){r=Math.min(r,w/2,h/2);wctx.beginPath();wctx.moveTo(x+r,y);wctx.arcTo(x+w,y,x+w,y+h,r);wctx.arcTo(x+w,y+h,x,y+h,r);wctx.arcTo(x,y+h,x,y,r);wctx.arcTo(x,y,x+w,y,r);wctx.closePath()}
   function limb(x1,y1,x2,y2,w,c){wctx.strokeStyle=c;wctx.lineWidth=w;wctx.lineCap='round';wctx.beginPath();wctx.moveTo(x1,y1);wctx.lineTo(x2,y2);wctx.stroke()}
+  // 바지: 다리·허리 색을 바꾸고, 반바지·츄리닝 줄·군복 무늬 같은 걸 다리에 그려요
+  function pantsD(D,now){const id=eqd('bot');if(!id||!ITEM[id])return D;const it=ITEM[id];return Object.assign({},D,{bot:it.c==='rainbow'?'hsl('+Math.round((now/8)%360)+',85%,62%)':it.c,pid:id})}
+  function leg(x1,y1,x2,y2,w,D,part){const it=D.pid&&ITEM[D.pid];
+    if(it&&it.short){if(part==='shin'){limb(x1,y1,x2,y2,w*.9,SKIN);return}if(!part){const mx=x1+(x2-x1)*.5,my=y1+(y2-y1)*.5;limb(mx,my,x2,y2,w*.9,SKIN);limb(x1,y1,mx,my,w*1.1,D.bot);wctx.fillStyle='rgba(0,0,0,.12)';wctx.beginPath();wctx.arc(mx,my,w*.55,0,6.29);wctx.fill();return}}
+    limb(x1,y1,x2,y2,w,D.bot);if(!it)return;const dx=x2-x1,dy=y2-y1,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;
+    if(it.stripe)for(const sd of [-1,1]){const o2=sd*w*.36;limb(x1+nx*o2,y1+ny*o2,x2+nx*o2,y2+ny*o2,Math.max(1.2,w*.14),it.stripe)}
+    if(it.jean){wctx.strokeStyle='rgba(255,255,255,.28)';wctx.lineWidth=1;wctx.beginPath();wctx.moveTo(x1+nx*w*.2,y1+ny*w*.2);wctx.lineTo(x2+nx*w*.2,y2+ny*w*.2);wctx.stroke();if(part!=='thigh'){wctx.fillStyle='rgba(255,255,255,.16)';wctx.beginPath();wctx.ellipse(x1+dx*(part==='shin'?.15:.55),y1+dy*(part==='shin'?.15:.55),w*.36,w*.28,0,0,6.29);wctx.fill()}}
+    if(it.cargo&&part!=='shin'){const t=part==='thigh'?.55:.4;rr(x1+dx*t-w*.3,y1+dy*t-w*.25,w*.6,w*.5,2);wctx.fillStyle='rgba(0,0,0,.18)';wctx.fill()}
+    if(it.camo)for(let k=0;k<3;k++){const t=.18+k*.3,px=x1+dx*t+nx*(k%2?1:-1)*w*.16,py=y1+dy*t+ny*(k%2?1:-1)*w*.16;wctx.fillStyle=k%2?'#3d5230':'#9aa86a';wctx.beginPath();wctx.ellipse(px,py,w*.3,w*.2,k*1.3,0,6.29);wctx.fill()}
+    if(it.shine){const k=(now_()/800+x1/60)%1.4;if(k<1){wctx.strokeStyle='rgba(255,255,255,.65)';wctx.lineWidth=w*.28;wctx.lineCap='round';wctx.beginPath();wctx.moveTo(x1+dx*k,y1+dy*k);wctx.lineTo(x1+dx*Math.min(1,k+.18),y1+dy*Math.min(1,k+.18));wctx.stroke()}}}
   function heartPath(x,y,r){wctx.beginPath();wctx.moveTo(x,y+r*.35);wctx.bezierCurveTo(x-r*1.1,y-r*.4,x-r*.45,y-r*1.05,x,y-r*.45);wctx.bezierCurveTo(x+r*.45,y-r*1.05,x+r*1.1,y-r*.4,x,y+r*.35);wctx.closePath()}
   function poopShape(x,y,s,eyes){wctx.save();wctx.translate(x,y);wctx.scale(s,s);const L=[[0,-4,17,7],[0,-13,13,6],[1,-21,8,5]];
     for(const [dx,dy,rx,ry] of L){wctx.beginPath();wctx.ellipse(dx,dy,rx,ry,0,0,6.29);wctx.fillStyle='#8a5a35';wctx.fill();wctx.beginPath();wctx.ellipse(dx-rx*.35,dy-ry*.35,rx*.35,ry*.3,0,0,6.29);wctx.fillStyle='rgba(255,255,255,.22)';wctx.fill()}
@@ -2418,7 +2431,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     if(o.acc)drawAcc(hx,hy,R,im)}
   // 범준 with a body: photo head + drawn chibi body that changes with the stage
   function drawBJ(x,fy,o,now){const bf=bodyFilt(now);return bf?withCM(bf,()=>drawBJ0(x,fy,o,now)):drawBJ0(x,fy,o,now)}
-  function drawBJ0(x,fy,o,now){let D=dims(o.st,o.form);const OT=o.nude?null:eqd('top');if(OT)D=Object.assign({},D,{top:ITEM[OT].c},ITEM[OT].tank?{sl:0,tank:1}:{});if(o.nude)D=Object.assign({},D,{k:'nude',top:SKIN,bot:SKIN,sl:0});
+  function drawBJ0(x,fy,o,now){let D=dims(o.st,o.form);const OT=o.nude?null:eqd('top');if(OT)D=Object.assign({},D,{top:ITEM[OT].c},ITEM[OT].tank?{sl:0,tank:1}:{});if(!o.nude)D=pantsD(D,now);if(o.nude)D=Object.assign({},D,{k:'nude',top:SKIN,bot:SKIN,sl:0});
     const SPC=eqd('sp'),BK=eqd('back'),zs=SPC==='z_big'?1.22:SPC==='z_small'?.78:1;if((SPC==='z_float'||BK==='k_jet')&&!o.sit&&!o.tub&&!o.dp)fy-=(SPC==='z_float'?20:10)+Math.sin(now/(SPC==='z_float'?600:220))*(SPC==='z_float'?7:3);const sw0=o.swell||0;if(sw0)D=Object.assign({},D,{bw:D.bw*(1+sw0),bh:D.bh*(1+sw0*.28)});
     const bw=D.bw,bh=D.bh,pose=o.pose||'idle',round=D.k==='fat'||sw0>.15;
     const legH=o.sit?4:D.leg,hip=fy-legH,top=hip-bh,R=D.R;
@@ -2432,11 +2445,11 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     if(BK&&!o.tub)drawBack(BK,x,top,bw,bh,fy,now);
     // legs
     if(!o.tub&&!o.sit&&!o.dp){for(const s of [-1,1]){const lx=x+s*bw*.21;
-      {const sw=o.walk?Math.sin(o.walk+(s>0?Math.PI:0))*3.5:0,lift=o.walk?Math.max(0,Math.sin(o.walk+(s>0?Math.PI:0)))*3:0;limb(lx,hip-6,lx+sw,fy-6-lift,D.lw,D.bot);
+      {const sw=o.walk?Math.sin(o.walk+(s>0?Math.PI:0))*3.5:0,lift=o.walk?Math.max(0,Math.sin(o.walk+(s>0?Math.PI:0)))*3:0;leg(lx,hip-6,lx+sw,fy-6-lift,D.lw,D);
         wctx.fillStyle=D.shoe;wctx.beginPath();wctx.ellipse(lx+sw+s*2,fy-4-lift,D.lw*.82,5.5,0,0,6.29);wctx.fill()}}}
     if(o.dp){const P=o.dp,lh=D.leg*.58;
       for(const s of [-1,1]){const k=s<0?P.kickL:P.kickR,hx2=x+P.dx+s*bw*.2,hy2=hip+P.dy-6,fx=x+s*(bw*.21+P.spread)+s*k*14,fyy=fy-5-k*26,
-          [kx,ky,ffx,ffy]=ik(hx2,hy2,fx,fyy,lh,lh,s);limb(hx2,hy2,kx,ky,D.lw,D.bot);limb(kx,ky,ffx,ffy,D.lw*.92,D.bot);
+          [kx,ky,ffx,ffy]=ik(hx2,hy2,fx,fyy,lh,lh,s);leg(hx2,hy2,kx,ky,D.lw,D,'thigh');leg(kx,ky,ffx,ffy,D.lw*.92,D,'shin');
         wctx.fillStyle=D.shoe;wctx.beginPath();wctx.ellipse(ffx+s*2,ffy+1,D.lw*.82,5.5,s*k*.5,0,6.29);wctx.fill()}
       wctx.save();const pp=P.pop||0;wctx.translate(x+P.dx,hip+P.dy-7*pp);wctx.rotate(P.lean-.1*pp);if(pp)wctx.scale(1+.05*pp,1+.03*pp);wctx.translate(-x,-hip)}
     // body
@@ -2769,7 +2782,7 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
       wctx.strokeStyle='#d8c8b8';wctx.lineWidth=1.5;wctx.beginPath();wctx.moveTo(CX,FLOOR-88);wctx.lineTo(CX,FLOOR-80);wctx.stroke();for(const s of [-1,1])for(let j=0;j<3;j++){wctx.beginPath();wctx.moveTo(CX+s*8,FLOOR-87+j*2.5);wctx.lineTo(CX+s*32,FLOOR-89+j*2.5);wctx.stroke()}
       wctx.save();wctx.translate(CX+70,FLOOR-84);wctx.rotate(-.3);wctx.fillStyle='#ffd35c';wctx.fillRect(-16,-2.5,28,5);wctx.fillStyle='#f6c7a0';wctx.beginPath();wctx.moveTo(12,-2.5);wctx.lineTo(19,0);wctx.lineTo(12,2.5);wctx.fill();wctx.fillStyle='#ff8fab';wctx.fillRect(-20,-2.5,4,5);wctx.restore()}
     if(act&&act.k==='poop'){potty(true);
-      {const D=dims(eSt,S.form);for(const s of [-1,1]){const lx=CX+s*(D.bw*.21+3);limb(lx,FLOOR-48,lx+s*4,FLOOR-26,D.lw,D.bot);wctx.fillStyle=D.shoe;wctx.beginPath();wctx.ellipse(lx+s*6,FLOOR-24,D.lw*.82,5.5,0,0,6.29);wctx.fill()}}
+      {const D=pantsD(dims(eSt,S.form),now);for(const s of [-1,1]){const lx=CX+s*(D.bw*.21+3);leg(lx,FLOOR-48,lx+s*4,FLOOR-26,D.lw,D);wctx.fillStyle=D.shoe;wctx.beginPath();wctx.ellipse(lx+s*6,FLOOR-24,D.lw*.82,5.5,0,0,6.29);wctx.fill()}}
       if(act.done){const k=(now-act.done)/1600;if(!act.fl&&k>.35&&!act.empty){act.fl=true;flush()}if(k>.35&&k<1&&!act.empty){wctx.strokeStyle='rgba(90,170,230,.7)';wctx.lineWidth=3;for(let j=0;j<3;j++){wctx.beginPath();wctx.arc(CX,FLOOR-50,10+j*7,now/120+j*2,now/120+j*2+2.2);wctx.stroke()}}
         if(k>=1){const e=act.empty;act=null;if(!e){say('시원해~ 😌','#2fa86a');burst(CX,FLOOR-120,['#fff','#ffe066','#bdf0ff'],12)}}}}
     if(act&&act.k==='wash'){const a=act;tub();

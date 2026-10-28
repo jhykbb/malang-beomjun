@@ -2990,10 +2990,12 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
   function snap(w){if(mode!=='grow'||!act||!act.duel)return null;w=Math.round(w||96);const r=wx.getBoundingClientRect(),dpr=wx.width/Math.max(1,r.width),h=Math.round(w*(RB-RT)/320);
     if(!snapC)snapC=document.createElement('canvas');if(snapC.width!==w||snapC.height!==h){snapC.width=w;snapC.height=h}const x=snapC.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);
     try{x.drawImage(wx,(ox+10*u)*dpr,(oy+RT*u)*dpr,320*u*dpr,(RB-RT)*u*dpr,0,0,w,h);return snapC.toDataURL('image/jpeg',.5)}catch(e){return null}}
-  const growApi={snap,card,portrait,saveNow:()=>{save();bagSave()},freeze:()=>{frozen=true},money:()=>Math.floor(G.money||0),duelJobs,duelCan,duelStart,duelOpp,duelState:()=>act&&act.duel?{did:act.duel.did,res:act.duel.res,end:!!act.end}:null};
+  // 알바·미니게임 하는 중이면 대전 신청은 끝날 때까지 기다려요
+  const busy=()=>!!(exam||(act&&((act.k==='job'&&!act.end)||['gym','wash','study','school','dance','poop','eat'].includes(act.k))));
+  const growApi={busy,snap,card,portrait,saveNow:()=>{save();bagSave()},freeze:()=>{frozen=true},money:()=>Math.floor(G.money||0),duelJobs,duelCan,duelStart,duelOpp,duelState:()=>act&&act.duel?{did:act.duel.did,res:act.duel.res,end:!!act.end}:null};
   return{...growApi,down,move,up,draw,best:()=>S.best,_s:()=>S,_G:()=>G,_job:(id,fast,st)=>{startJobAct(JOBS.find(x=>x.id===id),st);if(fast)act.t0=now_()+100},_board:()=>openBoard(),_set:o=>{Object.assign(S,o);save()},_act:()=>act,_g:()=>({u,ox,oy}),_away:ms=>{simT-=ms},_revive:()=>{S.dead=null;dying=null;act=null},_awayP:awayP}
 })();
-window.MBGrow={card:Grow.card,portrait:Grow.portrait,saveNow:Grow.saveNow,freeze:Grow.freeze,money:Grow.money,duelJobs:Grow.duelJobs,duelCan:Grow.duelCan,duelStart:Grow.duelStart,duelOpp:Grow.duelOpp,duelState:Grow.duelState,snap:Grow.snap};   // 앱 레이어(랭킹 프로필·로그아웃)에서 써요
+window.MBGrow={card:Grow.card,portrait:Grow.portrait,saveNow:Grow.saveNow,freeze:Grow.freeze,money:Grow.money,duelJobs:Grow.duelJobs,duelCan:Grow.duelCan,duelStart:Grow.duelStart,duelOpp:Grow.duelOpp,duelState:Grow.duelState,snap:Grow.snap,busy:Grow.busy};   // 앱 레이어(랭킹 프로필·로그아웃)에서 써요
 /* ---------- 인형뽑기 범준: claw machine full of 범준 plushies (Matter.js pile, swinging claw on a cable, slips, prize chute, 도감) ---------- */
 const Claw=(()=>{
   const MT=window.Matter;
@@ -4459,7 +4461,7 @@ window.MB=(()=>{
     else{me.count+=n;me.today+=n;SS('count',me.count);SS('today',me.today)}show();dirty=true;schedule()}
   function schedule(d){if(pushT)return;pushT=setTimeout(push,d||2500)}
   async function push(force){pushT=0;if(frozen||!FB_URL||!me.name)return false;if(!dirty)return true;dirty=false;
-    rollDay();const body={name:me.name,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,scount:me.scount,stoday:me.stoday,srpm:me.srpm,wbest:me.wbest,wtoday:me.wtoday,bbest:me.bbest,btoday:me.btoday,ccount:me.ccount,ctoday:me.ctoday,ebest:me.ebest,etoday:me.etoday,gbest:me.gbest,gtoday:me.gtoday,day:me.day,eggs:nEggs(),t:Date.now()};body.el=eggKeys();body.on=Date.now();body.dw=me.dw||0;body.dl=me.dl||0;const g=gw();if(g)body.gw=g;if(profileDirty){body.photo=me.photo;if(me.pin)body.pin=me.pin}
+    rollDay();const body={name:me.name,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,scount:me.scount,stoday:me.stoday,srpm:me.srpm,wbest:me.wbest,wtoday:me.wtoday,bbest:me.bbest,btoday:me.btoday,ccount:me.ccount,ctoday:me.ctoday,ebest:me.ebest,etoday:me.etoday,gbest:me.gbest,gtoday:me.gtoday,day:me.day,eggs:nEggs(),t:Date.now()};body.el=eggKeys();body.on=Date.now();body.dv=4;body.dw=me.dw||0;body.dl=me.dl||0;const g=gw();if(g)body.gw=g;if(profileDirty){body.photo=me.photo;if(me.pin)body.pin=me.pin}
     try{const r=await fetch(FB_URL+'/players/'+encodeURIComponent(me.id)+'.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(!r.ok)throw new Error(r.status);profileDirty=false}
     catch(e){dirty=true;schedule(15000);return false}
@@ -4473,16 +4475,16 @@ window.MB=(()=>{
     if(p){const im=document.createElement('img');im.src=p;im.alt='';a.append(im)}else a.textContent=(name||'?').trim().charAt(0)||'?';return a}
   function row(rank,p,isMe,val){const li=document.createElement('li');if(isMe)li.className='me';
     const n=document.createElement('span');n.className='rk-n';n.textContent=rank<=3?['🥇','🥈','🥉'][rank-1]:rank;
-    const nm=document.createElement('span');nm.className='rk-nm';nm.textContent=(!isMe&&p.on&&Date.now()-p.on<75000?'🟢 ':'')+(p.name||'이름 없음');
+    const nm=document.createElement('span');nm.className='rk-nm';nm.textContent=(!isMe&&p.on&&Math.abs(Date.now()-p.on)<150000?'🟢 ':'')+(p.name||'이름 없음');
     const sm=document.createElement('small');sm.textContent=(app==='grow'?'오늘 최고 '+(p.day===kday()?(p.gtoday||0):0)+'살':app==='enh'?'오늘 최고 +'+(p.day===kday()?(p.etoday||0):0):app==='claw'?'오늘 '+fmt(p.day===kday()?(p.ctoday||0):0)+'개':app==='suika'||app==='block'?'오늘 최고 '+fmt(p.day===kday()?(p[app==='block'?'btoday':'wtoday']||0):0)+'점':app==='spin'?'최고 '+fmt(p.srpm||0)+' RPM':'📖 '+(p.eggs||0)+'/'+EGGS.length)+(isMe?' · 나':'');nm.append(sm);
     const c=document.createElement('b');c.className='rk-c';c.textContent=(app==='enh'?'+':'')+fmt(val||0)+(app==='grow'?'살':'');
     li.append(n,avaEl(p.name,p.photo),nm,c);return li}
   let rankT=0,tab='all',players=null;
-  const mine=()=>({on:Date.now(),dw:me.dw||0,dl:me.dl||0,name:me.name,photo:me.photo,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,scount:me.scount,stoday:me.stoday,srpm:me.srpm,wbest:me.wbest,wtoday:me.wtoday,bbest:me.bbest,btoday:me.btoday,ccount:me.ccount,ctoday:me.ctoday,ebest:me.ebest,etoday:me.etoday,gbest:me.gbest,gtoday:me.gtoday,day:me.day,eggs:nEggs()});
+  const mine=()=>({on:Date.now(),dv:4,dw:me.dw||0,dl:me.dl||0,name:me.name,photo:me.photo,count:me.count,today:me.today,kcount:me.kcount,ktoday:me.ktoday,scount:me.scount,stoday:me.stoday,srpm:me.srpm,wbest:me.wbest,wtoday:me.wtoday,bbest:me.bbest,btoday:me.btoday,ccount:me.ccount,ctoday:me.ctoday,ebest:me.ebest,etoday:me.etoday,gbest:me.gbest,gtoday:me.gtoday,day:me.day,eggs:nEggs()});
   const F=()=>K()?['kcount','ktoday']:app==='spin'?['scount','stoday']:app==='suika'?['wbest','wtoday']:app==='block'?['bbest','btoday']:app==='claw'?['ccount','ctoday']:app==='enh'?['ebest','etoday']:app==='grow'?['gbest','gtoday']:['count','today'];   // which numbers the ranking uses
   async function fetchPlayers(){flush();const r=await fetch(FB_URL+'/players.json',{cache:'no-store'});if(!r.ok)throw new Error(r.status);
     const all=(await r.json())||{};all[me.id]=Object.assign({},all[me.id]||{},mine());
-    players=Object.entries(all).filter(([,p])=>p&&typeof p.count==='number'&&p.name);checkOvertake();return players}
+    players=Object.entries(all).filter(([,p])=>p&&typeof p.count==='number'&&p.name);try{players.forEach(([i,q])=>noteOn(i,q.on))}catch(e){}checkOvertake();return players}
   function ranked(){const k=kday(),[c,d]=F();
     if(tab==='today')return players.filter(([id,p])=>id===me.id||(p.day===k&&p[d]>0)).map(([id,p])=>[id,p,p.day===k?(p[d]||0):0]).sort((a,b)=>b[2]-a[2]).slice(0,100);
     return players.filter(([id,p])=>id===me.id||c==='count'||(p[c]||0)>0).map(([id,p])=>[id,p,p[c]||0]).sort((a,b)=>b[2]-a[2]).slice(0,100)}
@@ -4510,9 +4512,12 @@ window.MB=(()=>{
      ① 신청: players/{상대}/inbox 에 초대장 → ② 수락하면 둘 다 대기실: 알바·난이도·판돈을 둘이 같이 정하고 둘 다 '준비'
      ③ 시작: 각자 players/{나}/duel 에 점수와 작은 화면을 계속 올리고, 상대 것을 계속 읽어요 */
   me.dw=+(LS('dw')||0);me.dl=+(LS('dl')||0);
-  const enc=encodeURIComponent,isOn=p=>!!(p&&p.on&&Date.now()-p.on<75000);
+  const DUEL_V=4,enc=encodeURIComponent;
+  // 접속 중: 폰 시계가 서로 달라도 되게, 'on' 값이 최근에 바뀌었는지도 같이 봐요
+  const onSeen={};function noteOn(id,on){const pv=onSeen[id];if(!pv){onSeen[id]={on,at:0};return}if(pv.on!==on)onSeen[id]={on,at:Date.now()}}
+  const isOn=(p,id)=>!!(p&&p.on&&(Math.abs(Date.now()-p.on)<150000||(id&&onSeen[id]&&onSeen[id].at&&Date.now()-onSeen[id].at<90000)));
   const fbJ=(path,method,body)=>fetch(FB_URL+path+'.json',method?{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)}:{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()});
-  setInterval(()=>{if(FB_URL&&me.name&&!frozen&&!document.hidden)fbJ('/players/'+enc(me.id),'PATCH',{on:Date.now()}).catch(()=>{})},25000);
+  setInterval(()=>{if(FB_URL&&me.name&&!frozen&&!document.hidden)fbJ('/players/'+enc(me.id),'PATCH',{on:Date.now(),dv:DUEL_V}).catch(()=>{})},15000);
   let duel=null,dPoll=0,dWait=0,dSeen={},lob=null,lobT=0,lobHB=0,pipT=0;
   const BETS=[0,10000,50000,100000,300000,1000000];
   const betTxt=b=>b?(b>=1e4?(b/1e4)+'만원':fmt(b)+'원'):'판돈 없음';
@@ -4521,29 +4526,35 @@ window.MB=(()=>{
     const av=$('duelAva');av.textContent='';if(ava)av.append(ava);const A=$('duelActs');A.textContent='';(acts||[]).forEach(([lab,fn,ghost])=>{const b=document.createElement('button');b.className='btn'+(ghost?' ghost':'');b.textContent=lab;b.onclick=fn;A.append(b)});$('duelOv').hidden=false}
   const duelOvHide=()=>{$('duelOv').hidden=true;clearInterval(dWait);dWait=0};
   function renderDuelBox(id,p){const box=$('pfDuel');box.textContent='';if(id===me.id||!FB_URL||!hasGrow()||!MBGrow.duelJobs){box.hidden=true;return}box.hidden=false;
-    const on=isOn(p),r1=document.createElement('div');r1.className='row1';const st=document.createElement('span');st.className='st'+(on?' on':'');st.textContent=on?'🟢 지금 접속 중':'⚪ 지금은 접속 안 함';
-    const b=document.createElement('button');b.className='btn';b.textContent='⚔️ 대전 신청';const ck=MBGrow.duelCan();b.disabled=!on||!ck.ok||!!duel||!!lob;r1.append(st,b);box.append(r1);
-    const n=document.createElement('span');n.className='st';n.textContent=!on?'상대가 앱을 켜고 있을 때만 신청할 수 있어요':!ck.ok?ck.why:'수락하면 대기실에서 알바·판돈을 같이 정해요';box.append(n);
+    const on=isOn(p,id),r1=document.createElement('div');r1.className='row1';const st=document.createElement('span');st.className='st'+(on?' on':'');st.textContent=on?'🟢 지금 접속 중':'⚪ 지금은 접속 안 함';
+    const b=document.createElement('button');b.className='btn';b.textContent='⚔️ 대전 신청';const ck=MBGrow.duelCan(),old=!((+p.dv||0)>=DUEL_V);b.disabled=!on||old||!ck.ok||!!duel||!!lob;r1.append(st,b);box.append(r1);
+    const n=document.createElement('span');n.className='st';n.textContent=!on?'상대가 앱을 켜고 있을 때만 신청할 수 있어요':old?'상대가 옛날 버전이라 대전을 못 받아요. 최신 버전으로 업데이트해 달라고 해 주세요':!ck.ok?ck.why:'수락하면 대기실에서 알바·판돈을 같이 정해요';box.append(n);
     b.onclick=()=>sendDuel(id,p)}
   async function sendDuel(oid,p){if(duel||lob)return;const ck=MBGrow.duelCan();if(!ck.ok){toast(ck.why,'','warn');return}
-    const did=me.id+'-'+Date.now().toString(36);
-    try{await fbJ(myDuel(),'PUT',{did,state:'invite',t:Date.now()});await fbJ('/players/'+enc(oid)+'/inbox','PUT',{did,from:me.id,fname:me.name,t:Date.now()})}
+    const did=me.id+'-'+Date.now().toString(36),ib='/players/'+enc(oid)+'/inbox';let n=0;
+    try{await fbJ(myDuel(),'PUT',{did,state:'invite',t:Date.now()});await fbJ(ib,'PUT',{did,from:me.id,fname:me.name,t:Date.now(),n})}
     catch(e){toast('신청을 못 보냈어요. 인터넷을 확인해 주세요','','warn');return}
-    let left=30;const cancel=async()=>{duelOvHide();try{await fbJ('/players/'+enc(oid)+'/inbox','DELETE');await fbJ(myDuel(),'PATCH',{state:'cancel'})}catch(e){}};
-    duelOvShow('⚔️ 대전 신청!',(p.name||'상대')+'님이 받아 주길 기다리는 중…','수락하면 대기실에서 알바랑 판돈을 같이 정해요',[['취소',cancel,true]],avaEl(p.name,p.photo));$('duelCd').textContent=left;
-    dWait=setInterval(async()=>{left--;$('duelCd').textContent=Math.max(0,left);if(left<=0){cancel();toast('상대가 대답이 없어요','','warn');return}
-      try{const r=await fbJ('/players/'+enc(oid)+'/duel');if(r&&r.did===did){if(r.state==='lobby'){duelOvHide();openLobby(did,oid,p.name||'상대',p.photo,true,r)}else if(r.state==='decline'){duelOvHide();toast((p.name||'상대')+'님이 거절했어요 😢','','warn')}}}catch(e){}},1000)}
+    let left=30,tot=0,busyO=false;const nm=p.name||'상대';const cancel=async()=>{duelOvHide();try{await fbJ(ib,'DELETE');await fbJ(myDuel(),'PATCH',{state:'cancel'})}catch(e){}};
+    duelOvShow('⚔️ 대전 신청!',nm+'님이 받아 주길 기다리는 중…','수락하면 대기실에서 알바랑 판돈을 같이 정해요',[['취소',cancel,true]],avaEl(p.name,p.photo));$('duelCd').textContent=left;
+    dWait=setInterval(async()=>{tot++;if(!busyO)left--;$('duelCd').textContent=busyO?'⏳':Math.max(0,left);
+      if(left<=0||tot>180){cancel();toast(nm+'님이 대답이 없어요','','warn');return}
+      try{if(tot%2===0){n++;const iv=await fbJ(ib,'PATCH',{n,t:Date.now()}).then(()=>fbJ(ib));const bz=!!(iv&&iv.busy);if(bz!==busyO){busyO=bz;$('duelMsg').textContent=bz?nm+'님이 지금 알바하는 중이에요':nm+'님이 받아 주길 기다리는 중…';$('duelSub').textContent=bz?'알바가 끝나면 바로 신청이 떠요. 조금만 기다려요 ⏳':'수락하면 대기실에서 알바랑 판돈을 같이 정해요'}}
+        const r=await fbJ('/players/'+enc(oid)+'/duel');if(r&&r.did===did){if(r.state==='lobby'){duelOvHide();fbJ(ib,'DELETE').catch(()=>{});openLobby(did,oid,nm,p.photo,true,r)}else if(r.state==='decline'){duelOvHide();fbJ(ib,'DELETE').catch(()=>{});toast(nm+'님이 거절했어요 😢','','warn')}}}catch(e){}},1000)}
+  const inbN={};
   async function checkInbox(){if(!FB_URL||!me.name||frozen||document.hidden||duel||lob||!$('duelOv').hidden||!hasGrow()||!MBGrow.duelStart)return;
-    let inv;try{inv=await fbJ('/players/'+enc(me.id)+'/inbox')}catch(e){return}if(!inv||!inv.did||dSeen[inv.did]||Date.now()-(inv.t||0)>40000)return;dSeen[inv.did]=1;
+    const ib='/players/'+enc(me.id)+'/inbox';let inv;try{inv=await fbJ(ib)}catch(e){return}if(!inv||!inv.did||dSeen[inv.did])return;
+    const pv=inbN[inv.did],live=(pv&&pv.n!==inv.n)||Math.abs(Date.now()-(inv.t||0))<40000;inbN[inv.did]={n:inv.n};if(!live)return;   // 폰 시계가 달라도: 보낸 쪽이 계속 살아 있으면 OK
+    if(MBGrow.busy&&MBGrow.busy()){if(!inv.busy)fbJ(ib,'PATCH',{busy:true}).catch(()=>{});return}   // 알바 중이면 끝날 때까지 기다려요
+    if(inv.busy)fbJ(ib,'PATCH',{busy:false}).catch(()=>{});dSeen[inv.did]=1;
     const fname=String(inv.fname||'누군가').slice(0,12),pl=(players||[]).find(([i])=>i===inv.from),photo=pl?pl[1].photo:'';
-    const reply=async(state,extra)=>{try{await fbJ(myDuel(),'PUT',Object.assign({did:inv.did,state,t:Date.now()},extra||{}));await fbJ('/players/'+enc(me.id)+'/inbox','DELETE')}catch(e){}};
+    const reply=async(state,extra)=>{try{await fbJ(myDuel(),'PUT',Object.assign({did:inv.did,state,t:Date.now()},extra||{}));await fbJ(ib,'DELETE')}catch(e){}};
     const ck=MBGrow.duelCan();let left=25;
     const no=()=>{duelOvHide();reply('decline')};
     const yes=()=>{const c2=MBGrow.duelCan();if(!c2.ok){toast(c2.why,'','warn');return}duelOvHide();openLobby(inv.did,inv.from,fname,photo,false,null)};
     MBV(80,220);
     duelOvShow('⚔️ 대전 신청이 왔어요!',fname+'님이 한 판 붙자고 해요!',ck.ok?'수락하면 대기실에서 알바랑 판돈을 같이 정해요':ck.why,ck.ok?[['거절',no,true],['⚔️ 수락',yes]]:[['닫기',no,true]],avaEl(fname,photo));$('duelCd').textContent=left;
     dWait=setInterval(()=>{left--;$('duelCd').textContent=Math.max(0,left);if(left<=0)no()},1000)}
-  setInterval(checkInbox,3000);
+  setInterval(checkInbox,2500);
   /* 대기실: 누가 바꾸든 마지막으로 바꾼 설정이 둘 다에게 보여요. 설정이 바뀌면 '준비'는 다시 눌러야 해요 */
   function openLobby(did,oid,oname,ophoto,host,r0){const jobs=MBGrow.duelJobs(),dj=(jobs.find(j=>j.id==='burger')||jobs[0]).id;
     lob={did,oid,oname,ophoto,host,cfg:{job:dj,st:1,bet:0,v:host?Date.now():1,by:me.id},ready:0,opp:null,seen:Date.now()};if(r0&&r0.cfg&&r0.cfg.v>lob.cfg.v)lob.cfg=r0.cfg;
@@ -4602,14 +4613,14 @@ window.MB=(()=>{
   const bjNm=c=>(+c.lv>=20?(FNM[c.form]||'훈남'):+c.lv>=12?'학생':+c.lv>=5?'어린이':'아가')+' 범준';
   const ago=t=>{if(!t)return '';const m=(Date.now()-t)/60000;return m<2?'방금 접속':m<60?Math.floor(m)+'분 전 접속':m<1440?Math.floor(m/60)+'시간 전 접속':Math.floor(m/1440)+'일 전 접속'};
   const wonS=n=>{n=Math.floor(n||0);return n>=1e8?(Math.floor(n/1e7)/10).toLocaleString('ko-KR')+'억원':n>=1e4?(Math.floor(n/1e3)/10).toLocaleString('ko-KR')+'만원':fmt(n)+'원'};
-  let pfCard=null,pfRaf=0,pfLast=0;
+  let pfCard=null,pfRaf=0,pfLast=0,pfOnT=0;
   function tile(par,lab,val){const d=document.createElement('div'),sm=document.createElement('small'),b=document.createElement('b');sm.textContent=lab;b.textContent=val;d.append(sm,b);par.append(d)}
   function openPf(id,p){const isMe=id===me.id;if(isMe)p=Object.assign({},p,mine(),{t:Date.now()});
     let c=isMe?gw():p.gw;if(!c||typeof c!=='object'||!(+c.lv>=1))c=null;pfCard=c;
     setAva($('pfAva'),p.name,p.photo);$('pfName').textContent=(p.name||'이름 없음')+(isMe?' (나)':'');$('pfWhen').textContent=isMe?'내 프로필':ago(p.t);
     const cv=$('pfCv'),dpr=Math.min(2,window.devicePixelRatio||1),w=Math.round(Math.min(340,(document.documentElement.clientWidth||360)-24)*dpr);
     if(cv.width!==w){cv.width=w;cv.height=Math.round(w*348/320)}cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
-    $('pfNone').hidden=!!c;$('pfTag').hidden=!c;renderDuelBox(id,p);
+    $('pfNone').hidden=!!c;$('pfTag').hidden=!c;renderDuelBox(id,p);clearInterval(pfOnT);if(!isMe&&FB_URL){let was=isOn(p,id);pfOnT=setInterval(async()=>{if($('pfOv').hidden){clearInterval(pfOnT);return}try{const v=await fbJ('/players/'+enc(id)+'/on');const dv=await fbJ('/players/'+enc(id)+'/dv');noteOn(id,v);p.on=v;p.dv=dv;const now2=isOn(p,id);if(now2!==was||!$('pfDuel').querySelector('.df')){was=now2;if(!$('pfDuel').querySelector('.df'))renderDuelBox(id,p)}}catch(e){}},4000)}
     const M=$('pfMoney'),C=$('pfChips'),R=$('pfRec');M.textContent='';C.textContent='';R.textContent='';
     if(c){$('pfTag').textContent=(c.dead?'😇 ':c.sick?'🤒 ':'')+bjNm(c)+' · '+fmt(c.lv)+'살'+(c.dead?' · 하늘나라':'');
       tile(M,'💰 가진 돈',wonS(c.money));tile(M,'💵 번 돈',wonS(c.earned));tile(M,'🛍️ 아이템',fmt(c.items||0)+'개');

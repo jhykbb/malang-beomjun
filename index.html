@@ -2985,10 +2985,15 @@ const ty=hy-R*.86;wctx.textAlign='center';wctx.textBaseline='middle';
     const x2=cv.getContext('2d');x2.setTransform(1,0,0,1,0,0);x2.clearRect(0,0,cv.width,cv.height);x2.filter=c.dead?'grayscale(1) brightness(1.06)':'none';x2.drawImage(wx,0,0,W2,H2,0,0,cv.width,cv.height);x2.filter='none';
     wctx.save();wctx.setTransform(1,0,0,1,0,0);wctx.globalCompositeOperation='copy';wctx.drawImage(pvBak,0,0);wctx.restore();
     return ok}
-  const growApi={card,portrait,saveNow:()=>{save();bagSave()},freeze:()=>{frozen=true},money:()=>Math.floor(G.money||0),duelJobs,duelCan,duelStart,duelOpp,duelState:()=>act&&act.duel?{did:act.duel.did,res:act.duel.res,end:!!act.end}:null};
+  // 대전 중 내 화면을 작게 찍어서 상대에게 보내요 (알바 화면 부분만)
+  let snapC=null;
+  function snap(w){if(mode!=='grow'||!act||!act.duel)return null;w=Math.round(w||96);const r=wx.getBoundingClientRect(),dpr=wx.width/Math.max(1,r.width),h=Math.round(w*(RB-RT)/320);
+    if(!snapC)snapC=document.createElement('canvas');if(snapC.width!==w||snapC.height!==h){snapC.width=w;snapC.height=h}const x=snapC.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);
+    try{x.drawImage(wx,(ox+10*u)*dpr,(oy+RT*u)*dpr,320*u*dpr,(RB-RT)*u*dpr,0,0,w,h);return snapC.toDataURL('image/jpeg',.5)}catch(e){return null}}
+  const growApi={snap,card,portrait,saveNow:()=>{save();bagSave()},freeze:()=>{frozen=true},money:()=>Math.floor(G.money||0),duelJobs,duelCan,duelStart,duelOpp,duelState:()=>act&&act.duel?{did:act.duel.did,res:act.duel.res,end:!!act.end}:null};
   return{...growApi,down,move,up,draw,best:()=>S.best,_s:()=>S,_G:()=>G,_job:(id,fast,st)=>{startJobAct(JOBS.find(x=>x.id===id),st);if(fast)act.t0=now_()+100},_board:()=>openBoard(),_set:o=>{Object.assign(S,o);save()},_act:()=>act,_g:()=>({u,ox,oy}),_away:ms=>{simT-=ms},_revive:()=>{S.dead=null;dying=null;act=null},_awayP:awayP}
 })();
-window.MBGrow={card:Grow.card,portrait:Grow.portrait,saveNow:Grow.saveNow,freeze:Grow.freeze,money:Grow.money,duelJobs:Grow.duelJobs,duelCan:Grow.duelCan,duelStart:Grow.duelStart,duelOpp:Grow.duelOpp,duelState:Grow.duelState};   // 앱 레이어(랭킹 프로필·로그아웃)에서 써요
+window.MBGrow={card:Grow.card,portrait:Grow.portrait,saveNow:Grow.saveNow,freeze:Grow.freeze,money:Grow.money,duelJobs:Grow.duelJobs,duelCan:Grow.duelCan,duelStart:Grow.duelStart,duelOpp:Grow.duelOpp,duelState:Grow.duelState,snap:Grow.snap};   // 앱 레이어(랭킹 프로필·로그아웃)에서 써요
 /* ---------- 인형뽑기 범준: claw machine full of 범준 plushies (Matter.js pile, swinging claw on a cable, slips, prize chute, 도감) ---------- */
 const Claw=(()=>{
   const MT=window.Matter;
@@ -4295,6 +4300,24 @@ header{align-items:center}
 .duel-card .big{font:400 1.05rem var(--display);color:var(--ink)}
 .duel-card .acts{display:flex;gap:8px;width:100%}
 .duel-card .cd{font:400 2rem var(--display);color:var(--accent)}
+.duel-card .cd:empty{display:none}
+.duel-card{max-height:92vh;overflow-y:auto}
+.df.lobby{width:100%;text-align:left}
+.df[hidden]{display:none}
+.lv{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}
+.lp{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;text-align:center}
+.lp b{font:400 .95rem var(--display);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lp small{font-size:.72rem;color:var(--muted)}
+.lp small.ok{color:#2fa86a}
+.lvs{font:400 1.4rem var(--display);color:var(--ink)}
+.lnote{font-size:.75rem!important;color:var(--muted);margin:2px 0 0!important}
+#duelPip{position:fixed;right:10px;top:50%;z-index:45;width:min(30vw,124px);border-radius:14px;overflow:hidden;background:#2b2236;border:2px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.35);touch-action:none;cursor:grab;user-select:none}
+#duelPip[hidden]{display:none}
+#duelPip img{display:block;width:100%;aspect-ratio:320/348;object-fit:cover;pointer-events:none}
+#duelPip img:not([src]){visibility:hidden}
+#duelPip small{position:absolute;left:0;right:0;top:0;z-index:1;background:rgba(0,0,0,.55);color:#fff;font:400 .68rem var(--display);padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pipWait{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:400 .75rem var(--display)}
+#pipWait[hidden]{display:none}
 </style>
 
 <div class="ov" id="rankOv" hidden>
@@ -4329,9 +4352,12 @@ header{align-items:center}
     <p class="big" id="duelMsg"></p>
     <p id="duelSub"></p>
     <div class="cd" id="duelCd"></div>
+    <div class="df lobby" id="duelLobby" hidden></div>
     <div class="acts" id="duelActs"></div>
   </div>
 </div>
+
+<div id="duelPip" hidden><small id="pipName"></small><img id="pipImg" alt="상대 화면"><span id="pipWait">연결 중…</span></div>
 
 <div class="ov" id="dexOv" hidden>
   <div class="sheet" role="dialog" aria-labelledby="dexTitle">
@@ -4477,56 +4503,91 @@ window.MB=(()=>{
 
 
   /* ---- ⚔️ 1대1 알바 대전 (실시간) ----
-     신청: players/{상대}/inbox 에 초대장, players/{나}/duel 에 내 상태 → 상대가 수락하면 둘 다 같은 알바 시작
-     게임 중: 각자 players/{나}/duel 에 점수를 계속 쓰고, 상대 것을 계속 읽어요 */
+     ① 신청: players/{상대}/inbox 에 초대장 → ② 수락하면 둘 다 대기실: 알바·난이도·판돈을 둘이 같이 정하고 둘 다 '준비'
+     ③ 시작: 각자 players/{나}/duel 에 점수와 작은 화면을 계속 올리고, 상대 것을 계속 읽어요 */
   me.dw=+(LS('dw')||0);me.dl=+(LS('dl')||0);
   const enc=encodeURIComponent,isOn=p=>!!(p&&p.on&&Date.now()-p.on<75000);
   const fbJ=(path,method,body)=>fetch(FB_URL+path+'.json',method?{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)}:{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()});
   setInterval(()=>{if(FB_URL&&me.name&&!frozen&&!document.hidden)fbJ('/players/'+enc(me.id),'PATCH',{on:Date.now()}).catch(()=>{})},25000);
-  let duel=null,dPoll=0,dWait=0,dInbox=0,dSeen={};
+  let duel=null,dPoll=0,dWait=0,dSeen={},lob=null,lobT=0,lobHB=0,pipT=0;
   const BETS=[0,10000,50000,100000,300000,1000000];
   const betTxt=b=>b?(b>=1e4?(b/1e4)+'만원':fmt(b)+'원'):'판돈 없음';
-  function duelOvShow(title,msg,sub,acts,ava){$('duelTitle').textContent=title;$('duelMsg').textContent=msg;$('duelSub').textContent=sub||'';$('duelCd').textContent='';
+  const myDuel=()=>'/players/'+enc(me.id)+'/duel';
+  function duelOvShow(title,msg,sub,acts,ava){$('duelTitle').textContent=title;$('duelMsg').textContent=msg;$('duelSub').textContent=sub||'';$('duelCd').textContent='';$('duelLobby').hidden=true;
     const av=$('duelAva');av.textContent='';if(ava)av.append(ava);const A=$('duelActs');A.textContent='';(acts||[]).forEach(([lab,fn,ghost])=>{const b=document.createElement('button');b.className='btn'+(ghost?' ghost':'');b.textContent=lab;b.onclick=fn;A.append(b)});$('duelOv').hidden=false}
   const duelOvHide=()=>{$('duelOv').hidden=true;clearInterval(dWait);dWait=0};
   function renderDuelBox(id,p){const box=$('pfDuel');box.textContent='';if(id===me.id||!FB_URL||!hasGrow()||!MBGrow.duelJobs){box.hidden=true;return}box.hidden=false;
     const on=isOn(p),r1=document.createElement('div');r1.className='row1';const st=document.createElement('span');st.className='st'+(on?' on':'');st.textContent=on?'🟢 지금 접속 중':'⚪ 지금은 접속 안 함';
-    const b=document.createElement('button');b.className='btn';b.textContent='⚔️ 대전 신청';const ck=MBGrow.duelCan();b.disabled=!on||!ck.ok||!!duel;r1.append(st,b);box.append(r1);
-    if(!on){const n=document.createElement('span');n.className='st';n.textContent='상대가 앱을 켜고 있을 때만 신청할 수 있어요';box.append(n)}else if(!ck.ok){const n=document.createElement('span');n.className='st';n.textContent=ck.why;box.append(n)}
-    b.onclick=()=>{b.remove();duelForm(box,id,p)}}
-  function duelForm(box,oid,p){const f=document.createElement('div');f.className='df';const jobs=MBGrow.duelJobs(),money=MBGrow.money();let st=1,bet=0;
-    const lj=document.createElement('label');lj.textContent='어떤 알바로 붙을까?';const sel=document.createElement('select');jobs.forEach(j=>{const o=document.createElement('option');o.value=j.id;o.textContent=j.e+' '+j.n+' · '+(j.mode==='survive'?'⏱ 오래 버티기':'🎯 점수 내기');sel.append(o)});
-    const ls=document.createElement('label');ls.textContent='난이도';const cs=document.createElement('div');cs.className='chips';[1,2,3,4,5].forEach(n=>{const c=document.createElement('button');c.textContent='★'.repeat(n);c.setAttribute('aria-pressed',n===st);c.onclick=()=>{st=n;cs.querySelectorAll('button').forEach((x,i)=>x.setAttribute('aria-pressed',i+1===n))};cs.append(c)});
-    const lb=document.createElement('label');lb.textContent='판돈 (내 돈 '+fmt(money)+'원 · 이긴 사람이 둘 다 가져가요)';const cb=document.createElement('div');cb.className='chips';BETS.forEach(v=>{const c=document.createElement('button');c.textContent=betTxt(v);c.disabled=v>money;c.setAttribute('aria-pressed',v===bet);c.onclick=()=>{bet=v;cb.querySelectorAll('button').forEach((x,i)=>x.setAttribute('aria-pressed',BETS[i]===v))};cb.append(c)});
-    const go=document.createElement('button');go.className='btn';go.textContent='⚔️ 신청 보내기';go.onclick=()=>sendDuel(oid,p,sel.value,st,bet);
-    f.append(lj,sel,ls,cs,lb,cb,go);box.append(f)}
-  async function sendDuel(oid,p,job,st,bet){if(duel)return;const ck=MBGrow.duelCan();if(!ck.ok){toast(ck.why,'','warn');return}if(bet>MBGrow.money()){toast('돈이 모자라요','','warn');return}
-    const did=me.id+'-'+Date.now().toString(36),J=MBGrow.duelJobs().find(j=>j.id===job)||{e:'⚔️',n:job};
-    try{await fbJ('/players/'+enc(me.id)+'/duel','PUT',{did,state:'invite',t:Date.now()});await fbJ('/players/'+enc(oid)+'/inbox','PUT',{did,from:me.id,fname:me.name,fphoto:'',job,st,bet,t:Date.now()})}
+    const b=document.createElement('button');b.className='btn';b.textContent='⚔️ 대전 신청';const ck=MBGrow.duelCan();b.disabled=!on||!ck.ok||!!duel||!!lob;r1.append(st,b);box.append(r1);
+    const n=document.createElement('span');n.className='st';n.textContent=!on?'상대가 앱을 켜고 있을 때만 신청할 수 있어요':!ck.ok?ck.why:'수락하면 대기실에서 알바·판돈을 같이 정해요';box.append(n);
+    b.onclick=()=>sendDuel(id,p)}
+  async function sendDuel(oid,p){if(duel||lob)return;const ck=MBGrow.duelCan();if(!ck.ok){toast(ck.why,'','warn');return}
+    const did=me.id+'-'+Date.now().toString(36);
+    try{await fbJ(myDuel(),'PUT',{did,state:'invite',t:Date.now()});await fbJ('/players/'+enc(oid)+'/inbox','PUT',{did,from:me.id,fname:me.name,t:Date.now()})}
     catch(e){toast('신청을 못 보냈어요. 인터넷을 확인해 주세요','','warn');return}
-    let left=30;const cancel=async()=>{duelOvHide();try{await fbJ('/players/'+enc(oid)+'/inbox','DELETE');await fbJ('/players/'+enc(me.id)+'/duel','PATCH',{state:'cancel'})}catch(e){}};
-    duelOvShow('⚔️ 대전 신청!',(p.name||'상대')+'님이 받아 주길 기다리는 중…',J.e+' '+J.n+' · '+'★'.repeat(st)+' · '+betTxt(bet),[['취소',cancel,true]],avaEl(p.name,p.photo));$('duelCd').textContent=left;
+    let left=30;const cancel=async()=>{duelOvHide();try{await fbJ('/players/'+enc(oid)+'/inbox','DELETE');await fbJ(myDuel(),'PATCH',{state:'cancel'})}catch(e){}};
+    duelOvShow('⚔️ 대전 신청!',(p.name||'상대')+'님이 받아 주길 기다리는 중…','수락하면 대기실에서 알바랑 판돈을 같이 정해요',[['취소',cancel,true]],avaEl(p.name,p.photo));$('duelCd').textContent=left;
     dWait=setInterval(async()=>{left--;$('duelCd').textContent=Math.max(0,left);if(left<=0){cancel();toast('상대가 대답이 없어요','','warn');return}
-      try{const r=await fbJ('/players/'+enc(oid)+'/duel');if(r&&r.did===did){if(r.state==='accept'||r.state==='play'){duelOvHide();startDuel(did,oid,p.name||'상대',job,st,bet)}else if(r.state==='decline'){duelOvHide();toast((p.name||'상대')+'님이 거절했어요 😢','','warn')}}}catch(e){}},1000)}
-  async function checkInbox(){if(!FB_URL||!me.name||frozen||document.hidden||duel||!$('duelOv').hidden||!hasGrow()||!MBGrow.duelStart)return;
+      try{const r=await fbJ('/players/'+enc(oid)+'/duel');if(r&&r.did===did){if(r.state==='lobby'){duelOvHide();openLobby(did,oid,p.name||'상대',p.photo,true,r)}else if(r.state==='decline'){duelOvHide();toast((p.name||'상대')+'님이 거절했어요 😢','','warn')}}}catch(e){}},1000)}
+  async function checkInbox(){if(!FB_URL||!me.name||frozen||document.hidden||duel||lob||!$('duelOv').hidden||!hasGrow()||!MBGrow.duelStart)return;
     let inv;try{inv=await fbJ('/players/'+enc(me.id)+'/inbox')}catch(e){return}if(!inv||!inv.did||dSeen[inv.did]||Date.now()-(inv.t||0)>40000)return;dSeen[inv.did]=1;
-    const J=MBGrow.duelJobs().find(j=>j.id===inv.job);if(!J)return;const fname=String(inv.fname||'누군가').slice(0,12),bet=Math.max(0,+inv.bet||0),st=Math.min(5,Math.max(1,+inv.st||1));
-    const reply=async state=>{try{await fbJ('/players/'+enc(me.id)+'/duel','PUT',{did:inv.did,state,t:Date.now()});await fbJ('/players/'+enc(me.id)+'/inbox','DELETE')}catch(e){}};
-    const ck=MBGrow.duelCan(),poor=bet>MBGrow.money();let left=25;
+    const fname=String(inv.fname||'누군가').slice(0,12),pl=(players||[]).find(([i])=>i===inv.from),photo=pl?pl[1].photo:'';
+    const reply=async(state,extra)=>{try{await fbJ(myDuel(),'PUT',Object.assign({did:inv.did,state,t:Date.now()},extra||{}));await fbJ('/players/'+enc(me.id)+'/inbox','DELETE')}catch(e){}};
+    const ck=MBGrow.duelCan();let left=25;
     const no=()=>{duelOvHide();reply('decline')};
-    const yes=()=>{const c2=MBGrow.duelCan();if(!c2.ok){toast(c2.why,'','warn');return}if(bet>MBGrow.money()){toast('판돈 낼 돈이 모자라요','','warn');return}duelOvHide();reply('accept').then(()=>startDuel(inv.did,inv.from,fname,inv.job,st,bet))};
-    if(navigator.vibrate)try{navigator.vibrate(120)}catch(e){}MBV(80,220);
-    duelOvShow('⚔️ 대전 신청이 왔어요!',fname+'님이 한 판 붙자고 해요!',J.e+' '+J.n+' · '+'★'.repeat(st)+' · '+(J.mode==='survive'?'⏱ 오래 버티기':'🎯 점수 내기')+' · '+betTxt(bet)+(!ck.ok?' · '+ck.why:poor?' · 돈이 모자라요':''),
-      ck.ok&&!poor?[['거절',no,true],['⚔️ 수락',yes]]:[['닫기',no,true]],avaEl(fname,''));$('duelCd').textContent=left;
+    const yes=()=>{const c2=MBGrow.duelCan();if(!c2.ok){toast(c2.why,'','warn');return}duelOvHide();openLobby(inv.did,inv.from,fname,photo,false,null)};
+    MBV(80,220);
+    duelOvShow('⚔️ 대전 신청이 왔어요!',fname+'님이 한 판 붙자고 해요!',ck.ok?'수락하면 대기실에서 알바랑 판돈을 같이 정해요':ck.why,ck.ok?[['거절',no,true],['⚔️ 수락',yes]]:[['닫기',no,true]],avaEl(fname,photo));$('duelCd').textContent=left;
     dWait=setInterval(()=>{left--;$('duelCd').textContent=Math.max(0,left);if(left<=0)no()},1000)}
-  dInbox=setInterval(checkInbox,3000);
+  setInterval(checkInbox,3000);
+  /* 대기실: 누가 바꾸든 마지막으로 바꾼 설정이 둘 다에게 보여요. 설정이 바뀌면 '준비'는 다시 눌러야 해요 */
+  function openLobby(did,oid,oname,ophoto,host,r0){const jobs=MBGrow.duelJobs(),dj=(jobs.find(j=>j.id==='burger')||jobs[0]).id;
+    lob={did,oid,oname,ophoto,host,cfg:{job:dj,st:1,bet:0,v:host?Date.now():1,by:me.id},ready:0,opp:null,seen:Date.now()};if(r0&&r0.cfg&&r0.cfg.v>lob.cfg.v)lob.cfg=r0.cfg;
+    lobWrite();renderLobby();clearInterval(lobT);clearInterval(lobHB);lobT=setInterval(lobPoll,700);lobHB=setInterval(lobWrite,2000)}
+  function lobWrite(){if(!lob)return;fbJ(myDuel(),'PUT',{did:lob.did,state:'lobby',cfg:lob.cfg,ready:lob.ready,m:MBGrow.money(),t:Date.now()}).catch(()=>{})}
+  function lobClose(msg){clearInterval(lobT);clearInterval(lobHB);lobT=lobHB=0;const L=lob;lob=null;duelOvHide();if(msg)toast(msg,'','warn');return L}
+  const lobLeave=()=>{if(!lob)return;const L=lobClose();fbJ(myDuel(),'PUT',{did:L.did,state:'cancel',t:Date.now()}).catch(()=>{})};
+  function lobSet(k,v){if(!lob)return;lob.cfg=Object.assign({},lob.cfg,{[k]:v,v:Date.now(),by:me.id});lob.ready=0;lobWrite();renderLobby()}
+  const lobMax=()=>Math.min(MBGrow.money(),lob&&lob.opp&&lob.opp.m!=null?+lob.opp.m:Infinity);
+  function renderLobby(){if(!lob)return;const L=lob,c=L.cfg,jobs=MBGrow.duelJobs(),J=jobs.find(j=>j.id===c.job)||jobs[0],mx=lobMax();
+    $('duelTitle').textContent='⚔️ 대기실';$('duelMsg').textContent='';$('duelSub').textContent='알바·난이도·판돈은 둘 다 바꿀 수 있어요. 둘 다 준비하면 시작!';$('duelCd').textContent='';$('duelAva').textContent='';
+    const B=$('duelLobby');B.textContent='';B.hidden=false;
+    const vs=document.createElement('div');vs.className='lv';const side=(nm,ph,rd)=>{const d=document.createElement('div');d.className='lp';d.append(avaEl(nm,ph));const b=document.createElement('b');b.textContent=nm;const s2=document.createElement('small');s2.textContent=rd?'✅ 준비 완료':'고르는 중…';s2.className=rd?'ok':'';d.append(b,s2);return d};
+    const oppRd=!!(L.opp&&L.opp.cfg&&L.opp.cfg.v===c.v&&L.opp.ready===c.v&&L.opp.ready>0);vs.append(side(me.name+' (나)',me.photo,L.ready>0&&L.ready===c.v),Object.assign(document.createElement('span'),{className:'lvs',textContent:'VS'}),side(L.oname,L.ophoto,oppRd));B.append(vs);
+    const lj=document.createElement('label');lj.textContent='어떤 알바로 붙을까?';const sel=document.createElement('select');jobs.forEach(j=>{const o=document.createElement('option');o.value=j.id;o.textContent=j.e+' '+j.n+' · '+(j.mode==='survive'?'⏱ 오래 버티기':'🎯 점수 내기');if(j.id===c.job)o.selected=true;sel.append(o)});sel.onchange=()=>lobSet('job',sel.value);
+    const ls=document.createElement('label');ls.textContent='난이도';const cs=document.createElement('div');cs.className='chips';[1,2,3,4,5].forEach(n=>{const b=document.createElement('button');b.textContent='★'.repeat(n);b.setAttribute('aria-pressed',n===c.st);b.onclick=()=>lobSet('st',n);cs.append(b)});
+    const lb=document.createElement('label');lb.textContent='판돈 · 이긴 사람이 둘 다 가져가요 (최대 '+fmt(mx===Infinity?MBGrow.money():mx)+'원)';const cb=document.createElement('div');cb.className='chips';BETS.forEach(v=>{const b=document.createElement('button');b.textContent=betTxt(v);b.disabled=v>mx;b.setAttribute('aria-pressed',v===c.bet);b.onclick=()=>lobSet('bet',v);cb.append(b)});
+    const nt=document.createElement('p');nt.className='lnote';const poor=c.bet>MBGrow.money();nt.textContent=poor?'💸 내 돈이 판돈보다 적어요. 판돈을 낮춰 주세요':(c.by===me.id?'내가 바꿨어요':L.oname+'님이 바꿨어요')+' · 바꾸면 둘 다 준비를 다시 눌러야 해요';
+    B.append(lj,sel,ls,cs,lb,cb,nt);
+    const A=$('duelActs');A.textContent='';const lv=document.createElement('button');lv.className='btn ghost';lv.textContent='나가기';lv.onclick=lobLeave;
+    const rd=document.createElement('button');rd.className='btn';const isR=L.ready>0&&L.ready===c.v;rd.textContent=isR?'준비 취소':'✅ 준비';rd.disabled=poor||!J;rd.onclick=()=>{if(!lob)return;lob.ready=isR?0:lob.cfg.v;lobWrite();renderLobby();lobGo()};A.append(lv,rd);$('duelOv').hidden=false}
+  function lobGo(){const L=lob;if(!L)return;const c=L.cfg,o=L.opp;if(L.ready>0&&L.ready===c.v&&o&&o.cfg&&o.cfg.v===c.v&&o.ready===c.v){if(c.bet>MBGrow.money()){toast('판돈 낼 돈이 모자라요','','warn');return}lobClose();startDuel(L.did,L.oid,L.oname,c.job,c.st,c.bet)}}
+  async function lobPoll(){if(!lob)return;let r=null;try{r=await fbJ('/players/'+enc(lob.oid)+'/duel')}catch(e){}if(!lob)return;
+    if(r&&r.did===lob.did){lob.seen=Date.now();if(r.state==='cancel'){lobClose(lob.oname+'님이 대기실에서 나갔어요');return}if(r.state==='decline'){lobClose('거절했어요');return}
+      const was=JSON.stringify([lob.opp&&lob.opp.cfg,lob.opp&&lob.opp.ready,lob.opp&&lob.opp.m]);
+      if(r.cfg&&(r.cfg.v>lob.cfg.v||(r.cfg.v===lob.cfg.v&&String(r.cfg.by)>String(lob.cfg.by)))){lob.cfg=r.cfg;if(lob.ready&&lob.ready!==r.cfg.v)lob.ready=0;lob.opp=r;lobWrite();renderLobby()}
+      else{lob.opp=r;if(was!==JSON.stringify([r.cfg,r.ready,r.m]))renderLobby()}
+      if(lob&&lob.cfg.bet>lobMax()&&lob.cfg.by===me.id)lobSet('bet',BETS.filter(v=>v<=lobMax()).pop()||0);
+      lobGo()}
+    else if(lob&&Date.now()-lob.seen>12000)lobClose('상대 연결이 끊겼어요')}
+  /* 게임: 점수는 0.4초마다, 작은 화면은 0.8초마다 올려요 */
   function startDuel(did,oid,oname,job,st,bet){['pfOv','rankOv'].forEach(close);const gb=document.querySelector('[data-app=grow]');if(gb&&app!=='grow')gb.click();
-    let busyW=false,last=null;
-    const ok=MBGrow.duelStart({did,job,st,bet,oppName:oname,onTick:o=>{last=o;if(busyW)return;busyW=true;fbJ('/players/'+enc(me.id)+'/duel','PUT',{did,state:'play',s:o.s,alive:o.alive,done:o.done,t:Date.now()}).catch(()=>{}).finally(()=>{busyW=false})},
+    let busyW=false,pic=null,picAt=0,picSent=0;
+    const ok=MBGrow.duelStart({did,job,st,bet,oppName:oname,onTick:o=>{if(busyW)return;busyW=true;const body={did,state:'play',s:o.s,alive:o.alive,done:o.done,t:Date.now()};if(pic&&picAt>picSent){body.pic=pic;picSent=picAt}
+        fbJ(myDuel(),'PATCH',body).catch(()=>{}).finally(()=>{busyW=false})},
       onEnd:r=>{if(r.res==='win')me.dw=(me.dw||0)+1;else if(r.res==='lose')me.dl=(me.dl||0)+1;SS('dw',me.dw);SS('dl',me.dl);dirty=true;schedule(3000);setTimeout(stopDuel,12000)}});
-    if(!ok){toast('대전을 시작하지 못했어요','','warn');fbJ('/players/'+enc(me.id)+'/duel','PUT',{did,state:'cancel',t:Date.now()}).catch(()=>{});return}
-    duel={did,oid};clearInterval(dPoll);dPoll=setInterval(async()=>{let r=null;try{r=await fbJ('/players/'+enc(oid)+'/duel')}catch(e){}if(!duel)return;MBGrow.duelOpp(did,r&&r.did===did&&r.t&&r.s!=null?r:null)},700)}
-  function stopDuel(){clearInterval(dPoll);dPoll=0;duel=null}
+    if(!ok){toast('대전을 시작하지 못했어요','','warn');fbJ(myDuel(),'PUT',{did,state:'cancel',t:Date.now()}).catch(()=>{});return}
+    duel={did,oid};pipShow(oname);clearInterval(pipT);pipT=setInterval(()=>{const u2=MBGrow.snap&&MBGrow.snap(96);if(u2){pic=u2;picAt=Date.now()}},800);
+    let lastPic='';clearInterval(dPoll);dPoll=setInterval(async()=>{let r=null;try{r=await fbJ('/players/'+enc(oid)+'/duel')}catch(e){}if(!duel)return;
+      MBGrow.duelOpp(did,r&&r.did===did&&r.t&&r.s!=null?r:null);if(r&&r.did===did&&r.pic&&r.pic!==lastPic&&/^data:image\/jpeg;base64,/.test(r.pic)){lastPic=r.pic;$('pipImg').src=r.pic;$('pipWait').hidden=true}
+      if(!MBGrow.duelState())pipHide()},700)}
+  function stopDuel(){clearInterval(dPoll);clearInterval(pipT);dPoll=pipT=0;duel=null;pipHide()}
+  /* 상대 화면 (작은 창 · 끌어서 옮길 수 있어요) */
+  function pipShow(nm){const P=$('duelPip');$('pipName').textContent='📺 '+nm;$('pipImg').removeAttribute('src');$('pipWait').hidden=false;P.hidden=false}
+  function pipHide(){$('duelPip').hidden=true}
+  {const P=$('duelPip');let dr=null;P.addEventListener('pointerdown',e=>{const r=P.getBoundingClientRect();dr={dx:e.clientX-r.left,dy:e.clientY-r.top,id:e.pointerId};P.setPointerCapture(e.pointerId);e.stopPropagation()});
+    P.addEventListener('pointermove',e=>{if(!dr||e.pointerId!==dr.id)return;const W2=innerWidth-P.offsetWidth,H2=innerHeight-P.offsetHeight;P.style.left=Math.max(0,Math.min(W2,e.clientX-dr.dx))+'px';P.style.top=Math.max(0,Math.min(H2,e.clientY-dr.dy))+'px';P.style.right='auto';e.stopPropagation()});
+    const up=e=>{dr=null;e.stopPropagation()};P.addEventListener('pointerup',up);P.addEventListener('pointercancel',up)}
   /* ---- 플레이어 프로필: 랭킹에서 누르면 그 사람 범준이 + 돈 + 기록 ---- */
   const FNM={hun:'훈남',mus:'근육',fat:'통통',gen:'천재'};
   const bjNm=c=>(+c.lv>=20?(FNM[c.form]||'훈남'):+c.lv>=12?'학생':+c.lv>=5?'어린이':'아가')+' 범준';

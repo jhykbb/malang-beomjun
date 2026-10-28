@@ -4311,12 +4311,16 @@ header{align-items:center}
 .lp small.ok{color:#2fa86a}
 .lvs{font:400 1.4rem var(--display);color:var(--ink)}
 .lnote{font-size:.75rem!important;color:var(--muted);margin:2px 0 0!important}
-#duelPip{position:fixed;right:10px;top:50%;z-index:45;width:min(30vw,124px);border-radius:14px;overflow:hidden;background:#2b2236;border:2px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.35);touch-action:none;cursor:grab;user-select:none}
+.betrow{display:flex;gap:6px}
+.betrow input{flex:1;min-width:0;font:400 1rem var(--display);padding:9px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.betrow .btn{flex:none;padding:9px 16px}
+#duelPip{position:fixed;right:10px;top:50%;z-index:48;width:min(30vw,124px);border-radius:14px;overflow:hidden;background:#2b2236;border:2px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.35);touch-action:none;cursor:grab;user-select:none}
 #duelPip[hidden]{display:none}
 #duelPip img{display:block;width:100%;aspect-ratio:320/348;object-fit:cover;pointer-events:none}
 #duelPip img:not([src]){visibility:hidden}
+#duelPip:not(:has(img[src])){min-height:110px}
 #duelPip small{position:absolute;left:0;right:0;top:0;z-index:1;background:rgba(0,0,0,.55);color:#fff;font:400 .68rem var(--display);padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#pipWait{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:400 .75rem var(--display)}
+#pipWait{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:400 .72rem var(--display);text-align:center;white-space:pre-line;padding:18px 6px 6px}
 #pipWait[hidden]{display:none}
 </style>
 
@@ -4556,9 +4560,13 @@ window.MB=(()=>{
     const oppRd=!!(L.opp&&L.opp.cfg&&L.opp.cfg.v===c.v&&L.opp.ready===c.v&&L.opp.ready>0);vs.append(side(me.name+' (나)',me.photo,L.ready>0&&L.ready===c.v),Object.assign(document.createElement('span'),{className:'lvs',textContent:'VS'}),side(L.oname,L.ophoto,oppRd));B.append(vs);
     const lj=document.createElement('label');lj.textContent='어떤 알바로 붙을까?';const sel=document.createElement('select');jobs.forEach(j=>{const o=document.createElement('option');o.value=j.id;o.textContent=j.e+' '+j.n+' · '+(j.mode==='survive'?'⏱ 오래 버티기':'🎯 점수 내기');if(j.id===c.job)o.selected=true;sel.append(o)});sel.onchange=()=>lobSet('job',sel.value);
     const ls=document.createElement('label');ls.textContent='난이도';const cs=document.createElement('div');cs.className='chips';[1,2,3,4,5].forEach(n=>{const b=document.createElement('button');b.textContent='★'.repeat(n);b.setAttribute('aria-pressed',n===c.st);b.onclick=()=>lobSet('st',n);cs.append(b)});
-    const lb=document.createElement('label');lb.textContent='판돈 · 이긴 사람이 둘 다 가져가요 (최대 '+fmt(mx===Infinity?MBGrow.money():mx)+'원)';const cb=document.createElement('div');cb.className='chips';BETS.forEach(v=>{const b=document.createElement('button');b.textContent=betTxt(v);b.disabled=v>mx;b.setAttribute('aria-pressed',v===c.bet);b.onclick=()=>lobSet('bet',v);cb.append(b)});
+    const lb=document.createElement('label');lb.textContent='판돈 · 이긴 사람이 둘 다 가져가요 (최대 '+fmt(mx===Infinity?MBGrow.money():mx)+'원)';const cb=document.createElement('div');cb.className='chips';BETS.forEach(v=>{const b=document.createElement('button');b.textContent=betTxt(v);b.disabled=v>mx;b.setAttribute('aria-pressed',v===c.bet);b.onclick=()=>{lob.betDraft='';lobSet('bet',v)};cb.append(b)});
+    const br=document.createElement('div');br.className='betrow';const bi=document.createElement('input');bi.id='betIn';bi.type='text';bi.inputMode='numeric';bi.autocomplete='off';bi.placeholder='직접 입력 (원)';bi.value=L.betDraft!=null?L.betDraft:(BETS.includes(c.bet)?'':String(c.bet));
+    const bok=document.createElement('button');bok.className='btn';bok.textContent='걸기';const applyBet=()=>{const v=Math.floor(+String(bi.value).replace(/[^0-9]/g,'')||0),m2=lobMax(),cap=m2===Infinity?MBGrow.money():m2;if(v>cap){toast('최대 '+fmt(cap)+'원까지 걸 수 있어요','','warn');bi.value=String(cap);lob.betDraft=bi.value;return}lob.betDraft=null;lobSet('bet',v)};
+    bi.oninput=()=>{const d=String(bi.value).replace(/[^0-9]/g,'');bi.value=d;lob.betDraft=d};bi.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();applyBet()}};bok.onclick=applyBet;br.append(bi,bok);
+    const bnow=document.createElement('p');bnow.className='lnote';bnow.textContent='지금 판돈: '+(c.bet?fmt(c.bet)+'원 (이기면 '+fmt(c.bet*2)+'원)':'없음');
     const nt=document.createElement('p');nt.className='lnote';const poor=c.bet>MBGrow.money();nt.textContent=poor?'💸 내 돈이 판돈보다 적어요. 판돈을 낮춰 주세요':(c.by===me.id?'내가 바꿨어요':L.oname+'님이 바꿨어요')+' · 바꾸면 둘 다 준비를 다시 눌러야 해요';
-    B.append(lj,sel,ls,cs,lb,cb,nt);
+    const hadF=document.activeElement&&document.activeElement.id==='betIn';B.append(lj,sel,ls,cs,lb,cb,br,bnow,nt);if(hadF){bi.focus();try{bi.setSelectionRange(bi.value.length,bi.value.length)}catch(e){}}
     const A=$('duelActs');A.textContent='';const lv=document.createElement('button');lv.className='btn ghost';lv.textContent='나가기';lv.onclick=lobLeave;
     const rd=document.createElement('button');rd.className='btn';const isR=L.ready>0&&L.ready===c.v;rd.textContent=isR?'준비 취소':'✅ 준비';rd.disabled=poor||!J;rd.onclick=()=>{if(!lob)return;lob.ready=isR?0:lob.cfg.v;lobWrite();renderLobby();lobGo()};A.append(lv,rd);$('duelOv').hidden=false}
   function lobGo(){const L=lob;if(!L)return;const c=L.cfg,o=L.opp;if(L.ready>0&&L.ready===c.v&&o&&o.cfg&&o.cfg.v===c.v&&o.ready===c.v){if(c.bet>MBGrow.money()){toast('판돈 낼 돈이 모자라요','','warn');return}lobClose();startDuel(L.did,L.oid,L.oname,c.job,c.st,c.bet)}}
@@ -4577,13 +4585,14 @@ window.MB=(()=>{
         fbJ(myDuel(),'PATCH',body).catch(()=>{}).finally(()=>{busyW=false})},
       onEnd:r=>{if(r.res==='win')me.dw=(me.dw||0)+1;else if(r.res==='lose')me.dl=(me.dl||0)+1;SS('dw',me.dw);SS('dl',me.dl);dirty=true;schedule(3000);setTimeout(stopDuel,12000)}});
     if(!ok){toast('대전을 시작하지 못했어요','','warn');fbJ(myDuel(),'PUT',{did,state:'cancel',t:Date.now()}).catch(()=>{});return}
-    duel={did,oid};pipShow(oname);clearInterval(pipT);pipT=setInterval(()=>{const u2=MBGrow.snap&&MBGrow.snap(96);if(u2){pic=u2;picAt=Date.now()}},800);
+    duel={did,oid,t0:Date.now(),gotPic:false};pipShow(oname);clearInterval(pipT);pipT=setInterval(()=>{const u2=MBGrow.snap&&MBGrow.snap(96);if(u2){pic=u2;picAt=Date.now()}},800);
     let lastPic='';clearInterval(dPoll);dPoll=setInterval(async()=>{let r=null;try{r=await fbJ('/players/'+enc(oid)+'/duel')}catch(e){}if(!duel)return;
-      MBGrow.duelOpp(did,r&&r.did===did&&r.t&&r.s!=null?r:null);if(r&&r.did===did&&r.pic&&r.pic!==lastPic&&/^data:image\/jpeg;base64,/.test(r.pic)){lastPic=r.pic;$('pipImg').src=r.pic;$('pipWait').hidden=true}
+      MBGrow.duelOpp(did,r&&r.did===did&&r.t&&r.s!=null?r:null);if(r&&r.did===did&&r.pic&&r.pic!==lastPic&&/^data:image\/jpeg;base64,/.test(r.pic)){lastPic=r.pic;$('pipImg').src=r.pic;$('pipWait').hidden=true;duel.gotPic=true}
+      else if(!duel.gotPic&&Date.now()-duel.t0>8000)$('pipWait').textContent=r&&r.did===did?'상대 화면이 안 와요\n(상대도 최신 버전이어야 해요)':'상대 연결 중…';
       if(!MBGrow.duelState())pipHide()},700)}
   function stopDuel(){clearInterval(dPoll);clearInterval(pipT);dPoll=pipT=0;duel=null;pipHide()}
   /* 상대 화면 (작은 창 · 끌어서 옮길 수 있어요) */
-  function pipShow(nm){const P=$('duelPip');$('pipName').textContent='📺 '+nm;$('pipImg').removeAttribute('src');$('pipWait').hidden=false;P.hidden=false}
+  function pipShow(nm){const P=$('duelPip');$('pipName').textContent='📺 '+nm+' 화면';$('pipImg').removeAttribute('src');const w=$('pipWait');w.textContent='상대 화면 받는 중…';w.hidden=false;P.hidden=false}
   function pipHide(){$('duelPip').hidden=true}
   {const P=$('duelPip');let dr=null;P.addEventListener('pointerdown',e=>{const r=P.getBoundingClientRect();dr={dx:e.clientX-r.left,dy:e.clientY-r.top,id:e.pointerId};P.setPointerCapture(e.pointerId);e.stopPropagation()});
     P.addEventListener('pointermove',e=>{if(!dr||e.pointerId!==dr.id)return;const W2=innerWidth-P.offsetWidth,H2=innerHeight-P.offsetHeight;P.style.left=Math.max(0,Math.min(W2,e.clientX-dr.dx))+'px';P.style.top=Math.max(0,Math.min(H2,e.clientY-dr.dy))+'px';P.style.right='auto';e.stopPropagation()});
